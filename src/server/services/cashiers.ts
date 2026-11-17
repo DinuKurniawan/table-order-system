@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { PaymentStatus, Role } from "@prisma/client";
+import { RealTimeEvent } from "@/lib/realtime-events";
+import { PaymentStatus } from "@prisma/client";
+import { afterCommit } from "@/lib/after-commit";
+import { emitToChannel } from "@/lib/pusher-server";
+import { Role } from "@prisma/client";
 import {
   CashierCreateInput,
   CashierResetPasswordInput,
@@ -197,6 +201,17 @@ export async function updateCashier(
 
     return cashier;
   });
+
+  // Emit user.deactivated event setelah transaction commit,
+  // agar kasir klien bisa logout otomatis.
+  if (deactivated) {
+    afterCommit(() => {
+      emitToChannel("private-admin", "user.deactivated", {
+        userId: updated.id,
+        username: updated.username,
+      });
+    });
+  }
 
   return toDTO(updated);
 }

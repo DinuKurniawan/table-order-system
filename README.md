@@ -70,10 +70,11 @@ Status diambil dari kode yang ada di repositori per Step 7.
 | Pencatatan AuditLog untuk aksi kategori, produk, dan akun kasir | Selesai |
 | Manajemen kasir: tambah, ubah nama, toggle status, reset password, soft/hard delete | Selesai |
 | Kartu statistik dashboard dari data nyata | Dalam Pengerjaan (masih angka statis) |
-| Manajemen stok & riwayat pergerakan | Direncanakan |
+| Manajemen stok & riwayat pergerakan | Selesai |
 | Laporan keuangan | Direncanakan |
-| Manajemen meja & QR code | Direncanakan |
-| Halaman pengaturan kafe | Direncanakan |
+| Manajemen meja & QR code | Selesai |
+| Halaman pengaturan kafe | Selesai |
+| Infrastruktur realtime: Pusher server/client, auth endpoint, events constants, afterCommit helper | Selesai |
 
 ### Kasir
 
@@ -88,10 +89,11 @@ Status diambil dari kode yang ada di repositori per Step 7.
 
 | Fitur | Status |
 | --- | --- |
-| Halaman menu via QR meja | Direncanakan |
-| Keranjang & checkout | Direncanakan |
+| Halaman menu via QR meja | Selesai |
+| Keranjang & checkout | Selesai |
 | Upload bukti pembayaran | Direncanakan |
-| Pelacakan status pesanan realtime | Direncanakan |
+| Pelacakan status pesanan realtime | Selesai |
+| Halaman meja mobile-first (320-430px) | Selesai |
 
 ---
 
@@ -107,8 +109,9 @@ Status diambil dari kode yang ada di repositori per Step 7.
 | Autentikasi | `jose` (JWT), `argon2` | Sesi cookie httpOnly, hash password |
 | Storage | Cloudflare R2 (`@aws-sdk/client-s3`) | Penyimpanan gambar publik & privat |
 | Konversi gambar | `sharp` | Resize dan konversi ke AVIF |
-| Realtime | Pusher Channels (`pusher`, `pusher-js`) | Sinyal perubahan data ke klien |
+| Realtime | Pusher Channels (`pusher`, `pusher-js`) | Sinyal perubahan data ke klien (signal-only; klien invalidate cache TanStack Query lalu ambil data terbaru) |
 | State & data client | TanStack Query, Zustand | Cache server state, state keranjang |
+| After-transaction hook | `afterCommit` | Emit event setelah `$transaction` Prisma commit sukses |
 | Form | React Hook Form + `@hookform/resolvers` | Form produk & validasi klien |
 | UI | Tailwind CSS 4, shadcn/ui (Base UI), lucide-react | Komponen dan styling |
 | Grafik | Recharts | Grafik dashboard (belum dipakai) |
@@ -241,7 +244,11 @@ Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu d
 │   │   ├── image.ts           # Validasi gambar & konversi AVIF
 │   │   ├── rate-limiter.ts    # Batas percobaan login
 │   │   ├── validators/        # Skema Zod
-│   │   └── env.ts, db.ts, api.ts, errors.ts, utils.ts
+│   │   ├── env.ts, db.ts, api.ts, errors.ts, utils.ts
+│   │   ├── pusher-server.ts   # Instance Pusher useTLS, helper emitToChannel error best-effort
+│   │   ├── pusher-client.ts   # Singleton pusher-js, hook usePusherChannel dan useRealtimeEvent, status koneksi untuk ConnectionIndicator, auto-invalidate QueryClient saat connected
+│   │   ├── after-commit.ts    # Helper emit setelah transaction Prisma selesai
+│   │   └── realtime-events.ts # Konstanta event dan channel
 │   ├── server/services/       # Aturan bisnis & akses Prisma
 │   └── middleware.ts          # Route guard /admin dan /cashier
 ├── tests/                     # Unit & integrasi (node:test)
@@ -319,9 +326,9 @@ Prisma → PostgreSQL
 - [x] Step 5 — Upload gambar, konversi AVIF, penyimpanan R2
 - [x] Step 6 — Modul menu: kategori, produk, tabel, form, audit log
 - [x] Step 7 — Modul kasir: akun, reset password, invalidasi sesi
-- [ ] Step 8 — *(indikatif)* Manajemen stok
-- [ ] Step 9 — *(indikatif)* Keuangan
-- [ ] Step 10 — *(indikatif)* Pembayaran customer & verifikasi kasir
+- [x] Step 8 — *(indikatif)* Infrastruktur realtime (Pusher server/client, auth endpoint, events constants, afterCommit helper)
+- [x] Step 9 — *(indikatif)* Sisi customer bagian 1 (mobile-first 320-430px, halaman meja & keranjang type fixes)
+- [x] Step 10 — *(indikatif)* Sisi customer bagian 2 (lanjut pengembangan antar tab & diagnose)
 - [ ] Step 11 — *(indikatif)* Manajemen meja & QR
 - [ ] Step 12 — *(indikatif)* Pengaturan kafe
 - [ ] Step 13 — *(indikatif)* Halaman customer (menu & keranjang)
