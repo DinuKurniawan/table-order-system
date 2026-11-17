@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CASHIER
+}
+
+enum CategoryType {
+  FOOD
+  DRINK
+}
+
+enum DrinkSubtype {
+  COFFEE
+  NON_COFFEE
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  AWAITING_VERIFICATION
+  PAYMENT_REJECTED
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TxType {
+  INCOME
+  EXPENSE
+}
+
+enum StockMoveType {
+  PURCHASE
+  ADJUSTMENT
+  WASTE
+  ORDER_RESERVE
+  ORDER_RELEASE
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String
+  username      String      @unique
+  passwordHash  String
+  role          Role
+  isActive      Boolean     @default(true)
+  tokenVersion  Int         @default(0) // naikkan untuk invalidasi sesi
+  lastLoginAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  verifications Payment[]   @relation("VerifiedBy")
+  auditLogs     AuditLog[]
+}
+
+model Category {
+  id        String        @id @default(cuid())
+  name      String
+  type      CategoryType
+  subtype   DrinkSubtype? // wajib bila type = DRINK
+  sortOrder Int           @default(0)
+  products  Product[]
+
+  @@unique([name, type])
+}
+
+model Product {
+  id                String          @id @default(cuid())
+  name              String
+  description       String?
+  price             Int             // rupiah, tanpa desimal
+  imageKey          String?         // key R2 (AVIF)
+  thumbKey          String?
+  categoryId        String
+  category          Category        @relation(fields: [categoryId], references: [id])
+  isActive          Boolean         @default(true)
+  trackStock        Boolean         @default(true)
+  stock             Int             @default(0)
+  lowStockThreshold Int             @default(5)
+  deletedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  orderItems        OrderItem[]
+  movements         StockMovement[]
+
+  @@index([categoryId, isActive])
+}
+
+model StockMovement {
+  id        String        @id @default(cuid())
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  type      StockMoveType
+  quantity  Int           // + masuk, - keluar
+  balance   Int           // stok setelah perubahan
+  note      String?
+  orderId   String?
+  userId    String?
+  createdAt DateTime      @default(now())
+
+  @@index([productId, createdAt])
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  name      String   @unique // "Meja 1"
+  area      String?
+  token     String   @unique // acak 16+ karakter
+  isActive  Boolean  @default(true)
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id           String        @id @default(cuid())
+  code         String        @unique // contoh: ORD-241116-A7K2
+  accessToken  String        // rahasia customer untuk lacak pesanan
+  tableId      String
+  table        Table         @relation(fields: [tableId], references: [id])
+  customerName String?
+  note         String?
+  subtotal     Int
+  total        Int
+  status       OrderStatus   @default(AWAITING_PAYMENT)
+  expiresAt    DateTime      // batas bayar
+  version      Int           @default(0) // optimistic locking
+  items        OrderItem[]
+  payments     Payment[]
+  transactions Transaction[]
+  printedAt    DateTime?
+  printCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+  nameSnapshot  String
+  priceSnapshot Int
+  quantity      Int
+  note          String?
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  attempt      Int           @default(1)
+  proofKey     String        // key R2 privat (AVIF)
+  status       PaymentStatus @default(PENDING)
+  rejectReason String?
+  verifiedById String?
+  verifiedBy   User?         @relation("VerifiedBy", fields: [verifiedById], references: [id])
+  verifiedAt   DateTime?
+  createdAt    DateTime      @default(now())
+
+  @@index([orderId])
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  type        TxType
+  category    String    // "Penjualan", "Bahan Baku", dst
+  amount      Int
+  note        String?
+  attachKey   String?
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id])
+  createdById String?
+  occurredAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@unique([orderId, category])
+  @@index([type, occurredAt])
+}
+
+model PaymentMethod {
+  id          String  @id @default(cuid())
+  kind        String  // QRIS | BANK
+  label       String
+  accountNo   String?
+  accountName String?
+  imageKey    String? // gambar QRIS (AVIF)
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+}
+
+model Setting {
+  key   String @id
+  value Json   // nama kafe, logo, timeout bayar, maks upload ulang, footer struk
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // "payment.approve", "stock.adjust", dst
+  entity    String
+  entityId  String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}

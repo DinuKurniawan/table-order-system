@@ -1,0 +1,96 @@
+import { z } from "zod";
+import { CategoryType, DrinkSubtype } from "@prisma/client";
+
+/**
+ * Kategori bertipe DRINK wajib memiliki subtype COFFEE / NON_COFFEE,
+ * sedangkan kategori FOOD dilarang memiliki subtype.
+ */
+export const categoryInputSchema = z.discriminatedUnion("type", [
+  z.object({
+    name: z.string().trim().min(1, "Nama kategori wajib diisi").max(50),
+    type: z.literal(CategoryType.FOOD),
+    subtype: z.literal(null).optional(),
+    sortOrder: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    name: z.string().trim().min(1, "Nama kategori wajib diisi").max(50),
+    type: z.literal(CategoryType.DRINK),
+    subtype: z.enum(DrinkSubtype, {
+      error: "Subtype wajib COFFEE atau NON_COFFEE",
+    }),
+    sortOrder: z.number().int().min(0).optional(),
+  }),
+]);
+
+export type CategoryInput = z.infer<typeof categoryInputSchema>;
+
+export const categoryReorderSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, "Daftar id kategori wajib diisi"),
+});
+
+export const productCreateSchema = z.object({
+  name: z.string().trim().min(1, "Nama produk wajib diisi").max(120),
+  description: z.string().trim().max(500).nullish(),
+  price: z
+    .number({ error: "Harga wajib berupa angka" })
+    .int("Harga harus bilangan bulat rupiah")
+    .min(0, "Harga tidak boleh negatif")
+    .max(1_000_000_000, "Harga terlalu besar"),
+  categoryId: z.string().min(1, "Kategori wajib dipilih"),
+  imageKey: z.string().trim().min(1).nullish(),
+  thumbKey: z.string().trim().min(1).nullish(),
+  isActive: z.boolean().default(true),
+  trackStock: z.boolean().default(true),
+  stock: z.number().int().min(0, "Stok tidak boleh negatif").default(0),
+  lowStockThreshold: z.number().int().min(0).default(5),
+});
+
+export type ProductCreateInput = z.infer<typeof productCreateSchema>;
+
+export const productUpdateSchema = productCreateSchema.partial();
+
+export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
+
+export const productToggleSchema = z.object({
+  isActive: z.boolean(),
+});
+
+/**
+ * Skema form klien: input number didaftarkan dengan `valueAsNumber`.
+ */
+export const productFormSchema = z.object({
+  name: z.string().trim().min(1, "Nama produk wajib diisi").max(120),
+  description: z.string().trim().max(500).optional(),
+  price: z
+    .number({ error: "Harga wajib berupa angka" })
+    .int("Harga harus bilangan bulat")
+    .min(0, "Harga tidak boleh negatif"),
+  categoryId: z.string().min(1, "Kategori wajib dipilih"),
+  imageKey: z.string().nullable().optional(),
+  thumbKey: z.string().nullable().optional(),
+  isActive: z.boolean(),
+  trackStock: z.boolean(),
+  stock: z
+    .number({ error: "Stok wajib berupa angka" })
+    .int()
+    .min(0, "Stok tidak boleh negatif"),
+  lowStockThreshold: z
+    .number({ error: "Ambang stok wajib berupa angka" })
+    .int()
+    .min(0),
+});
+
+export type ProductFormValues = z.infer<typeof productFormSchema>;
+
+export const productListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  q: z.string().trim().max(120).optional(),
+  tab: z.enum(["all", "food", "coffee", "non_coffee"]).default("all"),
+  status: z.enum(["all", "active", "inactive"]).default("all"),
+  sort: z
+    .enum(["newest", "name_asc", "price_asc", "price_desc", "stock_asc"])
+    .default("newest"),
+});
+
+export type ProductListQuery = z.infer<typeof productListQuerySchema>;
