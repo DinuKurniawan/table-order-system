@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { AuthHeader } from "@/components/auth-header";
+import { SessionEnded } from "@/components/session-ended";
 
 export const instant = false;
 
@@ -8,7 +9,11 @@ export default async function CashierLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireRole(["CASHIER", "SUPER_ADMIN"]);
+  const user = await requireRole(["CASHIER", "SUPER_ADMIN"]).catch(() => null);
+
+  if (!user) {
+    return <SessionEnded />;
+  }
 
   return (
     <div className="min-h-screen bg-app flex flex-col">

@@ -54,7 +54,7 @@ flowchart TD
 
 ## Fitur
 
-Status diambil dari kode yang ada di repositori per Step 6.
+Status diambil dari kode yang ada di repositori per Step 7.
 
 ### Super Admin
 
@@ -67,9 +67,9 @@ Status diambil dari kode yang ada di repositori per Step 6.
 | CRUD produk: harga, gambar AVIF, stok awal, toggle aktif, soft/hard delete | Selesai |
 | Tabel menu: pencarian, filter status, sort, paginasi server-side | Selesai |
 | Upload gambar ke R2 + konversi AVIF + thumbnail | Selesai |
-| Pencatatan AuditLog untuk aksi kategori & produk | Selesai |
+| Pencatatan AuditLog untuk aksi kategori, produk, dan akun kasir | Selesai |
+| Manajemen kasir: tambah, ubah nama, toggle status, reset password, soft/hard delete | Selesai |
 | Kartu statistik dashboard dari data nyata | Dalam Pengerjaan (masih angka statis) |
-| Manajemen kasir (CRUD, reset password) | Direncanakan |
 | Manajemen stok & riwayat pergerakan | Direncanakan |
 | Laporan keuangan | Direncanakan |
 | Manajemen meja & QR code | Direncanakan |
@@ -318,7 +318,7 @@ Prisma → PostgreSQL
 - [x] Step 4 — Layout dashboard Super Admin (AdminShell + komponen kartu)
 - [x] Step 5 — Upload gambar, konversi AVIF, penyimpanan R2
 - [x] Step 6 — Modul menu: kategori, produk, tabel, form, audit log
-- [ ] Step 7 — *(indikatif)* Manajemen kasir
+- [x] Step 7 — Modul kasir: akun, reset password, invalidasi sesi
 - [ ] Step 8 — *(indikatif)* Manajemen stok
 - [ ] Step 9 — *(indikatif)* Keuangan
 - [ ] Step 10 — *(indikatif)* Pembayaran customer & verifikasi kasir
