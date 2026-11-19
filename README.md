@@ -288,7 +288,6 @@ Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu d
 ├── PRD.md                     # Kebutuhan produk
 ├── AI-AGENT.md                # Aturan kerja agen/kontributor
 ├── SECURITY-CHECKLIST.md      # Hasil audit keamanan
-├── TEST-REPORT.md             # Hasil tes, performa, aksesibilitas
 ├── playwright.config.ts       # Konfigurasi E2E
 ├── vitest.config.ts           # Konfigurasi Vitest
 └── README.md
@@ -351,7 +350,6 @@ Prisma → PostgreSQL
 | [AI-AGENT.md](AI-AGENT.md) | Aturan kerja, konvensi kode, dan definition of done |
 | [AGENTS.md](AGENTS.md) | Catatan aturan otomatis untuk agen di repositori ini |
 | [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) | Hasil audit keamanan dan batasan yang diketahui |
-| [TEST-REPORT.md](TEST-REPORT.md) | Hasil tes, Lighthouse, aksesibilitas, dan benchmark dashboard |
 
 > `PROMPTS.md` yang dirujuk pada rencana pengembangan tidak ada di repositori saat README ini ditulis, sehingga nomor step di bawah mengikuti riwayat pengerjaan yang dapat diverifikasi dari kode.
 
@@ -381,7 +379,7 @@ Prisma → PostgreSQL
 - [x] Step 19 - Modul stok: penyesuaian atomik, batas minimum, riwayat pergerakan, ekspor CSV
 - [x] Step 20 - Modul keuangan: ringkasan, grafik arus kas, jurnal, refund, lampiran privat
 - [x] Step 21 - Pengujian end-to-end dan hardening (rate limit terdistribusi, CSP/header, CSRF, audit log, bukti bayar privat) - lihat `SECURITY-CHECKLIST.md`
-- [x] Step 22 - Kualitas: Vitest, Playwright E2E, Lighthouse mobile, aksesibilitas, seed demo 500 pesanan - lihat `TEST-REPORT.md`
+- [x] Step 22 - Kualitas: Vitest, Playwright E2E, Lighthouse mobile, aksesibilitas, seed demo 500 pesanan
 
 ---
 
