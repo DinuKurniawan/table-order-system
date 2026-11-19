@@ -164,7 +164,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       assert.equal(savedProduct?.stock, 8, "Stok hanya berkurang sekali");
 
       const audit = await prisma.auditLog.findFirst({
-        where: { action: "order.create", entityId: orders[0].id },
+        where: { action: "order.created", entityId: orders[0].id },
       });
       assert.ok(audit, "Pembuatan order harus masuk AuditLog");
 
@@ -314,12 +314,12 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       const result = await listAuditLogs({
         page: 1,
         pageSize: 10,
-        action: "order.create",
+        action: "order.created",
       });
 
-      assert.ok(result.items.length > 0, "Harus ada log order.create");
+      assert.ok(result.items.length > 0, "Harus ada log order.created");
       assert.ok(
-        result.items.every((item) => item.action === "order.create"),
+        result.items.every((item) => item.action === "order.created"),
         "Filter aksi harus bekerja"
       );
       assert.ok(

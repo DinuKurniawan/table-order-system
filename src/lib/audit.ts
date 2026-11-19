@@ -42,7 +42,7 @@ export function describeAudit(
   if (action === "order.cancel.refund") {
     return `Pesanan ${code ?? ""} dibatalkan, refund dicatat`.trim();
   }
-  if (action === "order.create") {
+  if (action === "order.created") {
     const table = metaValue(meta, "tableName");
     return `Pesanan ${code ?? ""} dibuat${table ? ` untuk ${table}` : ""}`.trim();
   }

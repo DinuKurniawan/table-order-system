@@ -109,7 +109,7 @@ function toListItem(
  * Antrean kasir: verifikasi (terlama dulu), diproses, siap, dan riwayat.
  */
 export async function listCashierOrders(): Promise<CashierQueue> {
-  const [verification, processing, ready, history] = await Promise.all([
+  const [verification, processing, ready, history, historyCount] = await Promise.all([
     prisma.order.findMany({
       where: { status: "AWAITING_VERIFICATION" },
       orderBy: { createdAt: "asc" },
@@ -131,6 +131,7 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       take: 50,
       select: listSelect,
     }),
+    prisma.order.count({ where: { status: { in: HISTORY } } }),
   ]);
 
   return {
@@ -142,7 +143,7 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       verification: verification.length,
       processing: processing.length,
       ready: ready.length,
-      history: history.length,
+      history: historyCount,
     },
   };
 }

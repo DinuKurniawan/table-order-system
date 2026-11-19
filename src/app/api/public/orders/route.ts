@@ -261,7 +261,7 @@ export async function POST(req: Request) {
 
       await tx.auditLog.create({
         data: {
-          action: "order.create",
+          action: "order.created",
           entity: "Order",
           entityId: order.id,
           meta: {

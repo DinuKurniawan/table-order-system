@@ -5,6 +5,7 @@ import { AppError } from "../src/lib/errors";
 import {
   advanceOrderStatus,
   approvePayment,
+  listCashierOrders,
   rejectPayment,
 } from "../src/server/services/cashier-orders";
 
@@ -183,5 +184,30 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     const completed = await advanceOrderStatus(order.id, cashier.id, "COMPLETED");
     assert.equal(completed.status, OrderStatus.COMPLETED);
+  });
+
+  await t.test("5. Hitungan riwayat memakai total DB, bukan panjang 50", async () => {
+    const rows = await prisma.order.createManyAndReturn({
+      data: Array.from({ length: 51 }, (_, index) => ({
+        code: `KSR-HIST-${stamp}-${index}`,
+        accessToken: `hist-token-${stamp}-${index}`,
+        tableId: table.id,
+        subtotal: 1000,
+        total: 1000,
+        status: OrderStatus.COMPLETED,
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      })),
+      select: { id: true },
+    });
+    orderIds.push(...rows.map((row) => row.id));
+
+    const queue = await listCashierOrders();
+    const expected = await prisma.order.count({
+      where: { status: { in: ["COMPLETED", "PAYMENT_REJECTED", "CANCELLED"] } },
+    });
+
+    assert.equal(queue.history.length, 50, "Daftar tetap dibatasi 50");
+    assert.equal(queue.counts.history, expected, "Badge memakai count DB");
+    assert.ok(queue.counts.history >= 51);
   });
 });
