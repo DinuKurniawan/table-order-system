@@ -221,11 +221,12 @@ sequenceDiagram
 
 ### 5.3 Jaminan dan Penanganan Kegagalan
 
-- **Emit setelah commit** lewat `afterCommit`: mencegah event untuk transaksi yang rollback.
+- **Emit setelah commit** lewat `runInTransaction` + `after()` (outbox in-memory per transaksi): callback hanya dijalankan setelah transaksi commit, dibuang saat rollback, dan pemanggilan service bersarang memakai transaksi induk.
 - Emit **gagal tidak menggagalkan request** (log + metrik). Pemulihan: klien melakukan refetch saat reconnect dan polling cadangan 30 detik saat koneksi `unavailable`.
-- **Outbox (opsional, fase hardening):** tabel `OutboxEvent` ditulis dalam transaksi yang sama, worker mengirim ke Pusher dengan retry. Direkomendasikan bila kehilangan notifikasi kasir tidak dapat diterima.
-- **Debounce invalidasi** 300–500 ms pada dashboard agar rentetan event tidak membanjiri query.
-- **Otorisasi channel** di `/api/pusher/auth`; tanpa sesi/token valid → 403.
+- **Batas outbox in-memory:** bila proses mati tepat setelah commit namun sebelum callback selesai, event bisa hilang. **OutboxEvent** (tabel ditulis dalam transaksi yang sama, worker mengirim ke Pusher dengan retry) adalah perbaikan lanjutan yang direkomendasikan bila kehilangan notifikasi kasir tidak dapat diterima; belum diimplementasikan.
+- **Debounce invalidasi** 300-500 ms pada dashboard agar rentetan event tidak membanjiri query.
+- **Otorisasi channel** di `/api/pusher/auth`: sesi staff divalidasi ke DB (`isActive` + `tokenVersion`) lewat jalur yang sama dengan `requireRole`; `private-order-{code}` membandingkan accessToken pesanan secara timing-safe; `private-table-{token}` wajib meja aktif; `private-user-{id}` wajib id sesi sendiri. Kegagalan selalu 403 generik.
+- **Pemutusan sesi kasir:** event `user.deactivated` dikirim ke `private-user-{id}` setelah commit; klien logout dan memutus koneksi Pusher. `terminateUserConnections` Pusher tidak dipakai karena aplikasi tidak memakai Pusher user authentication, sehingga koneksi yang sudah terbuka tetap hidup sampai klien memutus. Karena itu payload event sensitif hanya berisi id/username, bukan data rahasia, dan otorisasi tidak boleh bergantung pada kerahasiaan channel.
 
 ---
 

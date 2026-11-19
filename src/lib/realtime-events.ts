@@ -56,5 +56,5 @@ export type ChannelName =
  * - stock.low              → private-admin (notifikasi admin stok)
  * - transaction.created    → private-cashier (kasir lihat transaksi baru)
  * - kpi.updated            → private-admin (dashboard admin)
- * - user.deactivated       → private-admin (kasir logout otomatis)
+ * - user.deactivated       → private-user-{id} + private-admin (kasir logout otomatis)
  */

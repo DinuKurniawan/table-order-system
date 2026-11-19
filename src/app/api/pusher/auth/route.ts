@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Pusher from "pusher";
-import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/db";
-import { verifySessionToken } from "@/lib/session";
+import { authenticateRequest } from "@/lib/auth";
 import { orderAccessCookieName, timingSafeEqualString } from "@/lib/order-access";
 import { logger } from "@/lib/logger";
 
@@ -27,12 +26,15 @@ async function readAuthBody(req: NextRequest): Promise<AuthBody> {
   };
 }
 
+function forbidden(): NextResponse {
+  // Pesan generik: jangan bocorkan alasan penolakan (audit T-04).
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
 /**
  * POST /api/pusher/auth
- * Otorisasi channel private Pusher:
- * - staff: private-cashier / private-admin / private-user-{id}
- * - customer: private-order-{code} bila cookie accessToken cocok
- * - meja: private-table-{token} bila token meja aktif
+ * Otorisasi channel private Pusher. Sesi staff divalidasi ke database
+ * (isActive + tokenVersion) lewat jalur yang sama dengan requireRole.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -51,31 +53,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("session_token")?.value;
-    const session = sessionToken ? await verifySessionToken(sessionToken) : null;
-
-    const isStaff =
-      session?.role === Role.SUPER_ADMIN || session?.role === Role.CASHIER;
+    const user = await authenticateRequest(req);
 
     let allowed = false;
 
-    if (channelName === "private-cashier" && isStaff) {
-      allowed = true;
-    } else if (channelName === "private-admin" && session?.role === Role.SUPER_ADMIN) {
-      allowed = true;
-    } else if (session && channelName === `private-user-${session.sub}`) {
-      allowed = true;
+    if (channelName === "private-cashier") {
+      allowed =
+        user?.role === Role.SUPER_ADMIN || user?.role === Role.CASHIER;
+    } else if (channelName === "private-admin") {
+      allowed = user?.role === Role.SUPER_ADMIN;
+    } else if (channelName.startsWith("private-user-")) {
+      const userId = channelName.slice("private-user-".length);
+      allowed = Boolean(user && user.id === userId);
     } else if (channelName.startsWith("private-order-")) {
       const code = channelName.slice("private-order-".length);
-      const token = cookieStore.get(orderAccessCookieName(code))?.value;
+      const token = req.cookies.get(orderAccessCookieName(code))?.value;
 
       if (token) {
         const order = await prisma.order.findUnique({
           where: { code },
           select: { accessToken: true },
         });
-        allowed = Boolean(order && timingSafeEqualString(token, order.accessToken));
+        allowed = Boolean(
+          order && timingSafeEqualString(token, order.accessToken)
+        );
       }
     } else if (channelName.startsWith("private-table-")) {
       const token = channelName.slice("private-table-".length);
@@ -87,10 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!allowed) {
-      return NextResponse.json(
-        { error: "Forbidden: channel tidak diizinkan" },
-        { status: 403 }
-      );
+      return forbidden();
     }
 
     const pusher = new Pusher({
