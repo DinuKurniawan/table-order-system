@@ -13,6 +13,7 @@ import {
 import { emitToChannel } from "@/lib/pusher-server";
 import { afterCommit } from "@/lib/after-commit";
 import { getSettings } from "@/server/services/settings";
+import { reserveStock } from "@/server/services/stock";
 import crypto from "crypto";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -224,32 +225,20 @@ export async function POST(req: Request) {
           throw new AppError("BAD_REQUEST", "Produk tidak ditemukan", 400);
         }
 
-        // Reservasi stok atomik: hanya berkurang bila stok masih cukup.
-        const updated = await tx.$queryRaw<Array<{ stock: number }>>`
-          UPDATE "Product" SET stock = stock - ${item.quantity}
-          WHERE id = ${item.productId} AND stock >= ${item.quantity}
-          RETURNING stock
-        `;
-
-        if (updated.length === 0) {
-          throw new AppError(
-            "CONFLICT",
-            `Stok tidak cukup untuk produk ${product.name}`,
-            409
-          );
-        }
-
-        const newStock = updated[0].stock;
-
-        await tx.stockMovement.create({
-          data: {
+        // Produk non-tracked tidak mereservasi stok dan tidak menulis movement (K-02).
+        const reserved = await reserveStock(
+          tx,
+          {
             productId: item.productId,
-            type: "ORDER_RESERVE",
+            name: product.name,
             quantity: item.quantity,
-            balance: newStock,
-            note: `Pesanan order ${orderCode}`,
+            trackStock: product.trackStock,
           },
-        });
+          orderCode
+        );
+        if (!reserved) continue;
+
+        const newStock = reserved.newStock;
 
         afterCommit(() => {
           emitToChannel(`private-table-${tableToken}`, "stock.changed", {

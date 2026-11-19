@@ -132,6 +132,99 @@ export interface AdjustStockResult {
   status: StockStatus;
 }
 
+export interface StockChange {
+  productId: string;
+  newStock: number;
+}
+
+/**
+ * Reservasi stok atomik untuk satu item checkout. Produk non-tracked tidak
+ * menyentuh stok maupun StockMovement (K-02). Untuk produk tracked, UPDATE
+ * bersyarat menjamin stok tidak pernah negatif.
+ */
+export async function reserveStock(
+  tx: Prisma.TransactionClient,
+  item: { productId: string; name: string; quantity: number; trackStock: boolean },
+  orderCode: string
+): Promise<StockChange | null> {
+  if (!item.trackStock) return null;
+
+  const rows = await tx.$queryRaw<Array<{ stock: number }>>`
+    UPDATE "Product"
+    SET stock = stock - ${item.quantity}, "updatedAt" = NOW()
+    WHERE id = ${item.productId}
+      AND "trackStock" = true
+      AND "isActive" = true
+      AND "deletedAt" IS NULL
+      AND stock >= ${item.quantity}
+    RETURNING stock
+  `;
+
+  if (rows.length === 0) {
+    throw new AppError(
+      "CONFLICT",
+      `Stok tidak cukup untuk produk ${item.name}`,
+      409
+    );
+  }
+
+  const newStock = rows[0].stock;
+
+  await tx.stockMovement.create({
+    data: {
+      productId: item.productId,
+      type: "ORDER_RESERVE",
+      quantity: item.quantity,
+      balance: newStock,
+      note: `Pesanan order ${orderCode}`,
+    },
+  });
+
+  return { productId: item.productId, newStock };
+}
+
+/**
+ * Mengembalikan stok pesanan yang batal/kedaluwarsa. Produk non-tracked
+ * dilewati: tidak ada stok yang pernah direservasi (K-02).
+ */
+export async function releaseStock(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  code: string
+): Promise<StockChange[]> {
+  const items = await tx.orderItem.findMany({
+    where: { orderId },
+    include: { product: { select: { trackStock: true } } },
+  });
+  const changes: StockChange[] = [];
+
+  for (const item of items) {
+    if (!item.product.trackStock) continue;
+
+    const rows = await tx.$queryRaw<Array<{ stock: number }>>`
+      UPDATE "Product" SET stock = stock + ${item.quantity}, "updatedAt" = NOW()
+      WHERE id = ${item.productId} AND "trackStock" = true
+      RETURNING stock
+    `;
+    if (rows.length === 0) continue;
+
+    await tx.stockMovement.create({
+      data: {
+        productId: item.productId,
+        type: "ORDER_RELEASE",
+        quantity: item.quantity,
+        balance: rows[0].stock,
+        orderId,
+        note: `Stok dikembalikan untuk ${code}`,
+      },
+    });
+
+    changes.push({ productId: item.productId, newStock: rows[0].stock });
+  }
+
+  return changes;
+}
+
 /**
  * Penyesuaian stok atomik. Stok tidak pernah boleh negatif; UPDATE bersyarat
  * menjamin dua permintaan bersamaan tidak menghasilkan saldo minus.

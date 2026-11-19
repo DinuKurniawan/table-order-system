@@ -14,8 +14,8 @@ import {
 import {
   emitOrderStatus,
   emitStockChanges,
-  releaseStock,
 } from "@/server/services/orders";
+import { releaseStock } from "@/server/services/stock";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;

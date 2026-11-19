@@ -6,8 +6,8 @@ import { getSettings } from "@/server/services/settings";
 import {
   emitOrderStatus,
   emitStockChanges,
-  releaseStock,
 } from "@/server/services/orders";
+import { releaseStock } from "@/server/services/stock";
 
 const PROCESSING: OrderStatus[] = ["ACCEPTED", "PREPARING"];
 const HISTORY: OrderStatus[] = ["COMPLETED", "PAYMENT_REJECTED", "CANCELLED"];

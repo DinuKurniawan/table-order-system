@@ -6,6 +6,7 @@ import { deleteObject } from "@/lib/r2";
 import { emitToChannel } from "@/lib/pusher-server";
 import { timingSafeEqualString } from "@/lib/order-access";
 import { getSettings } from "@/server/services/settings";
+import { releaseStock, type StockChange } from "@/server/services/stock";
 import {
   listPaymentMethods,
   type PaymentMethodDTO,
@@ -143,44 +144,6 @@ export function emitOrderStatus(code: string, status: OrderStatus, version: numb
   emitToChannel(`private-order-${code}`, "order.status_changed", payload);
   emitToChannel("private-cashier", "order.status_changed", payload);
   emitToChannel("private-admin", "order.status_changed", payload);
-}
-
-interface StockChange {
-  productId: string;
-  newStock: number;
-}
-
-export async function releaseStock(
-  tx: Prisma.TransactionClient,
-  orderId: string,
-  code: string
-): Promise<StockChange[]> {
-  const items = await tx.orderItem.findMany({ where: { orderId } });
-  const changes: StockChange[] = [];
-
-  for (const item of items) {
-    const rows = await tx.$queryRaw<Array<{ stock: number }>>`
-      UPDATE "Product" SET stock = stock + ${item.quantity}
-      WHERE id = ${item.productId}
-      RETURNING stock
-    `;
-    if (rows.length === 0) continue;
-
-    await tx.stockMovement.create({
-      data: {
-        productId: item.productId,
-        type: "ORDER_RELEASE",
-        quantity: item.quantity,
-        balance: rows[0].stock,
-        orderId,
-        note: `Stok dikembalikan untuk ${code}`,
-      },
-    });
-
-    changes.push({ productId: item.productId, newStock: rows[0].stock });
-  }
-
-  return changes;
 }
 
 export function emitStockChanges(
