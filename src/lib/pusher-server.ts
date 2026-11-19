@@ -61,7 +61,11 @@ export function emitToChannel(channel: string, event: string, payload: unknown):
   }
 
   try {
-    pusher.trigger(channel, event, payload);
+    void pusher
+      .trigger(channel, event, payload)
+      .catch((err: unknown) =>
+        logger.error(`Pusher emit gagal channel="${channel}" event="${event}"`, err)
+      );
   } catch (err) {
     // Jangan melempar error ke request handler; hanya log
     logger.error(`Pusher emit gagal channel="${channel}" event="${event}"`, err);

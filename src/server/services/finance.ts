@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { deleteObject } from "@/lib/r2";
 import {
   financeListQuerySchema,
@@ -347,7 +348,7 @@ export async function createFinanceTransaction(
   const data = financeTransactionCreateSchema.parse(input);
   const occurredAt = parseOccurredAt(data.occurredAt);
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await runInTransaction(async (tx, after) => {
     const transaction = await tx.transaction.create({
       data: {
         type: data.type,
@@ -374,10 +375,11 @@ export async function createFinanceTransaction(
       },
     });
 
+    after(() => emitFinanceChange("created", transaction.id));
+
     return transaction;
   });
 
-  emitFinanceChange("created", created.id);
   return (await toRows([created]))[0];
 }
 
@@ -400,7 +402,7 @@ export async function updateFinanceTransaction(
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const transaction = await tx.transaction.update({
       where: { id },
       data: {
@@ -430,10 +432,11 @@ export async function updateFinanceTransaction(
       },
     });
 
+    after(() => emitFinanceChange("updated", transaction.id));
+
     return transaction;
   });
 
-  emitFinanceChange("updated", updated.id);
   return (await toRows([updated]))[0];
 }
 
@@ -453,7 +456,7 @@ export async function deleteFinanceTransaction(
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  await runInTransaction(async (tx, after) => {
     await tx.transaction.delete({ where: { id } });
     await tx.auditLog.create({
       data: {
@@ -468,6 +471,7 @@ export async function deleteFinanceTransaction(
         },
       },
     });
+    after(() => emitFinanceChange("deleted", id));
   });
 
   if (current.attachKey) {
@@ -478,7 +482,6 @@ export async function deleteFinanceTransaction(
     }
   }
 
-  emitFinanceChange("deleted", id);
   return { id };
 }
 
@@ -546,7 +549,7 @@ export async function cancelAcceptedOrder(
     "COMPLETED",
   ];
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -605,18 +608,18 @@ export async function cancelAcceptedOrder(
 
     const changes = await releaseStock(tx, order.id, order.code);
 
+    after(() => {
+      emitOrderStatus(order.code, "CANCELLED", order.version + 1);
+      emitStockChanges(order.table.token, order.code, changes);
+      emitFinanceChange("created", orderId);
+    });
+
     return {
       code: order.code,
       version: order.version + 1,
-      tableToken: order.table.token,
       cancelled: true as const,
-      changes,
     };
   });
-
-  emitOrderStatus(result.code, "CANCELLED", result.version);
-  emitStockChanges(result.tableToken, result.code, result.changes);
-  emitFinanceChange("created", orderId);
 
   return { code: result.code, status: "CANCELLED", version: result.version };
 }

@@ -2,6 +2,7 @@ import { Prisma, StockMoveType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import {
   stockAdjustSchema,
   stockSettingsSchema,
@@ -264,7 +265,7 @@ export async function adjustStock(
     );
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const updated = await tx.$queryRaw<Array<{ stock: number }>>`
       UPDATE "Product"
       SET stock = stock + ${delta}, "updatedAt" = NOW()
@@ -303,16 +304,18 @@ export async function adjustStock(
       },
     });
 
-    return balance;
-  });
+    after(async () =>
+      broadcastStock({
+        productId: product.id,
+        name: product.name,
+        stock: balance,
+        lowStockThreshold: product.lowStockThreshold,
+        low: balance <= product.lowStockThreshold,
+        tableTokens: await activeTableTokens(),
+      })
+    );
 
-  broadcastStock({
-    productId: product.id,
-    name: product.name,
-    stock: result,
-    lowStockThreshold: product.lowStockThreshold,
-    low: result <= product.lowStockThreshold,
-    tableTokens: await activeTableTokens(),
+    return balance;
   });
 
   return {
@@ -342,7 +345,7 @@ export async function updateStockSettings(
   const nextTrack = data.trackStock ?? product.trackStock;
   const nextThreshold = data.lowStockThreshold ?? product.lowStockThreshold;
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const disableTracking = nextTrack === false && product.stock > 0;
     const nextStock = nextTrack ? product.stock : 0;
 
@@ -383,17 +386,18 @@ export async function updateStockSettings(
       },
     });
 
-    return saved;
-  });
+    after(async () =>
+      broadcastStock({
+        productId: product.id,
+        name: product.name,
+        stock: saved.stock,
+        lowStockThreshold: saved.lowStockThreshold,
+        low: saved.trackStock && saved.stock <= saved.lowStockThreshold,
+        tableTokens: await activeTableTokens(),
+      })
+    );
 
-  const tables = await activeTableTokens();
-  broadcastStock({
-    productId: product.id,
-    name: product.name,
-    stock: updated.stock,
-    lowStockThreshold: updated.lowStockThreshold,
-    low: updated.trackStock && updated.stock <= updated.lowStockThreshold,
-    tableTokens: tables,
+    return saved;
   });
 
   return {

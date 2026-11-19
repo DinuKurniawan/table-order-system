@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { runInTransaction } from "@/lib/tx";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -120,15 +121,21 @@ export async function updateSettings(
     return merged;
   }
 
-  await prisma.$transaction([
-    ...changes.map(({ key, to }) =>
-      prisma.setting.upsert({
+  await runInTransaction(async (tx) => {
+    for (const { key, to } of changes) {
+      await tx.setting.upsert({
         where: { key },
-        update: { value: to === null ? Prisma.JsonNull : (to as Prisma.InputJsonValue) },
-        create: { key, value: to === null ? Prisma.JsonNull : (to as Prisma.InputJsonValue) },
-      })
-    ),
-    prisma.auditLog.create({
+        update: {
+          value: to === null ? Prisma.JsonNull : (to as Prisma.InputJsonValue),
+        },
+        create: {
+          key,
+          value: to === null ? Prisma.JsonNull : (to as Prisma.InputJsonValue),
+        },
+      });
+    }
+
+    await tx.auditLog.create({
       data: {
         userId,
         action: "settings.update",
@@ -143,8 +150,8 @@ export async function updateSettings(
           ),
         },
       },
-    }),
-  ]);
+    });
+  });
 
   return merged;
 }

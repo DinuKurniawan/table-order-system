@@ -2,6 +2,7 @@ import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import {
   emitOrderStatus,
@@ -227,7 +228,7 @@ export async function approvePayment(
   orderId: string,
   userId: string
 ): Promise<ApproveResult> {
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -311,25 +312,27 @@ export async function approvePayment(
       },
     });
 
+    after(() => {
+      emitOrderStatus(order.code, "ACCEPTED", order.version + 1);
+      emitToChannel("private-cashier", "transaction.created", {
+        orderCode: order.code,
+        amount: order.total,
+      });
+      emitToChannel("private-admin", "transaction.created", {
+        orderCode: order.code,
+        amount: order.total,
+      });
+      emitToChannel("private-admin", "kpi.updated", {
+        orderCode: order.code,
+        amount: order.total,
+      });
+    });
+
     return {
       code: order.code,
       total: order.total,
       version: order.version + 1,
     };
-  });
-
-  emitOrderStatus(result.code, "ACCEPTED", result.version);
-  emitToChannel("private-cashier", "transaction.created", {
-    orderCode: result.code,
-    amount: result.total,
-  });
-  emitToChannel("private-admin", "transaction.created", {
-    orderCode: result.code,
-    amount: result.total,
-  });
-  emitToChannel("private-admin", "kpi.updated", {
-    orderCode: result.code,
-    amount: result.total,
   });
 
   return { ...result, status: "ACCEPTED" };
@@ -361,7 +364,7 @@ export async function rejectPayment(
 
   const settings = await getSettings();
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -435,27 +438,22 @@ export async function rejectPayment(
       ? await releaseStock(tx, order.id, order.code)
       : [];
 
+    after(() => {
+      emitOrderStatus(order.code, nextStatus, order.version + 1);
+      if (cancelled) {
+        emitStockChanges(order.table.token, order.code, changes);
+      }
+    });
+
     return {
       code: order.code,
       status: nextStatus,
       version: order.version + 1,
       cancelled,
-      tableToken: order.table.token,
-      changes,
     };
   });
 
-  emitOrderStatus(result.code, result.status, result.version);
-  if (result.cancelled) {
-    emitStockChanges(result.tableToken, result.code, result.changes);
-  }
-
-  return {
-    code: result.code,
-    status: result.status,
-    version: result.version,
-    cancelled: result.cancelled,
-  };
+  return result;
 }
 
 export type ProgressStatus = "PREPARING" | "READY" | "COMPLETED";
@@ -490,7 +488,7 @@ export async function advanceOrderStatus(
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const result = await tx.order.updateMany({
       where: { id: order.id, version: order.version, status: order.status },
       data: { status: next, version: { increment: 1 } },
@@ -510,10 +508,10 @@ export async function advanceOrderStatus(
       },
     });
 
+    after(() => emitOrderStatus(order.code, next, order.version + 1));
+
     return order.version + 1;
   });
-
-  emitOrderStatus(order.code, next, updated);
 
   return { code: order.code, status: next, version: updated };
 }
@@ -524,7 +522,7 @@ export async function markOrderPrinted(
 ): Promise<{ printCount: number; printedAt: string }> {
   const printedAt = new Date();
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       select: { id: true, code: true },

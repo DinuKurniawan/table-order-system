@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { Prisma } from "@prisma/client";
 import { deleteObject, getPublicUrl } from "@/lib/r2";
 import { env } from "@/lib/env";
+import { runInTransaction } from "@/lib/tx";
 import {
   PaymentMethodInput,
   PaymentMethodUpdateInput,
@@ -178,11 +178,14 @@ export async function reorderPaymentMethods(
     throw new AppError("BAD_REQUEST", "Terdapat id metode pembayaran yang tidak dikenal", 400);
   }
 
-  const updates: Prisma.PrismaPromise<unknown>[] = ids.map((id, index) =>
-    prisma.paymentMethod.update({ where: { id }, data: { sortOrder: index + 1 } })
-  );
-
-  await prisma.$transaction(updates);
+  await runInTransaction(async (tx) => {
+    for (const [index, id] of ids.entries()) {
+      await tx.paymentMethod.update({
+        where: { id },
+        data: { sortOrder: index + 1 },
+      });
+    }
+  });
 
   await prisma.auditLog.create({
     data: {

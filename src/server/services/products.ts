@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { runInTransaction } from "@/lib/tx";
 import { getPublicUrl, deleteObject } from "@/lib/r2";
 import { env } from "@/lib/env";
 import {
@@ -120,16 +121,17 @@ export async function listProducts(
   const where = buildWhere(query);
   const skip = (query.page - 1) * query.pageSize;
 
-  const [total, products] = await prisma.$transaction([
-    prisma.product.count({ where }),
-    prisma.product.findMany({
+  const [total, products] = await runInTransaction(async (tx) => {
+    const total = await tx.product.count({ where });
+    const products = await tx.product.findMany({
       where,
       include: { category: true },
       orderBy: buildOrderBy(query.sort),
       skip,
       take: query.pageSize,
-    }),
-  ]);
+    });
+    return [total, products] as const;
+  });
 
   return {
     items: products.map(toDTO),
@@ -156,7 +158,7 @@ export async function createProduct(
   const data = productCreateSchema.parse(input);
   await assertCategoryExists(data.categoryId);
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await runInTransaction(async (tx) => {
     const product = await tx.product.create({
       data: {
         name: data.name,
@@ -233,7 +235,7 @@ export async function updateProduct(
     await assertCategoryExists(data.categoryId);
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx) => {
     const product = await tx.product.update({
       where: { id },
       data: {
@@ -304,12 +306,12 @@ export async function deleteProduct(
   const everOrdered = product._count.orderItems > 0;
 
   if (everOrdered) {
-    await prisma.$transaction([
-      prisma.product.update({
+    await runInTransaction(async (tx) => {
+      await tx.product.update({
         where: { id },
         data: { deletedAt: new Date(), isActive: false },
-      }),
-      prisma.auditLog.create({
+      });
+      await tx.auditLog.create({
         data: {
           userId,
           action: "product.delete",
@@ -317,13 +319,13 @@ export async function deleteProduct(
           entityId: id,
           meta: { mode: "soft", name: product.name },
         },
-      }),
-    ]);
+      });
+    });
   } else {
-    await prisma.$transaction([
-      prisma.stockMovement.deleteMany({ where: { productId: id } }),
-      prisma.product.delete({ where: { id } }),
-      prisma.auditLog.create({
+    await runInTransaction(async (tx) => {
+      await tx.stockMovement.deleteMany({ where: { productId: id } });
+      await tx.product.delete({ where: { id } });
+      await tx.auditLog.create({
         data: {
           userId,
           action: "product.delete",
@@ -331,8 +333,8 @@ export async function deleteProduct(
           entityId: id,
           meta: { mode: "hard", name: product.name },
         },
-      }),
-    ]);
+      });
+    });
 
     await deleteR2ObjectsQuietly([product.imageKey, product.thumbKey]);
   }

@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
 import { deleteObject } from "@/lib/r2";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { timingSafeEqualString } from "@/lib/order-access";
 import { getSettings } from "@/server/services/settings";
 import { releaseStock, type StockChange } from "@/server/services/stock";
@@ -212,7 +213,7 @@ export async function submitPaymentProof(
   });
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await runInTransaction(async (tx, after) => {
       const current = await tx.order.findUnique({
         where: { code },
         include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } },
@@ -265,6 +266,28 @@ export async function submitPaymentProof(
         },
       });
 
+      after(() => {
+        emitToChannel("private-cashier", "payment.uploaded", {
+          orderCode: code,
+          orderId: current.id,
+          paymentId: payment.id,
+          attempt,
+          tableName: order.table.name,
+        });
+        emitToChannel("private-admin", "payment.uploaded", {
+          orderCode: code,
+          orderId: current.id,
+          paymentId: payment.id,
+          attempt,
+          tableName: order.table.name,
+        });
+        emitToChannel(`private-order-${code}`, "payment.uploaded", {
+          orderCode: code,
+          attempt,
+        });
+        emitOrderStatus(code, "AWAITING_VERIFICATION", current.version + 1);
+      });
+
       return {
         paymentId: payment.id,
         orderId: current.id,
@@ -272,26 +295,6 @@ export async function submitPaymentProof(
         version: current.version + 1,
       };
     });
-
-    emitToChannel("private-cashier", "payment.uploaded", {
-      orderCode: code,
-      orderId: result.orderId,
-      paymentId: result.paymentId,
-      attempt: result.attempt,
-      tableName: order.table.name,
-    });
-    emitToChannel("private-admin", "payment.uploaded", {
-      orderCode: code,
-      orderId: result.orderId,
-      paymentId: result.paymentId,
-      attempt: result.attempt,
-      tableName: order.table.name,
-    });
-    emitToChannel(`private-order-${code}`, "payment.uploaded", {
-      orderCode: code,
-      attempt: result.attempt,
-    });
-    emitOrderStatus(code, "AWAITING_VERIFICATION", result.version);
 
     return {
       paymentId: result.paymentId,
@@ -326,7 +329,7 @@ export async function cancelOrderByCustomer(
     );
   }
 
-  const changes = await prisma.$transaction(async (tx) => {
+  const changes = await runInTransaction(async (tx, after) => {
     const updated = await tx.order.updateMany({
       where: { id: order.id, status: "AWAITING_PAYMENT", version: order.version },
       data: { status: "CANCELLED", version: { increment: 1 } },
@@ -340,15 +343,19 @@ export async function cancelOrderByCustomer(
         meta: { code, total: order.total },
       },
     });
-    return releaseStock(tx, order.id, code);
+    const released = await releaseStock(tx, order.id, code);
+
+    after(() => {
+      emitOrderStatus(code, "CANCELLED", order.version + 1);
+      emitStockChanges(order.table.token, code, released);
+    });
+
+    return released;
   });
 
   if (changes === null) {
     throw new AppError("CONFLICT", "Status pesanan sudah berubah", 409);
   }
-
-  emitOrderStatus(code, "CANCELLED", order.version + 1);
-  emitStockChanges(order.table.token, code, changes);
 }
 
 /**
@@ -371,7 +378,7 @@ export async function expireOrders(
   let cancelled = 0;
 
   for (const order of candidates) {
-    const changes = await prisma.$transaction(async (tx) => {
+    const changes = await runInTransaction(async (tx, after) => {
       const updated = await tx.order.updateMany({
         where: {
           id: order.id,
@@ -390,14 +397,19 @@ export async function expireOrders(
           meta: { code: order.code },
         },
       });
-      return releaseStock(tx, order.id, order.code);
+      const released = await releaseStock(tx, order.id, order.code);
+
+      after(() => {
+        emitOrderStatus(order.code, "CANCELLED", order.version + 1);
+        emitStockChanges(order.table.token, order.code, released);
+      });
+
+      return released;
     });
 
     if (changes === null) continue;
 
     cancelled += 1;
-    emitOrderStatus(order.code, "CANCELLED", order.version + 1);
-    emitStockChanges(order.table.token, order.code, changes);
   }
 
   return { cancelled };

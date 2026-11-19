@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRealtimeEvent, RealTimeEvent } from "@/lib/pusher-client";
 import { emitToChannel } from "@/lib/pusher-server";
-import { afterCommit } from "@/lib/after-commit";
 import { SectionCard } from "@/components/admin/section-card";
 
 type LogEntry = {
@@ -36,11 +35,9 @@ export default function RealTimeTestPage() {
   // Kirim event uji
   // ============================================================
   const sendTestEvent = (event: RealTimeEvent) => {
-    afterCommit(() => {
-      emitToChannel("private-admin", event, {
-        test: true,
-        timestamp: new Date().toISOString(),
-      });
+    emitToChannel("private-admin", event, {
+      test: true,
+      timestamp: new Date().toISOString(),
     });
   };
 

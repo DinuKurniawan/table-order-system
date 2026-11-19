@@ -11,7 +11,7 @@ import {
   tooManyRequests,
 } from "@/lib/rate-limiter";
 import { emitToChannel } from "@/lib/pusher-server";
-import { afterCommit } from "@/lib/after-commit";
+import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import { reserveStock } from "@/server/services/stock";
 import crypto from "crypto";
@@ -193,7 +193,7 @@ export async function POST(req: Request) {
     const orderCode = `ORD-${datePart}-${randomPart}`;
     const accessToken = crypto.randomBytes(16).toString("hex");
 
-    await prisma.$transaction(async (tx) => {
+    await runInTransaction(async (tx, after) => {
       const order = await tx.order.create({
         data: {
           code: orderCode,
@@ -240,7 +240,7 @@ export async function POST(req: Request) {
 
         const newStock = reserved.newStock;
 
-        afterCommit(() => {
+        after(() => {
           emitToChannel(`private-table-${tableToken}`, "stock.changed", {
             productId: item.productId,
             newStock,
@@ -249,7 +249,7 @@ export async function POST(req: Request) {
         });
 
         if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
-          afterCommit(() => {
+          after(() => {
             emitToChannel("private-admin", "stock.low", {
               productId: item.productId,
               newStock,
@@ -273,7 +273,7 @@ export async function POST(req: Request) {
         },
       });
 
-      afterCommit(() => {
+      after(() => {
         emitToChannel("private-cashier", "order.created", {
           orderCode,
           orderId: order.id,
