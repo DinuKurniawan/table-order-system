@@ -148,7 +148,7 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
   await t.test("5. Helper getPublicUrl R2", () => {
     const key = "products/sample123.avif";
     const publicUrl = getPublicUrl(key);
-    assert.ok(publicUrl.includes("pub-75ddf99a348b40d6afa3a6b05b791c8c.r2.dev"));
+    assert.ok(publicUrl.startsWith(process.env.R2_PUBLIC_BASE_URL!.replace(/\/+$/, "")));
     assert.ok(publicUrl.endsWith(key));
     assert.equal(publicUrl.includes("//products"), false, "Tidak boleh ada double slash");
   });
@@ -164,8 +164,9 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
     assert.ok(uploadResult.key.startsWith("test-products/"));
     assert.ok(uploadResult.key.endsWith(".avif"));
     assert.ok(uploadResult.thumbKey?.endsWith("-thumb.avif"));
-    assert.ok(uploadResult.url.startsWith("https://"));
-    assert.ok(uploadResult.thumbUrl?.startsWith("https://"));
+    const publicBase = process.env.R2_PUBLIC_BASE_URL!.replace(/\/+$/, "");
+    assert.ok(uploadResult.url.startsWith(publicBase));
+    assert.ok(uploadResult.thumbUrl?.startsWith(publicBase));
     assert.equal(uploadResult.format, "avif");
     assert.ok(uploadResult.size > 0);
 
