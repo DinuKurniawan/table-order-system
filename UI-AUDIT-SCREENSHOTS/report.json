@@ -1,0 +1,5431 @@
+[
+ {
+  "slug": "landing",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka Menu Demo",
+    "w": 280,
+    "h": 32,
+    "tag": "a"
+   },
+   {
+    "name": "Masuk ke Sistem",
+    "w": 280,
+    "h": 32,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 2,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "landing",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka Menu Demo",
+    "w": 296,
+    "h": 32,
+    "tag": "a"
+   },
+   {
+    "name": "Masuk ke Sistem",
+    "w": 296,
+    "h": 32,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 2,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "landing",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka Menu Demo",
+    "w": 296,
+    "h": 32,
+    "tag": "a"
+   },
+   {
+    "name": "Masuk ke Sistem",
+    "w": 296,
+    "h": 32,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 2,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "login",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "login",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "login",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-menu",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kedai Kopi Selaras",
+    "w": 151,
+    "h": 24,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Menu Kafe",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-menu",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kedai Kopi Selaras",
+    "w": 151,
+    "h": 24,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Menu Kafe",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-menu",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kedai Kopi Selaras",
+    "w": 151,
+    "h": 24,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Menu Kafe",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-cart",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Lihat Menu",
+    "w": 99,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-cart",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Lihat Menu",
+    "w": 99,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-cart",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Lihat Menu",
+    "w": 99,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-gate",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kode akses pesanan",
+    "w": 278,
+    "h": 32,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-gate",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kode akses pesanan",
+    "w": 510,
+    "h": 32,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-gate",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Kode akses pesanan",
+    "w": 510,
+    "h": 32,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 1,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-track",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-track",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "customer-order-track",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [],
+  "targetsTotal": 0,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [],
+  "lang": "id",
+  "title": "Lacak Pesanan",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-dashboard",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "div",
+    "cls": "min-w-[170px] max-w-[190px] flex-1 rounded-[16px] border border-border bg-surface p-3",
+    "right": 397
+   },
+   {
+    "tag": "div",
+    "cls": "relative h-24 overflow-hidden rounded-xl bg-surface-muted",
+    "right": 384
+   },
+   {
+    "tag": "div",
+    "cls": "flex size-full items-center justify-center bg-primary-50 text-primary-600",
+    "right": 384
+   },
+   {
+    "tag": "p",
+    "cls": "mt-2.5 truncate text-sm font-semibold text-text-strong",
+    "right": 384
+   },
+   {
+    "tag": "p",
+    "cls": "text-[11px] text-text-muted",
+    "right": 384
+   },
+   {
+    "tag": "p",
+    "cls": "mt-1 text-sm font-bold tabular-nums text-emerald-700",
+    "right": 384
+   },
+   {
+    "tag": "div",
+    "cls": "min-w-[170px] max-w-[190px] flex-1 rounded-[16px] border border-border bg-surface p-3",
+    "right": 583
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini\n7 Hari\nBulan Ini\nTahun Ini",
+    "w": 99,
+    "h": 32,
+    "tag": "select"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 113,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 119,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pesanan",
+    "w": 93,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 10,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "Login baru saja"
+   },
+   {
+    "fs": 10,
+    "text": "6 hari lalu"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 9,
+    "sample": [
+     ".bg-accent-blue > .text-right > .text-white\\/85.mb-1.block",
+     ".bg-accent-blue > .text-right > .text-3xl.sm\\:text-4xl.font-extrabold"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "help": "Scrollable region must have keyboard access",
+    "nodes": 2,
+    "sample": [
+     ".max-h-\\[320px\\]",
+     ".overflow-x-auto"
+    ]
+   },
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "help": "Select element must have an accessible name",
+    "nodes": 1,
+    "sample": [
+     "select"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-dashboard",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [
+   {
+    "tag": "div",
+    "cls": "min-w-[170px] max-w-[190px] flex-1 rounded-[16px] border border-border bg-surface p-3",
+    "right": 777
+   },
+   {
+    "tag": "div",
+    "cls": "min-w-[170px] max-w-[190px] flex-1 rounded-[16px] border border-border bg-surface p-3",
+    "right": 963
+   },
+   {
+    "tag": "div",
+    "cls": "relative h-24 overflow-hidden rounded-xl bg-surface-muted",
+    "right": 950
+   },
+   {
+    "tag": "div",
+    "cls": "flex size-full items-center justify-center bg-primary-50 text-primary-600",
+    "right": 950
+   },
+   {
+    "tag": "svg",
+    "cls": "[object SVGAnimatedString]",
+    "right": 892
+   },
+   {
+    "tag": "path",
+    "cls": "[object SVGAnimatedString]",
+    "right": 890
+   },
+   {
+    "tag": "span",
+    "cls": "absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-prim",
+    "right": 847
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini\n7 Hari\nBulan Ini\nTahun Ini",
+    "w": 99,
+    "h": 32,
+    "tag": "select"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 113,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 119,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pesanan",
+    "w": 93,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 10,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "Login baru saja"
+   },
+   {
+    "fs": 10,
+    "text": "6 hari lalu"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-dashboard",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [
+   {
+    "tag": "div",
+    "cls": "min-w-[170px] max-w-[190px] flex-1 rounded-[16px] border border-border bg-surface p-3",
+    "right": 1372
+   },
+   {
+    "tag": "div",
+    "cls": "relative h-24 overflow-hidden rounded-xl bg-surface-muted",
+    "right": 1359
+   },
+   {
+    "tag": "div",
+    "cls": "flex size-full items-center justify-center bg-primary-50 text-primary-600",
+    "right": 1359
+   },
+   {
+    "tag": "svg",
+    "cls": "[object SVGAnimatedString]",
+    "right": 1301
+   },
+   {
+    "tag": "path",
+    "cls": "[object SVGAnimatedString]",
+    "right": 1299
+   },
+   {
+    "tag": "p",
+    "cls": "mt-2.5 truncate text-sm font-semibold text-text-strong",
+    "right": 1359
+   },
+   {
+    "tag": "p",
+    "cls": "text-[11px] text-text-muted",
+    "right": 1359
+   }
+  ],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini\n7 Hari\nBulan Ini\nTahun Ini",
+    "w": 99,
+    "h": 32,
+    "tag": "select"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 113,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 119,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pesanan",
+    "w": 93,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   },
+   {
+    "name": "Lihat Semua",
+    "w": 85,
+    "h": 17,
+    "tag": "a"
+   }
+  ],
+  "targetsTotal": 9,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "Login baru saja"
+   },
+   {
+    "fs": 10,
+    "text": "6 hari lalu"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 10,
+    "sample": [
+     ".text-accent-green",
+     ".bg-accent-blue > .text-right > .text-white\\/85.mb-1.block"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "help": "Scrollable region must have keyboard access",
+    "nodes": 2,
+    "sample": [
+     ".max-h-\\[320px\\]",
+     ".overflow-x-auto"
+    ]
+   },
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "help": "Select element must have an accessible name",
+    "nodes": 1,
+    "sample": [
+     "select"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-menu",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full text-sm",
+    "right": 758
+   },
+   {
+    "tag": "thead",
+    "cls": "bg-surface-muted text-left text-xs text-text-muted",
+    "right": 758
+   },
+   {
+    "tag": "tr",
+    "cls": "",
+    "right": 758
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium",
+    "right": 464
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-right",
+    "right": 544
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-right",
+    "right": 602
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-center",
+    "right": 666
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kategori",
+    "w": 93,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Produk",
+    "w": 141,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua",
+    "w": 75,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Makanan",
+    "w": 90,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Kopi",
+    "w": 59,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Non Kopi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Cari nama produk...",
+    "w": 278,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "all",
+    "w": 278,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "newest",
+    "w": 278,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Aktifkan French Fries Original",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Nasi Goreng Spesial",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Croissant Butter",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Croissant Butter",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 56,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "nodes": 2,
+    "sample": [
+     "#base-ui-_R_4klfivebrb_",
+     "#base-ui-_R_6klfivebrb_"
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 7,
+    "sample": [
+     ".border-border\\/70:nth-child(1) > td:nth-child(2) > .bg-\\[\\#FEF1DF\\].text-\\[\\#B26A0C\\].border-\\[\\#B26A0C\\]\\/20",
+     ".border-border\\/70:nth-child(2) > td:nth-child(2) > .bg-\\[\\#FEF1DF\\].text-\\[\\#B26A0C\\].border-\\[\\#B26A0C\\]\\/20"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-menu",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kategori",
+    "w": 93,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Produk",
+    "w": 141,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua",
+    "w": 75,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Makanan",
+    "w": 90,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Kopi",
+    "w": 59,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Non Kopi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Cari nama produk...",
+    "w": 256,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "all",
+    "w": 160,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "newest",
+    "w": 176,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Aktifkan French Fries Original",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Nasi Goreng Spesial",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Croissant Butter",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Croissant Butter",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 56,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-menu",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kategori",
+    "w": 93,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Produk",
+    "w": 141,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua",
+    "w": 75,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Makanan",
+    "w": 90,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Kopi",
+    "w": 59,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Non Kopi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Cari nama produk...",
+    "w": 256,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "all",
+    "w": 160,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "newest",
+    "w": 176,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Aktifkan French Fries Original",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus French Fries Original",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Nasi Goreng Spesial",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Nasi Goreng Spesial",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan Croissant Butter",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Edit Croissant Butter",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Croissant Butter",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 55,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "nodes": 2,
+    "sample": [
+     "#base-ui-_R_4klfivebrb_",
+     "#base-ui-_R_6klfivebrb_"
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 8,
+    "sample": [
+     ".text-accent-green",
+     ".border-border\\/70:nth-child(1) > td:nth-child(2) > .bg-\\[\\#FEF1DF\\].text-\\[\\#B26A0C\\].border-\\[\\#B26A0C\\]\\/20"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-stock",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[760px] text-sm",
+    "right": 801
+   },
+   {
+    "tag": "thead",
+    "cls": "",
+    "right": 801
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border text-left text-[11px] uppercase tracking-wide text-text-muted",
+    "right": 801
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 font-semibold",
+    "right": 453
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 font-semibold",
+    "right": 568
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 font-semibold",
+    "right": 649
+   },
+   {
+    "tag": "th",
+    "cls": "pb-2 pl-3 text-right font-semibold",
+    "right": 801
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Koreksi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Barang Masuk",
+    "w": 131,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua (12)",
+    "w": 98,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Menipis (0)",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Habis (0)",
+    "w": 86,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Cari produk atau kategori...",
+    "w": 278,
+    "h": 32,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Americano",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Caffe Latte",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Cappuccino",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 81,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 12,
+    "sample": [
+     ".last\\:border-0:nth-child(1) > .px-3:nth-child(4) > .bg-\\[\\#E3F8F1\\].text-\\[\\#0E8F66\\].border-\\[\\#0E8F66\\]\\/20",
+     ".last\\:border-0:nth-child(2) > .px-3:nth-child(4) > .bg-\\[\\#E3F8F1\\].text-\\[\\#0E8F66\\].border-\\[\\#0E8F66\\]\\/20"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "nodes": 12,
+    "sample": [
+     "#base-ui-_r_0_",
+     "#base-ui-_r_4_"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-stock",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[760px] text-sm",
+    "right": 809
+   },
+   {
+    "tag": "thead",
+    "cls": "",
+    "right": 809
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border text-left text-[11px] uppercase tracking-wide text-text-muted",
+    "right": 809
+   },
+   {
+    "tag": "th",
+    "cls": "pb-2 pl-3 text-right font-semibold",
+    "right": 809
+   },
+   {
+    "tag": "tbody",
+    "cls": "",
+    "right": 809
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border/60 last:border-0",
+    "right": 809
+   },
+   {
+    "tag": "td",
+    "cls": "py-3 pl-3",
+    "right": 809
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Koreksi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Barang Masuk",
+    "w": 131,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua (12)",
+    "w": 98,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Menipis (0)",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Habis (0)",
+    "w": 86,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Cari produk atau kategori...",
+    "w": 256,
+    "h": 32,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Americano",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Caffe Latte",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Cappuccino",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 81,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-stock",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Koreksi",
+    "w": 86,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Barang Masuk",
+    "w": 131,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua (12)",
+    "w": 98,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Menipis (0)",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Habis (0)",
+    "w": 86,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Cari produk atau kategori...",
+    "w": 256,
+    "h": 32,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Americano",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Caffe Latte",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 80,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Lacak stok Cappuccino",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "button",
+    "w": 32,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 80,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 13,
+    "sample": [
+     ".text-accent-green",
+     ".last\\:border-0:nth-child(1) > .px-3:nth-child(4) > .bg-\\[\\#E3F8F1\\].text-\\[\\#0E8F66\\].border-\\[\\#0E8F66\\]\\/20"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "nodes": 12,
+    "sample": [
+     "#base-ui-_r_0_",
+     "#base-ui-_r_4_"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-finance",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[760px] text-sm",
+    "right": 801
+   },
+   {
+    "tag": "thead",
+    "cls": "",
+    "right": 801
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border text-left text-[11px] uppercase tracking-wide text-text-muted",
+    "right": 801
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 font-semibold",
+    "right": 487
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 font-semibold",
+    "right": 596
+   },
+   {
+    "tag": "th",
+    "cls": "px-3 pb-2 text-right font-semibold",
+    "right": 715
+   },
+   {
+    "tag": "th",
+    "cls": "pb-2 pl-3 text-right font-semibold",
+    "right": 801
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini",
+    "w": 68,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "7 Hari",
+    "w": 60,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Bulan Ini",
+    "w": 79,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Tahun Ini",
+    "w": 82,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Kustom",
+    "w": 73,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 105,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Ekspor CSV",
+    "w": 110,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 116,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 122,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua\nPemasukan\nPengeluaran",
+    "w": 137,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua kategori\nBahan Baku\nGaji\nListrik/A",
+    "w": 174,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 202,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 225,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 104,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 91,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 19,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 14,
+    "sample": [
+     ".border-accent-green\\/25 > .justify-between.flex > .opacity-80.uppercase.tracking-wide",
+     ".border-accent-orange\\/25 > .justify-between.flex > .opacity-80.uppercase.tracking-wide"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "help": "Scrollable region must have keyboard access",
+    "nodes": 1,
+    "sample": [
+     ".overflow-x-auto"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-finance",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[760px] text-sm",
+    "right": 809
+   },
+   {
+    "tag": "thead",
+    "cls": "",
+    "right": 809
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border text-left text-[11px] uppercase tracking-wide text-text-muted",
+    "right": 809
+   },
+   {
+    "tag": "th",
+    "cls": "pb-2 pl-3 text-right font-semibold",
+    "right": 809
+   },
+   {
+    "tag": "tbody",
+    "cls": "",
+    "right": 809
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b border-border/60 last:border-0",
+    "right": 809
+   },
+   {
+    "tag": "td",
+    "cls": "py-3 pl-3",
+    "right": 809
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini",
+    "w": 68,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "7 Hari",
+    "w": 60,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Bulan Ini",
+    "w": 79,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Tahun Ini",
+    "w": 82,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Kustom",
+    "w": 73,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 105,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Ekspor CSV",
+    "w": 110,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 116,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 122,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua\nPemasukan\nPengeluaran",
+    "w": 137,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua kategori\nBahan Baku\nGaji\nListrik/A",
+    "w": 174,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 184,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 207,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 104,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 91,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 19,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-finance",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Hari Ini",
+    "w": 68,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "7 Hari",
+    "w": 60,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Bulan Ini",
+    "w": 79,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Tahun Ini",
+    "w": 82,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Kustom",
+    "w": 73,
+    "h": 30,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 99,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 105,
+    "h": 26,
+    "tag": "button"
+   },
+   {
+    "name": "Ekspor CSV",
+    "w": 110,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pemasukan",
+    "w": 116,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Pengeluaran",
+    "w": 122,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Semua\nPemasukan\nPengeluaran",
+    "w": 137,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua kategori\nBahan Baku\nGaji\nListrik/A",
+    "w": 174,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 184,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 207,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 104,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 91,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 18,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 15,
+    "sample": [
+     ".text-accent-green",
+     ".border-accent-green\\/25 > .justify-between.flex > .opacity-80.uppercase.tracking-wide"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-cashiers",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[720px] text-sm",
+    "right": 762
+   },
+   {
+    "tag": "thead",
+    "cls": "bg-surface-muted text-left text-xs text-text-muted",
+    "right": 762
+   },
+   {
+    "tag": "tr",
+    "cls": "",
+    "right": 762
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-center",
+    "right": 380
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium",
+    "right": 489
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium",
+    "right": 621
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-right",
+    "right": 762
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Kasir",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Status akun Kasir Demo",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Ubah nama Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Reset password Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 9,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".bg-\\[\\#E3F8F1\\]"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-cashiers",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full min-w-[720px] text-sm",
+    "right": 770
+   },
+   {
+    "tag": "thead",
+    "cls": "bg-surface-muted text-left text-xs text-text-muted",
+    "right": 770
+   },
+   {
+    "tag": "tr",
+    "cls": "",
+    "right": 770
+   },
+   {
+    "tag": "th",
+    "cls": "px-4 py-3 font-medium text-right",
+    "right": 770
+   },
+   {
+    "tag": "tbody",
+    "cls": "",
+    "right": 770
+   },
+   {
+    "tag": "tr",
+    "cls": "border-t border-border/70",
+    "right": 770
+   },
+   {
+    "tag": "td",
+    "cls": "px-4 py-3",
+    "right": 770
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Kasir",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Status akun Kasir Demo",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Ubah nama Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Reset password Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 9,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-cashiers",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Kasir",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Status akun Kasir Demo",
+    "w": 32,
+    "h": 18,
+    "tag": "span"
+   },
+   {
+    "name": "input",
+    "w": 1,
+    "h": 1,
+    "tag": "input"
+   },
+   {
+    "name": "Ubah nama Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Reset password Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Hapus Kasir Demo",
+    "w": 28,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 8,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 2,
+    "sample": [
+     ".text-accent-green",
+     ".bg-\\[\\#E3F8F1\\]"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-tables",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Meja",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 34,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "t0EVgS9_Cq1ialQ-"
+   },
+   {
+    "fs": 10,
+    "text": "jOHUO2sbYZMYy6HF"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-tables",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Meja",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 34,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "t0EVgS9_Cq1ialQ-"
+   },
+   {
+    "fs": 10,
+    "text": "jOHUO2sbYZMYy6HF"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-tables",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Tambah Meja",
+    "w": 128,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR PNG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Unduh QR SVG",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   },
+   {
+    "name": "Nonaktifkan meja",
+    "w": 24,
+    "h": 24,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 33,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "t0EVgS9_Cq1ialQ-"
+   },
+   {
+    "fs": 10,
+    "text": "jOHUO2sbYZMYy6HF"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".text-\\[11px\\]"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-settings",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Simpan Pengaturan",
+    "w": 165,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 4,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".px-3"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-settings",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Simpan Pengaturan",
+    "w": 165,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 4,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-settings",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Simpan Pengaturan",
+    "w": 165,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 2,
+    "sample": [
+     ".text-\\[11px\\]",
+     ".px-3"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-audit",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [
+   {
+    "tag": "table",
+    "cls": "w-full caption-bottom text-sm",
+    "right": 722
+   },
+   {
+    "tag": "thead",
+    "cls": "[&_tr]:border-b",
+    "right": 722
+   },
+   {
+    "tag": "tr",
+    "cls": "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=sel",
+    "right": 722
+   },
+   {
+    "tag": "th",
+    "cls": "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([rol",
+    "right": 384
+   },
+   {
+    "tag": "th",
+    "cls": "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([rol",
+    "right": 635
+   },
+   {
+    "tag": "th",
+    "cls": "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([rol",
+    "right": 722
+   },
+   {
+    "tag": "tbody",
+    "cls": "[&_tr:last-child]:border-0",
+    "right": 722
+   }
+  ],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Semua pengguna\nKasir Demo (kasir)\nSuper ",
+    "w": 278,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua aksi\nauth.login\norder.create",
+    "w": 278,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 278,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 278,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Reset Filter",
+    "w": 278,
+    "h": 36,
+    "tag": "button"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 117,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 105,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 10,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "auth.login"
+   },
+   {
+    "fs": 10,
+    "text": "cmwnpvimw000…"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   },
+   {
+    "id": "scrollable-region-focusable",
+    "impact": "serious",
+    "help": "Scrollable region must have keyboard access",
+    "nodes": 1,
+    "sample": [
+     ".overflow-x-auto"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-audit",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Semua pengguna\nKasir Demo (kasir)\nSuper ",
+    "w": 329,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua aksi\nauth.login\norder.create",
+    "w": 329,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 329,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 329,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Reset Filter",
+    "w": 329,
+    "h": 36,
+    "tag": "button"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 117,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 105,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 10,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "auth.login"
+   },
+   {
+    "fs": 10,
+    "text": "cmwnpvimw000…"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-audit",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Semua pengguna\nKasir Demo (kasir)\nSuper ",
+    "w": 181,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "Semua aksi\nauth.login\norder.create",
+    "w": 181,
+    "h": 36,
+    "tag": "select"
+   },
+   {
+    "name": "input",
+    "w": 181,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "input",
+    "w": 181,
+    "h": 36,
+    "tag": "input"
+   },
+   {
+    "name": "Reset Filter",
+    "w": 181,
+    "h": 36,
+    "tag": "button"
+   },
+   {
+    "name": "Sebelumnya",
+    "w": 117,
+    "h": 28,
+    "tag": "button"
+   },
+   {
+    "name": "Berikutnya",
+    "w": 105,
+    "h": 28,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 9,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "auth.login"
+   },
+   {
+    "fs": 10,
+    "text": "cmwnpvimw000…"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 26,
+    "sample": [
+     ".text-accent-green",
+     "tr:nth-child(1) > .text-\\[11px\\].text-text-muted > .opacity-70.block.font-mono"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-realtime-test",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.created",
+    "w": 117,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim payment.uploaded",
+    "w": 117,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.status_changed",
+    "w": 117,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim user.deactivated",
+    "w": 117,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Reset log",
+    "w": 87,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 8,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".bg-primary"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "admin-realtime-test",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Buka menu navigasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.created",
+    "w": 313,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim payment.uploaded",
+    "w": 313,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.status_changed",
+    "w": 313,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim user.deactivated",
+    "w": 313,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Reset log",
+    "w": 87,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 8,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B Order"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "admin-realtime-test",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Pesan masuk",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Notifikasi",
+    "w": 40,
+    "h": 40,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.created",
+    "w": 454,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim payment.uploaded",
+    "w": 454,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim order.status_changed",
+    "w": 454,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Kirim user.deactivated",
+    "w": 454,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Reset log",
+    "w": 87,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 7,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "F&B ORDER"
+   },
+   {
+    "fs": 10,
+    "text": "Kedai Kopi Selaras"
+   },
+   {
+    "fs": 9,
+    "text": "© 2026 Super Admin"
+   },
+   {
+    "fs": 10,
+    "text": "2"
+   },
+   {
+    "fs": 10,
+    "text": "4"
+   },
+   {
+    "fs": 10,
+    "text": "Super Admin"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "sample": [
+     ".text-\\[11px\\]",
+     ".bg-green-600"
+    ]
+   },
+   {
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "help": "Elements must have their visible text as part of their accessible name",
+    "nodes": 2,
+    "sample": [
+     "button[title=\"Pesan masuk\"]",
+     "button[title=\"Notifikasi\"]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-queue",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "button",
+    "w": 36,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan suara",
+    "w": 137,
+    "h": 36,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "(50) Kasir",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 51,
+    "sample": [
+     ".text-accent-green",
+     "a:nth-child(1) > .items-start.gap-3.justify-between > .\\[a\\]\\:hover\\:bg-primary\\/80.py-1.bg-accent-orange\\/15"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-queue",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan suara",
+    "w": 137,
+    "h": 36,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "(50) Kasir",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "cashier-queue",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Aktifkan suara",
+    "w": 137,
+    "h": 36,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "(50) Kasir",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 51,
+    "sample": [
+     ".text-accent-green",
+     "a:nth-child(1) > .items-start.gap-3.justify-between > .\\[a\\]\\:hover\\:bg-primary\\/80.py-1.bg-accent-orange\\/15"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-detail",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 375,
+  "overflow": [
+   {
+    "tag": "section",
+    "cls": "space-y-5",
+    "right": 375
+   },
+   {
+    "tag": "div",
+    "cls": "rounded-[20px] border border-border bg-surface p-5 shadow-card",
+    "right": 375
+   },
+   {
+    "tag": "div",
+    "cls": "rounded-[20px] border border-border bg-surface p-5 shadow-card",
+    "right": 375
+   },
+   {
+    "tag": "section",
+    "cls": "space-y-4",
+    "right": 375
+   },
+   {
+    "tag": "div",
+    "cls": "rounded-[20px] border border-border bg-surface p-4 shadow-card",
+    "right": 375
+   },
+   {
+    "tag": "div",
+    "cls": "rounded-[20px] border border-border bg-surface p-4 shadow-card",
+    "right": 375
+   }
+  ],
+  "targets": [
+   {
+    "name": "button",
+    "w": 36,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 16,
+    "h": 16,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     ".text-accent-green",
+     ".bg-accent-orange\\/15"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-detail",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 16,
+    "h": 16,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "cashier-detail",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "input",
+    "w": 16,
+    "h": 16,
+    "tag": "input"
+   }
+  ],
+  "targetsTotal": 3,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 3,
+    "sample": [
+     ".text-accent-green",
+     ".bg-accent-orange\\/15"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-print",
+  "w": 360,
+  "vw": 360,
+  "scrollW": 360,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "button",
+    "w": 36,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "← Kembali ke pesanan",
+    "w": 164,
+    "h": 20,
+    "tag": "a"
+   },
+   {
+    "name": "58 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "80 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "Cetak",
+    "w": 86,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 6,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   },
+   {
+    "fs": 10,
+    "text": "DEMO-0040"
+   },
+   {
+    "fs": 10,
+    "text": "Meja"
+   },
+   {
+    "fs": 10,
+    "text": "Meja 10"
+   },
+   {
+    "fs": 10,
+    "text": "Waktu"
+   },
+   {
+    "fs": 10,
+    "text": "19 Sep, 18.39 WIB"
+   },
+   {
+    "fs": 10,
+    "text": "Nama"
+   },
+   {
+    "fs": 10,
+    "text": "Pelanggan 40"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".text-\\[11px\\]"
+    ]
+   }
+  ],
+  "errors": []
+ },
+ {
+  "slug": "cashier-print",
+  "w": 768,
+  "vw": 768,
+  "scrollW": 768,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "← Kembali ke pesanan",
+    "w": 164,
+    "h": 20,
+    "tag": "a"
+   },
+   {
+    "name": "58 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "80 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "Cetak",
+    "w": 86,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 6,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   },
+   {
+    "fs": 10,
+    "text": "DEMO-0040"
+   },
+   {
+    "fs": 10,
+    "text": "Meja"
+   },
+   {
+    "fs": 10,
+    "text": "Meja 10"
+   },
+   {
+    "fs": 10,
+    "text": "Waktu"
+   },
+   {
+    "fs": 10,
+    "text": "19 Sep, 18.39 WIB"
+   },
+   {
+    "fs": 10,
+    "text": "Nama"
+   },
+   {
+    "fs": 10,
+    "text": "Pelanggan 40"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [],
+  "errors": []
+ },
+ {
+  "slug": "cashier-print",
+  "w": 1280,
+  "vw": 1280,
+  "scrollW": 1280,
+  "overflow": [],
+  "targets": [
+   {
+    "name": "Aktifkan suara",
+    "w": 129,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "Keluar",
+    "w": 81,
+    "h": 32,
+    "tag": "button"
+   },
+   {
+    "name": "← Kembali ke pesanan",
+    "w": 164,
+    "h": 20,
+    "tag": "a"
+   },
+   {
+    "name": "58 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "80 mm",
+    "w": 69,
+    "h": 30,
+    "tag": "a"
+   },
+   {
+    "name": "Cetak",
+    "w": 86,
+    "h": 32,
+    "tag": "button"
+   }
+  ],
+  "targetsTotal": 6,
+  "unnamed": [],
+  "unnamedTotal": 0,
+  "tiny": [
+   {
+    "fs": 10,
+    "text": "Kasir"
+   },
+   {
+    "fs": 10,
+    "text": "DEMO-0040"
+   },
+   {
+    "fs": 10,
+    "text": "Meja"
+   },
+   {
+    "fs": 10,
+    "text": "Meja 10"
+   },
+   {
+    "fs": 10,
+    "text": "Waktu"
+   },
+   {
+    "fs": 10,
+    "text": "19 Sep, 18.39 WIB"
+   },
+   {
+    "fs": 10,
+    "text": "Nama"
+   },
+   {
+    "fs": 10,
+    "text": "Pelanggan 40"
+   }
+  ],
+  "lang": "id",
+  "title": "Sistem Pemesanan F&B via QR Meja",
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "sample": [
+     ".text-\\[11px\\]"
+    ]
+   }
+  ],
+  "errors": []
+ }
+]
