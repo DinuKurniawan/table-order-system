@@ -24,19 +24,12 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
-      minio:
-        image: minio/minio:latest
+      s3mock:
+        image: adobe/s3mock:5.2.3
         env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        command: server /data
+          COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: coffeeshop-public,coffeeshop-private
         ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+          - 9090:9090
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/coffeeshop?schema=public
@@ -44,12 +37,12 @@ jobs:
       APP_BASE_URL: http://localhost:3000
       SESSION_SECRET: ci-session-secret-at-least-32-characters-long
       CRON_SECRET: ci-cron-secret
-      R2_ACCOUNT_ID: http://localhost:9000
-      R2_ACCESS_KEY_ID: minioadmin
-      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_ACCOUNT_ID: http://localhost:9090
+      R2_ACCESS_KEY_ID: s3mock
+      R2_SECRET_ACCESS_KEY: s3mock-secret
       R2_BUCKET_PUBLIC: coffeeshop-public
       R2_BUCKET_PRIVATE: coffeeshop-private
-      R2_PUBLIC_BASE_URL: http://localhost:9000/coffeeshop-public
+      R2_PUBLIC_BASE_URL: http://localhost:9090/coffeeshop-public
       R2_FORCE_PATH_STYLE: "true"
       PUSHER_APP_ID: ci-disabled
       PUSHER_KEY: ci-disabled
@@ -71,6 +64,18 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed
+
+      - name: Wait for S3Mock
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:9090/actuator/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "S3Mock tidak siap" >&2
+          exit 1
+
       - run: node scripts/init-buckets.mjs
 
       - run: npm run typecheck

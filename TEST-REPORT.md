@@ -106,9 +106,9 @@ Hasil Lighthouse: skor aksesibilitas 100 pada halaman menu customer. Pemeriksaan
 
 ## 5. CI
 
-Berkas: `.github/workflows/ci.yml`. Job tunggal dengan service PostgreSQL 16 dan MinIO:
+Berkas: `.github/workflows/ci.yml`. Job tunggal dengan service PostgreSQL 16 dan S3Mock (S3-compatible):
 
-1. `npm ci`, `prisma migrate deploy`, `prisma generate`, seed, dan pembuatan bucket MinIO.
+1. `npm ci`, `prisma migrate deploy`, `prisma generate`, seed, dan pembuatan bucket di S3Mock.
 2. `npm run typecheck`, `npm run test`, `npm run test:unit`.
 3. `npm run build`, lalu `npx playwright test` (Playwright menjalankan `npm start`).
 4. `npm run lighthouse:menu` terhadap server produksi; gagal bila LCP ≥ 2.500 ms atau a11y < 0,95.

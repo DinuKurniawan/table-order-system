@@ -198,7 +198,7 @@ Contoh nilai di bawah adalah nilai palsu. Jangan menyimpan kredensial asli di re
 | `NEXT_PUBLIC_PUSHER_CLUSTER` | Wajib | Cluster Pusher untuk browser | `ap1` |
 | `SEED_ADMIN_USERNAME` | Opsional | Username Super Admin saat seeder dijalankan (default `admin`) | `admin_kafe` |
 | `SEED_ADMIN_PASSWORD` | Opsional | Password Super Admin saat seeder dijalankan (default `Admin123456!`) | `kata-sandi-kuat-anda` |
-| `R2_FORCE_PATH_STYLE` | Opsional | `true` untuk MinIO/CI yang memakai path-style URL; kosong untuk R2 | `true` |
+| `R2_FORCE_PATH_STYLE` | Opsional | `true` untuk S3-compatible lokal (S3Mock/CI) yang memakai path-style URL; kosong untuk R2 | `true` |
 | `DISABLE_REALTIME` | Opsional | `true` untuk mematikan Pusher (dipakai E2E/CI) | `true` |
 
 Semua variabel di atas tercantum di `.env.example`. `SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` hanya dipakai saat akun Super Admin dibuat pertama kali.
@@ -234,7 +234,7 @@ Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu d
 
 ```text
 .
-├── .github/workflows/ci.yml   # CI: Postgres + MinIO, tes, build, E2E, Lighthouse
+├── .github/workflows/ci.yml   # CI: Postgres + S3Mock, tes, build, E2E, Lighthouse
 ├── prisma/
 │   ├── schema.prisma          # Model & enum database
 │   ├── migrations/            # Migrasi SQL

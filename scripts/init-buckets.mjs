@@ -1,6 +1,6 @@
 /**
- * Membuat bucket objek untuk lingkungan CI (MinIO).
- * Jalankan setelah MinIO siap dan env R2_* diarahkan ke MinIO.
+ * Membuat bucket objek untuk lingkungan CI (S3Mock).
+ * Jalankan setelah S3Mock siap dan env R2_* diarahkan ke endpoint lokal.
  */
 import "dotenv/config";
 import {
