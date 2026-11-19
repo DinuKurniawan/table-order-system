@@ -7,9 +7,9 @@ import { handleApiError, readJson } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import {
   consumeRateLimit,
-  getClientIp,
   tooManyRequests,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";

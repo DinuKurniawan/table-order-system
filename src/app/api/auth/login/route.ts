@@ -4,12 +4,12 @@ import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import {
-  getClientIp,
   isRateLimited,
   rateLimitHeaders,
   recordFailedAttempt,
   resetRateLimit,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 import { logger } from "@/lib/logger";
 import { Role } from "@prisma/client";
 

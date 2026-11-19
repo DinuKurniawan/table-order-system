@@ -5,9 +5,9 @@ import { getOrderAccessToken } from "@/lib/order-access";
 import { submitPaymentProof } from "@/server/services/orders";
 import {
   consumeRateLimit,
-  getClientIp,
   tooManyRequests,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 

@@ -60,7 +60,8 @@ Catatan: `npm run lint` masih gagal karena 13 error lama di `settings-manager.ts
 ## Batasan yang diketahui
 
 - CSP memakai `'unsafe-inline'` untuk script agar halaman yang di-cache/static tetap berfungsi. Peningkatan berikutnya: nonce per-request (mengorbankan static rendering) atau hash inline script.
-- `getClientIp` memercayai `x-forwarded-for`/`x-real-ip`; pastikan hanya reverse proxy tepercaya yang dapat menetapkan header tersebut di produksi.
+- `getClientIp` memakai `TRUSTED_PROXY` (`vercel`, `cloudflare`, `none`, atau jumlah hop). Mode `none` mengabaikan semua header forwarded; isi dengan jumlah hop bila berada di balik reverse proxy yang tidak menyediakan mode khusus.
+- Rate limit disimpan di tabel PostgreSQL `RateLimit` dengan upsert atomik, sehingga aman untuk banyak instance/serverless (bukan Map in-memory).
 - Pembersihan baris `RateLimit` kedaluwarsa dijalankan oleh cron `/api/cron/expire-orders`; tanpa cron tabel akan tumbuh perlahan.
 - URL presigned berlaku 60 detik dan tidak di-cache; jangan menyimpan URL tersebut di log.
 - Uji manual dilakukan pada dev server lokal; ulangi uji header dan konfigurasi env (`NEXT_PUBLIC_PUSHER_KEY` = `PUSHER_KEY`, origin R2) di lingkungan produksi.

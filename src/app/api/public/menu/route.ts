@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { consumeRateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limiter";
+import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 import { getPublicMenu } from "@/server/services/menu";
 
 export async function GET(request: Request) {
