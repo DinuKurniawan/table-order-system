@@ -58,6 +58,8 @@ export function MenuClient({
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(cartKey);
+      // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCart(saved ? (JSON.parse(saved).items as CartItems) : {});
     } catch {
       setCart({});

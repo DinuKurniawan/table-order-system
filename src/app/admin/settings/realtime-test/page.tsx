@@ -1,50 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePusherChannel, useRealtimeEvent, RealTimeEvent } from "@/lib/pusher-client";
+import { useRealtimeEvent, RealTimeEvent } from "@/lib/pusher-client";
 import { emitToChannel } from "@/lib/pusher-server";
 import { afterCommit } from "@/lib/after-commit";
 import { SectionCard } from "@/components/admin/section-card";
-import { EmptyState } from "@/components/admin/empty-state";
+
+type LogEntry = {
+  event: RealTimeEvent;
+  payload: unknown;
+  timestamp: string;
+};
 
 export default function RealTimeTestPage() {
-  const [logs, setLogs] = useState<Array<{ event: string; payload: any; timestamp: string }>>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const queryClient = useQueryClient();
 
-  // ============================================================
-  // Hubungkan ke channel admin – akan menerima event user.deactivated
-  // ============================================================
-  useEffect(() => {
-    const { client, connectionStatus } = usePusherChannel("private-admin");
-
-    // Daftarkan handler untuk event user.deactivated dengan callback logout
-    const unsubscribe = useRealtimeEvent(
-      "private-admin",
-      "user.deactivated",
-      (payload: any) => {
-        const timestamp = new Date().toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        setLogs((prev) => [
-          { event: "user.deactivated", payload, timestamp },
-          ...prev.slice(0, 49),
-        ]);
-        // Auto-invalidate queries setelah menerima event
-        queryClient.invalidateQueries({ queryKey: ["settings"] });
-        // Trigger logout otomatis ketika menerima user.deactivated
-        fetch("/api/auth/logout", { method: "POST" }).then(() => {
-          // redirect handled di luar effect
-        });
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [queryClient]);
+  // Hook level atas (aturan hooks): berlangganan event user.deactivated.
+  useRealtimeEvent("private-admin", "user.deactivated", (payload) => {
+    const timestamp = new Date().toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    setLogs((prev) => [
+      { event: "user.deactivated", payload, timestamp },
+      ...prev.slice(0, 49),
+    ]);
+    queryClient.invalidateQueries({ queryKey: ["settings"] });
+    void fetch("/api/auth/logout", { method: "POST" });
+  });
 
   // ============================================================
   // Kirim event uji

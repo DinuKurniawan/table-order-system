@@ -8,7 +8,6 @@
 
 import Pusher from "pusher";
 import { logger } from "./logger";
-import { env } from "@/lib/env";
 
 let pusherInstance: Pusher | null = null;
 
@@ -68,5 +67,3 @@ export function emitToChannel(channel: string, event: string, payload: unknown):
     logger.error(`Pusher emit gagal channel="${channel}" event="${event}"`, err);
   }
 }
-
-export default { getPusher, emitToChannel };

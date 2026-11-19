@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { RealTimeEvent } from "@/lib/realtime-events";
 import { PaymentStatus } from "@prisma/client";
 import { afterCommit } from "@/lib/after-commit";
 import { emitToChannel } from "@/lib/pusher-server";

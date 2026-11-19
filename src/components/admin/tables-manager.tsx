@@ -10,11 +10,8 @@ import {
   Plus,
   Loader2,
   X,
-  RefreshCw,
   Copy,
-  Trash2,
   Eye,
-  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +19,20 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/admin/empty-state";
-import { ImageUploader } from "@/components/image-uploader";
 import { tableInputSchema, tableUpdateSchema, TableUpdateInput } from "@/lib/validators/table";
 import { SectionCard } from "@/components/admin/section-card";
 import { formatWIB, relativeTime } from "@/lib/utils";
-import { tableOrderUrl } from "@/lib/qr";
-import { formatRupiah } from "@/lib/utils";
 import { TableSkeleton } from "@/components/admin/table-skeleton";
+
+type TableRow = {
+  id: string;
+  name: string;
+  area: string | null;
+  token: string;
+  isActive: boolean;
+  createdAt: string;
+  lastSeenAt?: string | null;
+};
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
@@ -43,13 +47,13 @@ export function AdminTablesPage() {
   const queryClient = useQueryClient();
   const [dialog, setDialog] = React.useState<
     | { mode: "create" }
-    | { mode: "edit"; table: any }
+    | { mode: "edit"; table: TableRow }
     | null
 >(null);
 
   const tablesQuery = useQuery({
     queryKey: ["tables"],
-    queryFn: () => api<{ data: any[] }>("/api/admin/tables"),
+    queryFn: () => api<{ data: TableRow[] }>("/api/admin/tables"),
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["tables"] });
@@ -86,18 +90,19 @@ export function AdminTablesPage() {
             />
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {tablesQuery.data?.data.map((table: any) => {
-                const thumb = tableOrderUrl(table.token);
+              {tablesQuery.data?.data.map((table) => {
                 return (
                   <section
                     key={table.id}
                     className="rounded-2xl border border-border bg-surface p-4 flex flex-col min-h-[200px] transition-all hover:shadow-lg hover:shadow-border/30"
                   >
                     <div className="flex justify-center mb-3 min-h-[120px]">
+                      {/* QR dirender per-request oleh route handler; next/image tidak relevan. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={thumb}
+                        src={`/api/admin/tables/${table.id}/qr?format=svg`}
                         alt={`QR Meja ${table.name}`}
-                        className="size-full object-cont"
+                        className="size-full object-contain"
                         loading="lazy"
                       />
                     </div>
@@ -208,7 +213,7 @@ function CreateTableDialog({
         <DialogHeader>
           <DialogTitle>Tambah Meja</DialogTitle>
           <DialogDescription>
-            Berikan nama meja (contoh: "Meja 1") dan area opsional.
+            Berikan nama meja (contoh: &ldquo;Meja 1&rdquo;) dan area opsional.
           </DialogDescription>
         </DialogHeader>
 
@@ -282,7 +287,7 @@ function EditTableDialog({
   onClose,
   onSaved,
 }: {
-  table: any;
+  table: TableRow;
   onClose: () => void;
   onSaved: () => void;
 }) {

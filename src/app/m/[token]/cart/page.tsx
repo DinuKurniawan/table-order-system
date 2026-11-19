@@ -52,6 +52,8 @@ function CartContent() {
   useEffect(() => {
     try {
       const data = window.localStorage.getItem(CART_KEY);
+      // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setItems(data ? (JSON.parse(data).items as CartItems) : {});
     } catch {
       setItems({});
@@ -136,7 +138,7 @@ function CartContent() {
       } else {
         toast.error(data.error || "Gagal memesan");
       }
-    } catch (err) {
+    } catch {
       toast.error("Gagal terhubung ke server");
     } finally {
       setIsSaving(false);
