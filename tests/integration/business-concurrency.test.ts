@@ -2,7 +2,7 @@
  * AUDIT LOGIKA BISNIS & KONKURENSI — tes eksposur bug (read-only terhadap kode aplikasi).
  *
  * Tes di berkas ini SENGAJA MERAH pada kode saat ini. Setiap tes memetakan ke
- * temuan di LOGIKA-BISNIS-DAN-KONKURENSI-REPORT.md. Jangan perbaiki tes agar
+ * temuan di AUDIT-LOGIKA-BISNIS-DAN-KONKURENSI-REPORT.md. Jangan perbaiki tes agar
  * hijau; perbaiki kode layanannya, lalu tes menjadi hijau.
  *
  * Jalankan terpisah:
