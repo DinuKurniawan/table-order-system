@@ -61,6 +61,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Audit dependencies runtime (high)
+        run: npm audit --omit=dev --audit-level=high
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed
