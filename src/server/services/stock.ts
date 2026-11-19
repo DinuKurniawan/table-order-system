@@ -333,19 +333,31 @@ export async function updateStockSettings(
 ): Promise<{ productId: string; stock: number; trackStock: boolean; lowStockThreshold: number }> {
   const data = stockSettingsSchema.parse(input);
 
-  const product = await prisma.product.findFirst({
-    where: { id: productId, deletedAt: null },
-    select: { id: true, name: true, stock: true, trackStock: true, lowStockThreshold: true },
-  });
-
-  if (!product) {
-    throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
-  }
-
-  const nextTrack = data.trackStock ?? product.trackStock;
-  const nextThreshold = data.lowStockThreshold ?? product.lowStockThreshold;
-
   const updated = await runInTransaction(async (tx, after) => {
+    // Kunci baris (audit T-02): baca stok terkini di dalam transaksi agar
+    // reservasi checkout yang berjalan bersamaan tidak tertimpa stok absolut.
+    const rows = await tx.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        stock: number;
+        trackStock: boolean;
+        lowStockThreshold: number;
+      }>
+    >`
+      SELECT id, name, stock, "trackStock", "lowStockThreshold"
+      FROM "Product"
+      WHERE id = ${productId} AND "deletedAt" IS NULL
+      FOR UPDATE
+    `;
+
+    const product = rows[0];
+    if (!product) {
+      throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
+    }
+
+    const nextTrack = data.trackStock ?? product.trackStock;
+    const nextThreshold = data.lowStockThreshold ?? product.lowStockThreshold;
     const disableTracking = nextTrack === false && product.stock > 0;
     const nextStock = nextTrack ? product.stock : 0;
 
@@ -401,7 +413,7 @@ export async function updateStockSettings(
   });
 
   return {
-    productId: product.id,
+    productId,
     stock: updated.stock,
     trackStock: updated.trackStock,
     lowStockThreshold: updated.lowStockThreshold,
