@@ -7,7 +7,6 @@ import { categoryInputSchema, productCreateSchema } from "../src/lib/validators/
 import {
   createCategory,
   deleteCategory,
-  listCategories,
 } from "../src/server/services/categories";
 import {
   createProduct,
@@ -19,18 +18,32 @@ import {
 const prisma = new PrismaClient();
 
 test("Modul Menu: Kategori & Produk", async (t) => {
-  const admin = await prisma.user.findFirst({ where: { role: Role.SUPER_ADMIN } });
-  assert.ok(admin, "Super admin hasil seed harus ada");
-
   const stamp = Date.now();
+  // User sendiri: tes paralel lain membuat/menghapus SUPER_ADMIN sehingga
+  // findFirst bisa mengembalikan baris yang dihapus di tengah tes.
+  const admin = await prisma.user.create({
+    data: {
+      name: `Admin Menu ${stamp}`,
+      username: `admin-menu-${stamp}`,
+      passwordHash: "x",
+      role: Role.SUPER_ADMIN,
+    },
+  });
 
   t.after(async () => {
+    await prisma.order.deleteMany({
+      where: { code: { startsWith: `UJI-${stamp}` } },
+    });
     await prisma.product.deleteMany({
       where: { name: { startsWith: `Uji ${stamp}` } },
     });
     await prisma.category.deleteMany({
       where: { name: { startsWith: `Uji ${stamp}` } },
     });
+    await prisma.table.deleteMany({
+      where: { name: { startsWith: `Uji ${stamp}` } },
+    });
+    await prisma.user.delete({ where: { id: admin.id } });
     await prisma.$disconnect();
   });
 
@@ -145,9 +158,14 @@ test("Modul Menu: Kategori & Produk", async (t) => {
   });
 
   await t.test("4. Produk yang pernah dipesan di-soft delete", async () => {
-    const categories = await listCategories();
-    const coffee = categories.find((c) => c.subtype === DrinkSubtype.COFFEE);
-    assert.ok(coffee, "Kategori kopi hasil seed harus ada");
+    const coffee = await createCategory(
+      {
+        name: `Uji ${stamp} Kopi Pesanan`,
+        type: CategoryType.DRINK,
+        subtype: DrinkSubtype.COFFEE,
+      },
+      admin.id
+    );
 
     const product = await createProduct(
       {
@@ -162,8 +180,9 @@ test("Modul Menu: Kategori & Produk", async (t) => {
       admin.id
     );
 
-    const table = await prisma.table.findFirst();
-    assert.ok(table, "Meja hasil seed harus ada");
+    const table = await prisma.table.create({
+      data: { name: `Uji ${stamp} Meja`, token: `uji-meja-${stamp}` },
+    });
 
     const order = await prisma.order.create({
       data: {
@@ -202,12 +221,29 @@ test("Modul Menu: Kategori & Produk", async (t) => {
     assert.equal(hidden.items.length, 0, "Produk soft-delete tidak tampil di daftar");
 
     await prisma.order.delete({ where: { id: order.id } });
+    await prisma.table.delete({ where: { id: table.id } });
   });
 
   await t.test("5. Kategori berisi produk tidak bisa dihapus", async () => {
-    const categories = await listCategories();
-    const food = categories.find((c) => c.type === CategoryType.FOOD && c.productCount > 0);
-    assert.ok(food, "Kategori makanan berisi produk hasil seed harus ada");
+    const food = await createCategory(
+      {
+        name: `Uji ${stamp} Makanan`,
+        type: CategoryType.FOOD,
+      },
+      admin.id
+    );
+    await createProduct(
+      {
+        name: `Uji ${stamp} Nasi Goreng`,
+        price: 20000,
+        categoryId: food.id,
+        isActive: true,
+        trackStock: false,
+        stock: 0,
+        lowStockThreshold: 5,
+      },
+      admin.id
+    );
 
     await assert.rejects(
       () => deleteCategory(food.id, admin.id),

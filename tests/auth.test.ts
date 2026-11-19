@@ -9,6 +9,9 @@ import { SignJWT } from "jose";
 test("Auth & RBAC Test Suite", async (t) => {
   // Setup user tes sementara
   const testUsername = `test_cashier_${Date.now()}`;
+  // IP unik per run: rate limit login tersimpan di DB dan bisa tersisa
+  // dari run sebelumnya, membuat tes berikutnya menerima 429.
+  const testIp = `203.0.113.${(Date.now() % 200) + 1}`;
   const rawPassword = "KasirPassword123!";
   const passwordHash = await hashPassword(rawPassword);
 
@@ -24,6 +27,9 @@ test("Auth & RBAC Test Suite", async (t) => {
   });
 
   t.after(async () => {
+    await prisma.rateLimit.deleteMany({
+      where: { key: { contains: testIp } },
+    });
     await prisma.user.deleteMany({
       where: { username: testUsername },
     });
@@ -173,6 +179,10 @@ test("Auth & RBAC Test Suite", async (t) => {
     // 1. Login salah
     const badReq = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": testIp,
+      },
       body: JSON.stringify({
         username: "non_existent_user",
         password: "random_password",
@@ -186,6 +196,10 @@ test("Auth & RBAC Test Suite", async (t) => {
     // 2. Login benar Super Admin
     const goodReq = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": testIp,
+      },
       body: JSON.stringify({
         username: "admin",
         password: "Admin123456!",

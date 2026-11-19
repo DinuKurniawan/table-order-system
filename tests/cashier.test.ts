@@ -16,11 +16,18 @@ import {
 const prisma = new PrismaClient();
 
 test("Modul Kasir: akun, sesi, dan audit", async (t) => {
-  const admin = await prisma.user.findFirst({ where: { role: Role.SUPER_ADMIN } });
-  assert.ok(admin, "Super admin hasil seed harus ada");
-
   const stamp = Date.now();
   const prefix = `uji${stamp}`;
+  // User sendiri: tes paralel lain membuat/menghapus SUPER_ADMIN sehingga
+  // findFirst bisa mengembalikan baris yang dihapus di tengah tes.
+  const admin = await prisma.user.create({
+    data: {
+      name: `Admin Kasir ${stamp}`,
+      username: `${prefix}_admin`,
+      passwordHash: "x",
+      role: Role.SUPER_ADMIN,
+    },
+  });
 
   t.after(async () => {
     await prisma.order.deleteMany({ where: { code: { startsWith: `UJI-CSH-${stamp}` } } });
