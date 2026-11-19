@@ -22,7 +22,8 @@ Aplikasi web pemesanan makanan & minuman. Customer memindai QR di meja, memesan,
 npm run dev            # server pengembangan
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint
-npm run test           # vitest (unit + integrasi)
+npm run test           # node:test (integrasi & regresi di tests/)
+npm run test:unit      # Vitest (kualitas/konkurensi di quality/)
 npm run test:e2e       # playwright
 npm run db:migrate     # prisma migrate dev
 npm run db:seed        # seed idempoten
@@ -30,7 +31,7 @@ npm run db:studio      # prisma studio
 npm run build          # build produksi
 ```
 
-Sebelum menyatakan pekerjaan selesai, **wajib** lulus: `typecheck`, `lint`, `test`. Untuk perubahan alur utama juga `test:e2e`.
+Sebelum menyatakan pekerjaan selesai, **wajib** lulus: `typecheck`, `lint`, `test`, `test:unit`. Untuk perubahan alur utama juga `test:e2e`.
 
 ---
 
@@ -126,9 +127,13 @@ Sebelum menyatakan pekerjaan selesai, **wajib** lulus: `typecheck`, `lint`, `tes
 
 | Jenis | Wajib untuk |
 | --- | --- |
-| Unit (Vitest) | `domain/*` (state machine, pricing), util, validator, `image.ts` |
-| Integrasi (Vitest + DB uji) | Service: checkout & reservasi, approve/reject, cron kedaluwarsa, stok, keuangan |
+| Integrasi (node:test + DB uji, `tests/**`) | Service: checkout & reservasi, approve/reject, cron kedaluwarsa, stok, keuangan, auth, kontrak API |
+| Kualitas/konkurensi (Vitest + DB uji, `quality/**`) | Uji beban/konkurensi dan regresi lintas modul |
+| Unit murni (Vitest) | `domain/*` (state machine, pricing), util, validator, `image.ts` |
 | E2E (Playwright, 2 browser context) | Scan → pesan → upload → kasir melihat realtime → setuju → cetak; alur tolak → upload ulang; kedaluwarsa |
+
+Dua runner memang dipisah berdasarkan direktori: `npm test` (node:test) untuk integrasi/regresi,
+`npm run test:unit` (Vitest) untuk kualitas/konkurensi. Keduanya wajib hijau sebelum menandai selesai.
 
 Tes konkurensi yang **harus ada:** (1) 20 checkout paralel untuk stok 5 → maksimal 5 sukses, stok ≥ 0; (2) dua approve bersamaan → satu sukses; (3) cron dijalankan dua kali → stok dikembalikan sekali.
 
