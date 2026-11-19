@@ -186,113 +186,142 @@ export async function POST(req: Request) {
     const expiresAt = new Date(now.getTime() + timeoutMinutes * 60000);
 
     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const randomPart = crypto.randomBytes(2).toString("hex").toUpperCase();
-    const orderCode = `ORD-${datePart}-${randomPart}`;
     const accessToken = crypto.randomBytes(16).toString("hex");
 
-    await runInTransaction(async (tx, after) => {
-      const order = await tx.order.create({
-        data: {
-          code: orderCode,
-          accessToken,
-          idempotencyKey,
-          tableId: table.id,
-          customerName: customerName || null,
-          note: note || null,
-          status: "AWAITING_PAYMENT",
-          expiresAt,
-          version: 0,
-          subtotal,
-          total,
-          items: {
-            create: items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              note: item.note || null,
-              nameSnapshot: productMap.get(item.productId)?.name ?? "",
-              priceSnapshot: productMap.get(item.productId)?.price ?? 0,
-            })),
-          },
-        },
-      });
+    // K-01: kode hanya 4 hex sehingga bisa bentrok. Saat bentrok, ulangi
+    // transaksi dengan kode baru (attempt menggeser suffix) alih-alih 500.
+    const makeOrderCode = (attempt: number) => {
+      const base = crypto.randomBytes(2).readUInt16BE(0);
+      const suffix = ((base + attempt) % 0x10000)
+        .toString(16)
+        .toUpperCase()
+        .padStart(4, "0");
+      return `ORD-${datePart}-${suffix}`;
+    };
 
-      for (const item of items) {
-        const product = productMap.get(item.productId);
-        if (!product) {
-          throw new AppError("VALIDATION_ERROR", "Produk tidak ditemukan", 400);
-        }
+    const isOrderCodeConflict = (err: unknown) => {
+      if (
+        !(err instanceof Prisma.PrismaClientKnownRequestError) ||
+        err.code !== "P2002"
+      ) {
+        return false;
+      }
+      const target = err.meta?.target;
+      return Array.isArray(target) && target.includes("code");
+    };
 
-        // Produk non-tracked tidak mereservasi stok dan tidak menulis movement (K-02).
-        const reserved = await reserveStock(
-          tx,
-          {
-            productId: item.productId,
-            name: product.name,
-            quantity: item.quantity,
-            trackStock: product.trackStock,
-          },
-          orderCode
-        );
-        if (!reserved) continue;
+    for (let attempt = 0; ; attempt++) {
+      const orderCode = makeOrderCode(attempt);
 
-        const newStock = reserved.newStock;
-
-        after(() => {
-          emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
-            productId: item.productId,
-            newStock,
-            orderCode,
+      try {
+        await runInTransaction(async (tx, after) => {
+          const order = await tx.order.create({
+            data: {
+              code: orderCode,
+              accessToken,
+              idempotencyKey,
+              tableId: table.id,
+              customerName: customerName || null,
+              note: note || null,
+              status: "AWAITING_PAYMENT",
+              expiresAt,
+              version: 0,
+              subtotal,
+              total,
+              items: {
+                create: items.map((item) => ({
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  note: item.note || null,
+                  nameSnapshot: productMap.get(item.productId)?.name ?? "",
+                  priceSnapshot: productMap.get(item.productId)?.price ?? 0,
+                })),
+              },
+            },
           });
-        });
 
-        if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
+          for (const item of items) {
+            const product = productMap.get(item.productId);
+            if (!product) {
+              throw new AppError("VALIDATION_ERROR", "Produk tidak ditemukan", 400);
+            }
+
+            // Produk non-tracked tidak mereservasi stok dan tidak menulis movement (K-02).
+            const reserved = await reserveStock(
+              tx,
+              {
+                productId: item.productId,
+                name: product.name,
+                quantity: item.quantity,
+                trackStock: product.trackStock,
+              },
+              orderCode
+            );
+            if (!reserved) continue;
+
+            const newStock = reserved.newStock;
+
+            after(() => {
+              emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
+                productId: item.productId,
+                newStock,
+                orderCode,
+              });
+            });
+
+            if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
+              after(() => {
+                emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, {
+                  productId: item.productId,
+                  newStock,
+                  orderCode,
+                });
+              });
+            }
+          }
+
+          await tx.auditLog.create({
+            data: {
+              action: "order.created",
+              entity: "Order",
+              entityId: order.id,
+              meta: {
+                code: orderCode,
+                tableName: table.name,
+                total,
+                itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+              },
+            },
+          });
+
           after(() => {
-            emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, {
-              productId: item.productId,
-              newStock,
+            emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.orderCreated, {
               orderCode,
+              orderId: order.id,
+              tableToken,
+              tableName: table.name,
+              customerName,
+            });
+            emitToChannel(CHANNELS.admin, REALTIME_EVENTS.orderCreated, {
+              orderCode,
+              orderId: order.id,
+              tableToken,
+              tableName: table.name,
+              customerName,
             });
           });
-        }
+        });
+      } catch (err) {
+        if (attempt < 4 && isOrderCodeConflict(err)) continue;
+        throw err;
       }
 
-      await tx.auditLog.create({
-        data: {
-          action: "order.created",
-          entity: "Order",
-          entityId: order.id,
-          meta: {
-            code: orderCode,
-            tableName: table.name,
-            total,
-            itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
-          },
-        },
-      });
-
-      after(() => {
-        emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.orderCreated, {
-          orderCode,
-          orderId: order.id,
-          tableToken,
-          tableName: table.name,
-          customerName,
-        });
-        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.orderCreated, {
-          orderCode,
-          orderId: order.id,
-          tableToken,
-          tableName: table.name,
-          customerName,
-        });
-      });
-    });
-
-    return orderResponse(
-      { code: orderCode, accessToken },
-      201,
-      timeoutMinutes * 60
-    );
+      return orderResponse(
+        { code: orderCode, accessToken },
+        201,
+        timeoutMinutes * 60
+      );
+    }
   } catch (err) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&

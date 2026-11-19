@@ -172,12 +172,20 @@ export async function reserveStock(
 
   const newStock = rows[0].stock;
 
+  // K-07: tautkan reservasi ke order agar releaseStock dapat menghitung sisa
+  // yang benar-benar pernah direservasi (K-03).
+  const order = await tx.order.findUnique({
+    where: { code: orderCode },
+    select: { id: true },
+  });
+
   await tx.stockMovement.create({
     data: {
       productId: item.productId,
       type: "ORDER_RESERVE",
       quantity: item.quantity,
       balance: newStock,
+      orderId: order?.id ?? null,
       note: `Pesanan order ${orderCode}`,
     },
   });
@@ -186,42 +194,71 @@ export async function reserveStock(
 }
 
 /**
- * Mengembalikan stok pesanan yang batal/kedaluwarsa. Produk non-tracked
- * dilewati: tidak ada stok yang pernah direservasi (K-02).
+ * Mengembalikan stok pesanan yang batal/kedaluwarsa. Hanya stok yang benar-benar
+ * pernah direservasi order ini yang dikembalikan (K-03), dihitung dari
+ * StockMovement ber-orderId (K-07) sehingga idempoten walau dipanggil ulang.
  */
 export async function releaseStock(
   tx: Prisma.TransactionClient,
   orderId: string,
   code: string
 ): Promise<StockChange[]> {
-  const items = await tx.orderItem.findMany({
-    where: { orderId },
-    include: { product: { select: { trackStock: true } } },
+  const [reserved, released] = await Promise.all([
+    tx.stockMovement.groupBy({
+      by: ["productId"],
+      where: { orderId, type: "ORDER_RESERVE" },
+      _sum: { quantity: true },
+    }),
+    tx.stockMovement.groupBy({
+      by: ["productId"],
+      where: { orderId, type: "ORDER_RELEASE" },
+      _sum: { quantity: true },
+    }),
+  ]);
+
+  const outstanding = new Map<string, number>();
+  for (const row of reserved) {
+    outstanding.set(row.productId, row._sum.quantity ?? 0);
+  }
+  for (const row of released) {
+    outstanding.set(
+      row.productId,
+      (outstanding.get(row.productId) ?? 0) - (row._sum.quantity ?? 0)
+    );
+  }
+
+  const itemProducts = await tx.orderItem.findMany({
+    where: { orderId, productId: { in: [...outstanding.keys()] } },
+    select: { productId: true },
   });
+
   const changes: StockChange[] = [];
 
-  for (const item of items) {
-    if (!item.product.trackStock) continue;
+  for (const { productId } of itemProducts) {
+    const quantity = outstanding.get(productId) ?? 0;
+    if (quantity <= 0) continue;
+    // Satu pelepasan per produk agar baris order duplikat tidak dobel.
+    outstanding.set(productId, 0);
 
     const rows = await tx.$queryRaw<Array<{ stock: number }>>`
-      UPDATE "Product" SET stock = stock + ${item.quantity}, "updatedAt" = NOW()
-      WHERE id = ${item.productId} AND "trackStock" = true
+      UPDATE "Product" SET stock = stock + ${quantity}, "updatedAt" = NOW()
+      WHERE id = ${productId} AND "trackStock" = true
       RETURNING stock
     `;
     if (rows.length === 0) continue;
 
     await tx.stockMovement.create({
       data: {
-        productId: item.productId,
+        productId,
         type: "ORDER_RELEASE",
-        quantity: item.quantity,
+        quantity,
         balance: rows[0].stock,
         orderId,
         note: `Stok dikembalikan untuk ${code}`,
       },
     });
 
-    changes.push({ productId: item.productId, newStock: rows[0].stock });
+    changes.push({ productId, newStock: rows[0].stock });
   }
 
   return changes;
