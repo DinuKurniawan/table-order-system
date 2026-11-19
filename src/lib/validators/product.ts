@@ -28,7 +28,12 @@ export const categoryReorderSchema = z.object({
   ids: z.array(z.string().min(1)).min(1, "Daftar id kategori wajib diisi"),
 });
 
-export const productCreateSchema = z.object({
+/**
+ * Field produk tanpa nilai default, dipakai bersama oleh skema create dan update.
+ * Update wajib memakai bentuk ini: `.partial()` pada skema ber-default akan tetap
+ * mengisi field yang tidak dikirim (bug K-01) dan menimpa data tersimpan.
+ */
+const productFields = {
   name: z.string().trim().min(1, "Nama produk wajib diisi").max(120),
   description: z.string().trim().max(500).nullish(),
   price: z
@@ -39,15 +44,26 @@ export const productCreateSchema = z.object({
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
   imageKey: z.string().trim().min(1).nullish(),
   thumbKey: z.string().trim().min(1).nullish(),
-  isActive: z.boolean().default(true),
-  trackStock: z.boolean().default(true),
+  isActive: z.boolean(),
+  trackStock: z.boolean(),
+  lowStockThreshold: z.number().int().min(0),
+};
+
+export const productCreateSchema = z.object({
+  ...productFields,
+  isActive: productFields.isActive.default(true),
+  trackStock: productFields.trackStock.default(true),
   stock: z.number().int().min(0, "Stok tidak boleh negatif").default(0),
-  lowStockThreshold: z.number().int().min(0).default(5),
+  lowStockThreshold: productFields.lowStockThreshold.default(5),
 });
 
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 
-export const productUpdateSchema = productCreateSchema.partial();
+/**
+ * `stock` sengaja tidak ada: stok hanya berubah lewat stock.service (AI-AGENT
+ * aturan 6), bukan lewat edit produk umum.
+ */
+export const productUpdateSchema = z.object(productFields).partial();
 
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 

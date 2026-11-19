@@ -9,6 +9,11 @@ import { SignJWT } from "jose";
 test("Auth & RBAC Test Suite", async (t) => {
   // Setup user tes sementara
   const testUsername = `test_cashier_${Date.now()}`;
+  // IP unik per run: rate limit login tersimpan di DB dan bisa tersisa
+  // dari run sebelumnya, membuat tes berikutnya menerima 429.
+  const testIp = `203.0.113.${(Date.now() % 200) + 1}`;
+  const auditStart = new Date();
+  const ghostUsername = `ghost_${Date.now()}`;
   const rawPassword = "KasirPassword123!";
   const passwordHash = await hashPassword(rawPassword);
 
@@ -24,6 +29,15 @@ test("Auth & RBAC Test Suite", async (t) => {
   });
 
   t.after(async () => {
+    await prisma.auditLog.deleteMany({
+      where: {
+        action: { in: ["auth.login", "auth.login_failed"] },
+        createdAt: { gte: auditStart },
+      },
+    });
+    await prisma.rateLimit.deleteMany({
+      where: { key: { contains: testIp } },
+    });
     await prisma.user.deleteMany({
       where: { username: testUsername },
     });
@@ -159,7 +173,7 @@ test("Auth & RBAC Test Suite", async (t) => {
         authorizeRole(null, [Role.CASHIER]);
       },
       (err: Error & { code?: string; status?: number }) => {
-        return err.code === "UNAUTHORIZED" && err.status === 401;
+        return err.code === "UNAUTHENTICATED" && err.status === 401;
       },
       "Permintaan tanpa sesi wajib ditolak dengan 401 UNAUTHORIZED"
     );
@@ -173,19 +187,42 @@ test("Auth & RBAC Test Suite", async (t) => {
     // 1. Login salah
     const badReq = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": testIp,
+      },
       body: JSON.stringify({
-        username: "non_existent_user",
+        username: ghostUsername,
         password: "random_password",
       }),
     });
     const badRes = await loginHandler(badReq);
     assert.equal(badRes.status, 401);
-    const badJson = await badRes.json();
-    assert.equal(badJson.error, "Username atau password salah");
+    const badJson = (await badRes.json()) as {
+      error: { code: string; message: string };
+    };
+    assert.equal(badJson.error.code, "UNAUTHENTICATED");
+    assert.equal(badJson.error.message, "Username atau password salah");
+
+    const failedAudit = await prisma.auditLog.findFirst({
+      where: {
+        action: "auth.login_failed",
+        meta: { path: ["username"], equals: ghostUsername },
+      },
+    });
+    assert.ok(failedAudit, "Login gagal harus tercatat di AuditLog");
+    assert.ok(
+      !JSON.stringify(failedAudit).includes("random_password"),
+      "Audit login tidak boleh memuat password"
+    );
 
     // 2. Login benar Super Admin
     const goodReq = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": testIp,
+      },
       body: JSON.stringify({
         username: "admin",
         password: "Admin123456!",
@@ -197,6 +234,14 @@ test("Auth & RBAC Test Suite", async (t) => {
     assert.equal(goodJson.success, true);
     assert.equal(goodJson.role, Role.SUPER_ADMIN);
     assert.equal(goodJson.redirectUrl, "/admin");
+
+    const loginAudit = await prisma.auditLog.findFirst({
+      where: {
+        action: "auth.login",
+        meta: { path: ["username"], equals: "admin" },
+      },
+    });
+    assert.ok(loginAudit, "Login sukses harus tercatat di AuditLog");
 
     // 3. Logout
     const logoutRes = await logoutHandler();

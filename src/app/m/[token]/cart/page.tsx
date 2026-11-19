@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -8,20 +9,7 @@ import { SectionCard } from "@/components/admin/section-card";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
 import { Minus, Plus } from "lucide-react";
-
-type CartItem = {
-  productId: string;
-  productName: string;
-  name?: string;
-  productImage?: string;
-  price: number;
-  quantity: number;
-  note?: string;
-};
-
-type CartItems = {
-  [productId: string]: CartItem;
-};
+import { parseStoredCart, type CartItems } from "@/lib/cart";
 
 export default function CartPage() {
   return (
@@ -52,7 +40,9 @@ function CartContent() {
   useEffect(() => {
     try {
       const data = window.localStorage.getItem(CART_KEY);
-      setItems(data ? (JSON.parse(data).items as CartItems) : {});
+      // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems(parseStoredCart(data));
     } catch {
       setItems({});
     }
@@ -134,9 +124,9 @@ function CartContent() {
         // Success: redirect ke halaman order
         router.push(`/order/${data.code}`);
       } else {
-        toast.error(data.error || "Gagal memesan");
+        toast.error(apiErrorMessage(data, "Gagal memesan"));
       }
-    } catch (err) {
+    } catch {
       toast.error("Gagal terhubung ke server");
     } finally {
       setIsSaving(false);

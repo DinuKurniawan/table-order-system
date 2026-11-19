@@ -1,10 +1,10 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { RealTimeEvent } from "@/lib/realtime-events";
 import { PaymentStatus } from "@prisma/client";
-import { afterCommit } from "@/lib/after-commit";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { Role } from "@prisma/client";
 import {
   CashierCreateInput,
@@ -135,7 +135,7 @@ export async function createCashier(
 
   const passwordHash = await hashPassword(data.password);
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await runInTransaction(async (tx) => {
     const cashier = await tx.user.create({
       data: {
         name: data.name,
@@ -173,7 +173,7 @@ export async function updateCashier(
 
   const deactivated = data.isActive === false && current.isActive;
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const cashier = await tx.user.update({
       where: { id },
       data: {
@@ -199,19 +199,16 @@ export async function updateCashier(
       },
     });
 
+    if (deactivated) {
+      after(() => {
+        const payload = { userId: cashier.id, username: cashier.username };
+        emitToChannel(CHANNELS.user(cashier.id), REALTIME_EVENTS.userDeactivated, payload);
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
+      });
+    }
+
     return cashier;
   });
-
-  // Emit user.deactivated event setelah transaction commit,
-  // agar kasir klien bisa logout otomatis.
-  if (deactivated) {
-    afterCommit(() => {
-      emitToChannel("private-admin", "user.deactivated", {
-        userId: updated.id,
-        username: updated.username,
-      });
-    });
-  }
 
   return toDTO(updated);
 }
@@ -225,12 +222,12 @@ export async function resetCashierPassword(
   const current = await findCashier(id);
   const passwordHash = await hashPassword(data.password);
 
-  await prisma.$transaction([
-    prisma.user.update({
+  await runInTransaction(async (tx, after) => {
+    await tx.user.update({
       where: { id },
       data: { passwordHash, tokenVersion: { increment: 1 } },
-    }),
-    prisma.auditLog.create({
+    });
+    await tx.auditLog.create({
       data: {
         userId: actorId,
         action: "cashier.reset_password",
@@ -239,8 +236,14 @@ export async function resetCashierPassword(
         // Password plain text tidak pernah disimpan di audit.
         meta: { username: current.username },
       },
-    }),
-  ]);
+    });
+
+    after(() => {
+      const payload = { userId: id, username: current.username };
+      emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
+    });
+  });
 }
 
 /**
@@ -263,12 +266,12 @@ export async function deleteCashier(
   const hasHistory = cashier._count.verifications > 0;
 
   if (hasHistory) {
-    await prisma.$transaction([
-      prisma.user.update({
+    await runInTransaction(async (tx, after) => {
+      await tx.user.update({
         where: { id },
         data: { isActive: false, tokenVersion: { increment: 1 } },
-      }),
-      prisma.auditLog.create({
+      });
+      await tx.auditLog.create({
         data: {
           userId: actorId,
           action: "cashier.delete",
@@ -276,15 +279,21 @@ export async function deleteCashier(
           entityId: id,
           meta: { mode: "soft", username: cashier.username },
         },
-      }),
-    ]);
+      });
+
+      after(() => {
+        const payload = { userId: id, username: cashier.username };
+        emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
+      });
+    });
 
     return { mode: "soft" };
   }
 
-  await prisma.$transaction([
-    prisma.user.delete({ where: { id } }),
-    prisma.auditLog.create({
+  await runInTransaction(async (tx, after) => {
+    await tx.user.delete({ where: { id } });
+    await tx.auditLog.create({
       data: {
         userId: actorId,
         action: "cashier.delete",
@@ -292,8 +301,14 @@ export async function deleteCashier(
         entityId: id,
         meta: { mode: "hard", username: cashier.username },
       },
-    }),
-  ]);
+    });
+
+    after(() => {
+      const payload = { userId: id, username: cashier.username };
+      emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
+    });
+  });
 
   return { mode: "hard" };
 }

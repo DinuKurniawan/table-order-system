@@ -1,18 +1,22 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
 import { deleteObject } from "@/lib/r2";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { timingSafeEqualString } from "@/lib/order-access";
 import { getSettings } from "@/server/services/settings";
+import { CANCELLABLE_BY_CUSTOMER } from "@/server/domain/order-state";
+import { releaseStock, type StockChange } from "@/server/services/stock";
 import {
   listPaymentMethods,
   type PaymentMethodDTO,
 } from "@/server/services/payment-methods";
 import { processAndStore } from "@/server/services/upload";
 
-const CANCELLABLE: OrderStatus[] = ["AWAITING_PAYMENT", "PAYMENT_REJECTED"];
+
 
 export interface CustomerPaymentDTO {
   attempt: number;
@@ -96,9 +100,9 @@ export async function getCustomerOrder(
   const attemptsUsed = latest?.attempt ?? 0;
   const isExpired =
     order.expiresAt.getTime() <= Date.now() &&
-    CANCELLABLE.includes(order.status);
+    CANCELLABLE_BY_CUSTOMER.includes(order.status);
   const canUpload =
-    CANCELLABLE.includes(order.status) &&
+    CANCELLABLE_BY_CUSTOMER.includes(order.status) &&
     !isExpired &&
     attemptsUsed < maxAttempts;
 
@@ -140,47 +144,9 @@ export async function getCustomerOrder(
 
 export function emitOrderStatus(code: string, status: OrderStatus, version: number): void {
   const payload = { orderCode: code, status, version };
-  emitToChannel(`private-order-${code}`, "order.status_changed", payload);
-  emitToChannel("private-cashier", "order.status_changed", payload);
-  emitToChannel("private-admin", "order.status_changed", payload);
-}
-
-interface StockChange {
-  productId: string;
-  newStock: number;
-}
-
-export async function releaseStock(
-  tx: Prisma.TransactionClient,
-  orderId: string,
-  code: string
-): Promise<StockChange[]> {
-  const items = await tx.orderItem.findMany({ where: { orderId } });
-  const changes: StockChange[] = [];
-
-  for (const item of items) {
-    const rows = await tx.$queryRaw<Array<{ stock: number }>>`
-      UPDATE "Product" SET stock = stock + ${item.quantity}
-      WHERE id = ${item.productId}
-      RETURNING stock
-    `;
-    if (rows.length === 0) continue;
-
-    await tx.stockMovement.create({
-      data: {
-        productId: item.productId,
-        type: "ORDER_RELEASE",
-        quantity: item.quantity,
-        balance: rows[0].stock,
-        orderId,
-        note: `Stok dikembalikan untuk ${code}`,
-      },
-    });
-
-    changes.push({ productId: item.productId, newStock: rows[0].stock });
-  }
-
-  return changes;
+  emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.orderStatusChanged, payload);
+  emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.orderStatusChanged, payload);
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.orderStatusChanged, payload);
 }
 
 export function emitStockChanges(
@@ -189,7 +155,7 @@ export function emitStockChanges(
   changes: StockChange[]
 ): void {
   for (const change of changes) {
-    emitToChannel(`private-table-${tableToken}`, "stock.changed", {
+    emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
       ...change,
       orderCode,
     });
@@ -216,7 +182,7 @@ export async function submitPaymentProof(
   const settings = await getSettings();
   const maxAttempts = settings.maksUploadUlang;
 
-  if (!CANCELLABLE.includes(order.status)) {
+  if (!CANCELLABLE_BY_CUSTOMER.includes(order.status)) {
     throw new AppError(
       "CONFLICT",
       "Bukti pembayaran tidak dapat diunggah pada status pesanan ini",
@@ -227,7 +193,7 @@ export async function submitPaymentProof(
   if (order.expiresAt.getTime() <= Date.now()) {
     await expireOrders();
     throw new AppError(
-      "CONFLICT",
+      "ORDER_EXPIRED",
       "Waktu pembayaran telah habis. Pesanan dibatalkan.",
       409
     );
@@ -249,7 +215,7 @@ export async function submitPaymentProof(
   });
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await runInTransaction(async (tx, after) => {
       const current = await tx.order.findUnique({
         where: { code },
         include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } },
@@ -258,7 +224,7 @@ export async function submitPaymentProof(
       if (!current) {
         throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
       }
-      if (!CANCELLABLE.includes(current.status)) {
+      if (!CANCELLABLE_BY_CUSTOMER.includes(current.status)) {
         throw new AppError("CONFLICT", "Status pesanan sudah berubah", 409);
       }
 
@@ -272,7 +238,7 @@ export async function submitPaymentProof(
       }
 
       const updated = await tx.order.updateMany({
-        where: { id: current.id, version: current.version, status: { in: CANCELLABLE } },
+        where: { id: current.id, version: current.version, status: { in: CANCELLABLE_BY_CUSTOMER } },
         data: { status: "AWAITING_VERIFICATION", version: { increment: 1 } },
       });
 
@@ -302,6 +268,28 @@ export async function submitPaymentProof(
         },
       });
 
+      after(() => {
+        emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.paymentUploaded, {
+          orderCode: code,
+          orderId: current.id,
+          paymentId: payment.id,
+          attempt,
+          tableName: order.table.name,
+        });
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.paymentUploaded, {
+          orderCode: code,
+          orderId: current.id,
+          paymentId: payment.id,
+          attempt,
+          tableName: order.table.name,
+        });
+        emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.paymentUploaded, {
+          orderCode: code,
+          attempt,
+        });
+        emitOrderStatus(code, "AWAITING_VERIFICATION", current.version + 1);
+      });
+
       return {
         paymentId: payment.id,
         orderId: current.id,
@@ -309,26 +297,6 @@ export async function submitPaymentProof(
         version: current.version + 1,
       };
     });
-
-    emitToChannel("private-cashier", "payment.uploaded", {
-      orderCode: code,
-      orderId: result.orderId,
-      paymentId: result.paymentId,
-      attempt: result.attempt,
-      tableName: order.table.name,
-    });
-    emitToChannel("private-admin", "payment.uploaded", {
-      orderCode: code,
-      orderId: result.orderId,
-      paymentId: result.paymentId,
-      attempt: result.attempt,
-      tableName: order.table.name,
-    });
-    emitToChannel(`private-order-${code}`, "payment.uploaded", {
-      orderCode: code,
-      attempt: result.attempt,
-    });
-    emitOrderStatus(code, "AWAITING_VERIFICATION", result.version);
 
     return {
       paymentId: result.paymentId,
@@ -363,7 +331,7 @@ export async function cancelOrderByCustomer(
     );
   }
 
-  const changes = await prisma.$transaction(async (tx) => {
+  const changes = await runInTransaction(async (tx, after) => {
     const updated = await tx.order.updateMany({
       where: { id: order.id, status: "AWAITING_PAYMENT", version: order.version },
       data: { status: "CANCELLED", version: { increment: 1 } },
@@ -377,15 +345,19 @@ export async function cancelOrderByCustomer(
         meta: { code, total: order.total },
       },
     });
-    return releaseStock(tx, order.id, code);
+    const released = await releaseStock(tx, order.id, code);
+
+    after(() => {
+      emitOrderStatus(code, "CANCELLED", order.version + 1);
+      emitStockChanges(order.table.token, code, released);
+    });
+
+    return released;
   });
 
   if (changes === null) {
     throw new AppError("CONFLICT", "Status pesanan sudah berubah", 409);
   }
-
-  emitOrderStatus(code, "CANCELLED", order.version + 1);
-  emitStockChanges(order.table.token, code, changes);
 }
 
 /**
@@ -396,7 +368,7 @@ export async function expireOrders(
   now: Date = new Date()
 ): Promise<{ cancelled: number }> {
   const candidates = await prisma.order.findMany({
-    where: { status: { in: CANCELLABLE }, expiresAt: { lte: now } },
+    where: { status: { in: CANCELLABLE_BY_CUSTOMER }, expiresAt: { lte: now } },
     select: {
       id: true,
       code: true,
@@ -408,11 +380,11 @@ export async function expireOrders(
   let cancelled = 0;
 
   for (const order of candidates) {
-    const changes = await prisma.$transaction(async (tx) => {
+    const changes = await runInTransaction(async (tx, after) => {
       const updated = await tx.order.updateMany({
         where: {
           id: order.id,
-          status: { in: CANCELLABLE },
+          status: { in: CANCELLABLE_BY_CUSTOMER },
           expiresAt: { lte: now },
           version: order.version,
         },
@@ -427,14 +399,19 @@ export async function expireOrders(
           meta: { code: order.code },
         },
       });
-      return releaseStock(tx, order.id, order.code);
+      const released = await releaseStock(tx, order.id, order.code);
+
+      after(() => {
+        emitOrderStatus(order.code, "CANCELLED", order.version + 1);
+        emitStockChanges(order.table.token, order.code, released);
+      });
+
+      return released;
     });
 
     if (changes === null) continue;
 
     cancelled += 1;
-    emitOrderStatus(order.code, "CANCELLED", order.version + 1);
-    emitStockChanges(order.table.token, order.code, changes);
   }
 
   return { cancelled };

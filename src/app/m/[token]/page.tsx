@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { getPublicMenu } from "@/server/services/menu";
+import { notFound } from "next/navigation";
+import { AppError } from "@/lib/errors";
+import { getPublicMenu, type PublicMenuProduct } from "@/server/services/menu";
 import { MenuClient } from "./menu-client";
 
 export const metadata: Metadata = {
@@ -18,7 +20,17 @@ export default async function MejaPage({
   const { token } = await params;
 
   // Render awal di server: LCP tidak menunggu fetch client.
-  const initialProducts = await getPublicMenu({ token }).catch(() => null);
+  // Token invalid -> halaman 404; error lain (DB down) dibiarkan naik ke
+  // error.tsx agar bisa didiagnosis (audit S-09).
+  let initialProducts: PublicMenuProduct[];
+  try {
+    initialProducts = await getPublicMenu({ token });
+  } catch (err) {
+    if (err instanceof AppError && err.code === "NOT_FOUND") {
+      notFound();
+    }
+    throw err;
+  }
 
   return <MenuClient token={token} initialProducts={initialProducts} />;
 }

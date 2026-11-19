@@ -5,6 +5,7 @@ import { processAndStore } from "@/server/services/upload";
 import { env } from "@/lib/env";
 import { getSignedReadUrl } from "@/lib/r2";
 import { logger } from "@/lib/logger";
+import { handleApiError } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -24,13 +25,13 @@ export async function POST(req: Request) {
 
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("BAD_REQUEST", "Ukuran unggahan terlalu besar", 413);
+      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
     }
 
     const form = await req.formData();
     const file = form.get("file");
     if (!file || !(file instanceof File)) {
-      throw new AppError("BAD_REQUEST", "Berkas lampiran wajib diunggah", 400);
+      throw new AppError("VALIDATION_ERROR", "Berkas lampiran wajib diunggah", 400);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -45,17 +46,10 @@ export async function POST(req: Request) {
       data: { key: result.key, size: result.size, format: result.format },
     });
   } catch (err) {
-    if (err instanceof AppError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: err.status }
-      );
+    if (!(err instanceof AppError)) {
+      logger.error("API Finance Attachment Error", err);
     }
-    logger.error("API Finance Attachment Error", err);
-    return NextResponse.json(
-      { error: "Gagal memproses lampiran" },
-      { status: 500 }
-    );
+    return handleApiError(err);
   }
 }
 
@@ -74,22 +68,15 @@ export async function GET(req: NextRequest) {
       key.includes("..") ||
       key.length > 300
     ) {
-      throw new AppError("BAD_REQUEST", "Key lampiran tidak valid", 400);
+      throw new AppError("VALIDATION_ERROR", "Key lampiran tidak valid", 400);
     }
 
     const url = await getSignedReadUrl(env.R2_BUCKET_PRIVATE, key, 60);
     return NextResponse.json({ data: { url, expiresIn: 60 } });
   } catch (err) {
-    if (err instanceof AppError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: err.status }
-      );
+    if (!(err instanceof AppError)) {
+      logger.error("API Finance Attachment URL Error", err);
     }
-    logger.error("API Finance Attachment URL Error", err);
-    return NextResponse.json(
-      { error: "Gagal membuat tautan lampiran" },
-      { status: 500 }
-    );
+    return handleApiError(err);
   }
 }

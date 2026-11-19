@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Coffee, Eye, EyeOff, Loader2, Lock, User as UserIcon } from "lucide-react";
@@ -32,7 +33,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || "Gagal masuk ke sistem. Silakan coba lagi.");
+        setErrorMessage(apiErrorMessage(data, "Gagal masuk ke sistem. Silakan coba lagi."));
         setIsLoading(false);
         return;
       }

@@ -1,22 +1,21 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import {
   emitOrderStatus,
   emitStockChanges,
-  releaseStock,
 } from "@/server/services/orders";
-
-const PROCESSING: OrderStatus[] = ["ACCEPTED", "PREPARING"];
-const HISTORY: OrderStatus[] = ["COMPLETED", "PAYMENT_REJECTED", "CANCELLED"];
-
-const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
-  ACCEPTED: "PREPARING",
-  PREPARING: "READY",
-  READY: "COMPLETED",
-};
+import { releaseStock } from "@/server/services/stock";
+import {
+  HISTORY_STATUSES,
+  PROCESSING_STATUSES,
+  canAdvance,
+  isProgressStatus,
+} from "@/server/domain/order-state";
 
 export interface CashierOrderListItem {
   id: string;
@@ -108,14 +107,14 @@ function toListItem(
  * Antrean kasir: verifikasi (terlama dulu), diproses, siap, dan riwayat.
  */
 export async function listCashierOrders(): Promise<CashierQueue> {
-  const [verification, processing, ready, history] = await Promise.all([
+  const [verification, processing, ready, history, historyCount] = await Promise.all([
     prisma.order.findMany({
       where: { status: "AWAITING_VERIFICATION" },
       orderBy: { createdAt: "asc" },
       select: listSelect,
     }),
     prisma.order.findMany({
-      where: { status: { in: PROCESSING } },
+      where: { status: { in: PROCESSING_STATUSES } },
       orderBy: { updatedAt: "asc" },
       select: listSelect,
     }),
@@ -125,11 +124,12 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       select: listSelect,
     }),
     prisma.order.findMany({
-      where: { status: { in: HISTORY } },
+      where: { status: { in: HISTORY_STATUSES } },
       orderBy: { updatedAt: "desc" },
       take: 50,
       select: listSelect,
     }),
+    prisma.order.count({ where: { status: { in: HISTORY_STATUSES } } }),
   ]);
 
   return {
@@ -141,7 +141,7 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       verification: verification.length,
       processing: processing.length,
       ready: ready.length,
-      history: history.length,
+      history: historyCount,
     },
   };
 }
@@ -227,7 +227,7 @@ export async function approvePayment(
   orderId: string,
   userId: string
 ): Promise<ApproveResult> {
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -244,7 +244,7 @@ export async function approvePayment(
     }
     if (order.status !== "AWAITING_VERIFICATION") {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -269,7 +269,7 @@ export async function approvePayment(
 
     if (updated.count === 0) {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -311,25 +311,27 @@ export async function approvePayment(
       },
     });
 
+    after(() => {
+      emitOrderStatus(order.code, "ACCEPTED", order.version + 1);
+      emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.transactionCreated, {
+        orderCode: order.code,
+        amount: order.total,
+      });
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, {
+        orderCode: order.code,
+        amount: order.total,
+      });
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, {
+        orderCode: order.code,
+        amount: order.total,
+      });
+    });
+
     return {
       code: order.code,
       total: order.total,
       version: order.version + 1,
     };
-  });
-
-  emitOrderStatus(result.code, "ACCEPTED", result.version);
-  emitToChannel("private-cashier", "transaction.created", {
-    orderCode: result.code,
-    amount: result.total,
-  });
-  emitToChannel("private-admin", "transaction.created", {
-    orderCode: result.code,
-    amount: result.total,
-  });
-  emitToChannel("private-admin", "kpi.updated", {
-    orderCode: result.code,
-    amount: result.total,
   });
 
   return { ...result, status: "ACCEPTED" };
@@ -353,15 +355,15 @@ export async function rejectPayment(
 ): Promise<RejectResult> {
   const cleanReason = reason.trim();
   if (!cleanReason) {
-    throw new AppError("BAD_REQUEST", "Alasan penolakan wajib diisi", 400);
+    throw new AppError("VALIDATION_ERROR", "Alasan penolakan wajib diisi", 400);
   }
   if (cleanReason.length > 500) {
-    throw new AppError("BAD_REQUEST", "Alasan penolakan maksimal 500 karakter", 400);
+    throw new AppError("VALIDATION_ERROR", "Alasan penolakan maksimal 500 karakter", 400);
   }
 
   const settings = await getSettings();
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -375,7 +377,7 @@ export async function rejectPayment(
     }
     if (order.status !== "AWAITING_VERIFICATION") {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -405,7 +407,7 @@ export async function rejectPayment(
 
     if (updated.count === 0) {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -435,34 +437,25 @@ export async function rejectPayment(
       ? await releaseStock(tx, order.id, order.code)
       : [];
 
+    after(() => {
+      emitOrderStatus(order.code, nextStatus, order.version + 1);
+      if (cancelled) {
+        emitStockChanges(order.table.token, order.code, changes);
+      }
+    });
+
     return {
       code: order.code,
       status: nextStatus,
       version: order.version + 1,
       cancelled,
-      tableToken: order.table.token,
-      changes,
     };
   });
 
-  emitOrderStatus(result.code, result.status, result.version);
-  if (result.cancelled) {
-    emitStockChanges(result.tableToken, result.code, result.changes);
-  }
-
-  return {
-    code: result.code,
-    status: result.status,
-    version: result.version,
-    cancelled: result.cancelled,
-  };
+  return result;
 }
 
-export type ProgressStatus = "PREPARING" | "READY" | "COMPLETED";
-
-function isProgressStatus(value: string): value is ProgressStatus {
-  return value === "PREPARING" || value === "READY" || value === "COMPLETED";
-}
+export type { ProgressStatus } from "@/server/domain/order-state";
 
 export async function advanceOrderStatus(
   orderId: string,
@@ -470,7 +463,7 @@ export async function advanceOrderStatus(
   next: string
 ): Promise<{ code: string; status: OrderStatus; version: number }> {
   if (!isProgressStatus(next)) {
-    throw new AppError("BAD_REQUEST", "Status tujuan tidak valid", 400);
+    throw new AppError("VALIDATION_ERROR", "Status tujuan tidak valid", 400);
   }
 
   const order = await prisma.order.findUnique({
@@ -482,15 +475,15 @@ export async function advanceOrderStatus(
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
   }
 
-  if (NEXT_STATUS[order.status] !== next) {
+  if (!canAdvance(order.status, next)) {
     throw new AppError(
-      "CONFLICT",
+      "INVALID_TRANSITION",
       `Tidak dapat mengubah status dari ${order.status} ke ${next}`,
       409
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const result = await tx.order.updateMany({
       where: { id: order.id, version: order.version, status: order.status },
       data: { status: next, version: { increment: 1 } },
@@ -510,10 +503,10 @@ export async function advanceOrderStatus(
       },
     });
 
+    after(() => emitOrderStatus(order.code, next, order.version + 1));
+
     return order.version + 1;
   });
-
-  emitOrderStatus(order.code, next, updated);
 
   return { code: order.code, status: next, version: updated };
 }
@@ -524,7 +517,7 @@ export async function markOrderPrinted(
 ): Promise<{ printCount: number; printedAt: string }> {
   const printedAt = new Date();
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       select: { id: true, code: true },

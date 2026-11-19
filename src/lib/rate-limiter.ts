@@ -135,21 +135,6 @@ export async function cleanupExpiredRateLimits(): Promise<number> {
   return result.count;
 }
 
-/**
- * IP klien dari header proxy tepercaya. Nilai dipakai sebagai bagian kunci
- * rate limit, bukan untuk otorisasi.
- */
-export function getClientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  const realIp = req.headers.get("x-real-ip")?.trim();
-  if (realIp) return realIp;
-  return "unknown";
-}
-
 export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
   return {
     "Retry-After": String(result.retryAfterSeconds),
@@ -160,8 +145,10 @@ export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
 export function tooManyRequests(result: RateLimitResult): Response {
   return Response.json(
     {
-      error: `Terlalu banyak permintaan. Coba lagi dalam ${result.retryAfterSeconds} detik.`,
-      code: "RATE_LIMITED",
+      error: {
+        code: "RATE_LIMITED",
+        message: `Terlalu banyak permintaan. Coba lagi dalam ${result.retryAfterSeconds} detik.`,
+      },
     },
     { status: 429, headers: rateLimitHeaders(result) }
   );

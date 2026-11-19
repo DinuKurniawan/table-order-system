@@ -6,9 +6,9 @@ import { orderAccessCookieName } from "@/lib/order-access";
 import { getCustomerOrder } from "@/server/services/orders";
 import {
   consumeRateLimit,
-  getClientIp,
   tooManyRequests,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 
 
 const accessSchema = z.object({

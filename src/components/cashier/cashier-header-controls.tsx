@@ -1,5 +1,7 @@
 "use client";
 
+import { CHANNELS } from "@/lib/realtime-events";
+
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectionIndicator } from "@/components/admin/connection-indicator";
@@ -7,7 +9,7 @@ import { usePusherChannel } from "@/lib/pusher-client";
 import { setSoundEnabled, useSoundEnabled } from "@/lib/cashier-audio";
 
 export function CashierHeaderControls() {
-  const { connectionStatus } = usePusherChannel("private-cashier");
+  const { connectionStatus } = usePusherChannel(CHANNELS.cashier);
   const soundEnabled = useSoundEnabled();
 
   const status =

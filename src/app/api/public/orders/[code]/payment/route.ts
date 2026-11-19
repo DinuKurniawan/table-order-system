@@ -5,9 +5,9 @@ import { getOrderAccessToken } from "@/lib/order-access";
 import { submitPaymentProof } from "@/server/services/orders";
 import {
   consumeRateLimit,
-  getClientIp,
   tooManyRequests,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
@@ -24,7 +24,7 @@ export async function POST(
     const { code } = await params;
     const token = getOrderAccessToken(req, code);
     if (!token) {
-      throw new AppError("UNAUTHORIZED", "Kode akses pesanan diperlukan", 401);
+      throw new AppError("UNAUTHENTICATED", "Kode akses pesanan diperlukan", 401);
     }
 
     const limiter = await consumeRateLimit(
@@ -36,19 +36,19 @@ export async function POST(
 
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("BAD_REQUEST", "Ukuran unggahan terlalu besar", 413);
+      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
     }
 
     let form: FormData;
     try {
       form = await req.formData();
     } catch {
-      throw new AppError("BAD_REQUEST", "Body harus berupa multipart/form-data", 400);
+      throw new AppError("VALIDATION_ERROR", "Body harus berupa multipart/form-data", 400);
     }
 
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      throw new AppError("BAD_REQUEST", "Berkas bukti pembayaran wajib diunggah", 400);
+      throw new AppError("VALIDATION_ERROR", "Berkas bukti pembayaran wajib diunggah", 400);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

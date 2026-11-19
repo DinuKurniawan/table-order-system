@@ -51,7 +51,7 @@ test("Stok: tolak saldo negatif dan saldo movement konsisten", async (t) => {
           },
           user.id
         ),
-      (err: unknown) => err instanceof AppError && err.code === "BAD_REQUEST"
+      (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
     );
 
     const after = await prisma.product.findUniqueOrThrow({ where: { id: product.id } });
@@ -107,7 +107,7 @@ test("Stok: tolak saldo negatif dan saldo movement konsisten", async (t) => {
           { productId: product.id, type: "WASTE", quantity: 999 },
           user.id
         ),
-      (err: unknown) => err instanceof AppError && err.code === "BAD_REQUEST"
+      (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
     );
 
     const after = await prisma.stockMovement.count({ where: { productId: product.id } });

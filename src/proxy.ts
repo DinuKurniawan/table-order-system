@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { isAllowedOrigin } from "@/lib/request-origin";
 
 const SESSION_COOKIE_NAME = "session_token";
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -13,29 +14,21 @@ interface TokenPayload {
 /**
  * Proteksi CSRF untuk mutasi berbasis cookie.
  *
- * Browser modern mengirim Origin pada POST/PUT/PATCH/DELETE dan Sec-Fetch-Site.
- * Keduanya harus same-origin. Request non-browser (tanpa header tersebut)
- * diizinkan karena tidak membawa cookie korban secara otomatis.
+ * Origin/Referer dibandingkan dengan APP_BASE_URL + ALLOWED_ORIGINS, bukan
+ * header Host yang bisa dipalsukan klien. Mutasi tanpa Origin/Referer hanya
+ * diizinkan untuk endpoint cron yang dilindungi secret.
  */
-function isSameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get("origin");
-  if (origin) {
-    try {
-      const originUrl = new URL(origin);
-      const expectedHost =
-        req.headers.get("x-forwarded-host") ??
-        req.headers.get("host") ??
-        req.nextUrl.host;
-      if (originUrl.host !== expectedHost) return false;
-    } catch {
-      return false;
-    }
-  }
-
+export function isSameOrigin(req: NextRequest): boolean {
   const site = req.headers.get("sec-fetch-site");
   if (site && site !== "same-origin" && site !== "none") return false;
 
-  return true;
+  const hasOriginOrReferer =
+    Boolean(req.headers.get("origin")) || Boolean(req.headers.get("referer"));
+  if (!hasOriginOrReferer) {
+    return req.nextUrl.pathname.startsWith("/api/cron/");
+  }
+
+  return isAllowedOrigin(req);
 }
 
 export async function proxy(req: NextRequest) {

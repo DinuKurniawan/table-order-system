@@ -8,10 +8,16 @@ const prisma = new PrismaClient();
 
 test("Ringkasan: persetujuan pembayaran menambah KPI, grafik, dan aktivitas", async (t) => {
   const stamp = Date.now();
-  const user = await prisma.user.findFirst({
-    where: { role: "SUPER_ADMIN" },
+  // User sendiri, bukan findFirst: tes lain membuat/menghapus SUPER_ADMIN
+  // secara paralel sehingga baris seed bisa hilang di tengah tes.
+  const user = await prisma.user.create({
+    data: {
+      name: `Admin Ringkasan ${stamp}`,
+      username: `admin-ringkasan-${stamp}`,
+      passwordHash: "x",
+      role: "SUPER_ADMIN",
+    },
   });
-  assert.ok(user, "Super admin hasil seed harus ada");
 
   const category = await prisma.category.create({
     data: { name: `Ringkasan ${stamp}`, type: CategoryType.FOOD },
@@ -39,6 +45,7 @@ test("Ringkasan: persetujuan pembayaran menambah KPI, grafik, dan aktivitas", as
     await prisma.product.delete({ where: { id: product.id } });
     await prisma.table.delete({ where: { id: table.id } });
     await prisma.category.delete({ where: { id: category.id } });
+    await prisma.user.delete({ where: { id: user.id } });
     await prisma.$disconnect();
   });
 

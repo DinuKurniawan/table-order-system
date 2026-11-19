@@ -30,7 +30,7 @@ describe("state machine pesanan", () => {
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
     expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
-      code: "CONFLICT",
+      code: "ALREADY_PROCESSED",
     });
 
     const order = await prisma.order.findUniqueOrThrow({
@@ -64,7 +64,7 @@ describe("state machine pesanan", () => {
 
     await expect(
       rejectPayment(fixture.orderId, fixture.userId, "Bukti buram")
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    ).rejects.toMatchObject({ code: "ALREADY_PROCESSED" });
 
     const stock = await prisma.product.findUniqueOrThrow({
       where: { id: fixture.productId },
@@ -78,10 +78,10 @@ describe("state machine pesanan", () => {
 
     await expect(
       advanceOrderStatus(fixture.orderId, fixture.userId, "COMPLETED")
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    ).rejects.toMatchObject({ code: "INVALID_TRANSITION" });
     await expect(
       advanceOrderStatus(fixture.orderId, fixture.userId, "CANCELLED")
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
 
     const preparing = await advanceOrderStatus(
       fixture.orderId,

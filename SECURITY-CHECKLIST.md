@@ -13,7 +13,7 @@ Metode: audit kode + uji otomatis (`tests/security.test.ts`) + uji manual browse
 | Kebocoran data sensitif | Lulus | `passwordHash` tidak pernah di-select pada DTO; `accessToken`/`proofKey` hanya untuk endpoint ber-guard; respons API diuji tidak memuat ketiganya. |
 | Rate limit terdistribusi | Lulus | Tabel PostgreSQL `RateLimit` + upsert atomik. Login per IP+username (5/15 menit) dan per IP (20/15 menit); checkout 20/menit per IP + 10/menit per meja; menu 120/menit; akses pesanan 10/10 menit; bukti bayar 10/menit; upload admin 30/menit. |
 | Security headers & CSP | Lulus | `next.config.ts` memasang CSP, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `frame-ancestors`, `Permissions-Policy`, COOP, HSTS (produksi). |
-| CSRF mutasi berbasis cookie | Lulus | `src/proxy.ts` menolak POST/PUT/PATCH/DELETE `/api/*` dengan `Origin` beda host atau `Sec-Fetch-Site` cross-site. |
+| CSRF mutasi berbasis cookie | Lulus | `src/proxy.ts` menolak POST/PUT/PATCH/DELETE `/api/*` bila `Origin`/`Referer` tidak cocok dengan `APP_BASE_URL` + `ALLOWED_ORIGINS` (bukan header Host), atau `Sec-Fetch-Site` cross-site. Mutasi tanpa Origin/Referer hanya diizinkan untuk cron ber-secret. |
 | Bucket pembayaran privat | Lulus | Bukti bayar disimpan di `R2_BUCKET_PRIVATE`; URL publik langsung 404; URL presigned 60 detik hanya dari endpoint kasir/admin. |
 | Audit log perubahan penting | Lulus | Pembuatan/kedaluwarsa/pembatalan pesanan, unggah/verifikasi pembayaran, cetak struk, stok, keuangan, kasir, produk, kategori, meja, pengaturan tercatat di `AuditLog`. Halaman `/admin/settings/audit` dengan filter pengguna/aksi/tanggal + paginasi. |
 | Penanganan error terpusat | Lulus | `error.tsx`, `not-found.tsx`, `global-error.tsx`; `handleApiError` menyembunyikan detail internal; logger JSON terstruktur meredaksi kata kunci sensitif. |
@@ -60,7 +60,8 @@ Catatan: `npm run lint` masih gagal karena 13 error lama di `settings-manager.ts
 ## Batasan yang diketahui
 
 - CSP memakai `'unsafe-inline'` untuk script agar halaman yang di-cache/static tetap berfungsi. Peningkatan berikutnya: nonce per-request (mengorbankan static rendering) atau hash inline script.
-- `getClientIp` memercayai `x-forwarded-for`/`x-real-ip`; pastikan hanya reverse proxy tepercaya yang dapat menetapkan header tersebut di produksi.
+- `getClientIp` memakai `TRUSTED_PROXY` (`vercel`, `cloudflare`, `none`, atau jumlah hop). Mode `none` mengabaikan semua header forwarded; isi dengan jumlah hop bila berada di balik reverse proxy yang tidak menyediakan mode khusus.
+- Rate limit disimpan di tabel PostgreSQL `RateLimit` dengan upsert atomik, sehingga aman untuk banyak instance/serverless (bukan Map in-memory).
 - Pembersihan baris `RateLimit` kedaluwarsa dijalankan oleh cron `/api/cron/expire-orders`; tanpa cron tabel akan tumbuh perlahan.
 - URL presigned berlaku 60 detik dan tidak di-cache; jangan menyimpan URL tersebut di log.
 - Uji manual dilakukan pada dev server lokal; ulangi uji header dan konfigurasi env (`NEXT_PUBLIC_PUSHER_KEY` = `PUSHER_KEY`, origin R2) di lingkungan produksi.

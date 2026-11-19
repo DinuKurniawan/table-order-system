@@ -5,6 +5,7 @@ import { AppError } from "../src/lib/errors";
 import {
   advanceOrderStatus,
   approvePayment,
+  listCashierOrders,
   rejectPayment,
 } from "../src/server/services/cashier-orders";
 
@@ -107,8 +108,8 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
     assert.equal(rejected.length, 1, "Permintaan kedua harus ditolak");
     assert.ok(
       rejected[0].reason instanceof AppError &&
-        rejected[0].reason.code === "CONFLICT",
-      "Permintaan kedua harus CONFLICT"
+        rejected[0].reason.code === "ALREADY_PROCESSED",
+      "Permintaan kedua harus ALREADY_PROCESSED"
     );
 
     const payments = await prisma.payment.findMany({ where: { orderId: order.id } });
@@ -133,7 +134,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => rejectPayment(order.id, cashier.id, "   "),
-      (err: unknown) => err instanceof AppError && err.code === "BAD_REQUEST"
+      (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
     );
 
     const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
@@ -167,7 +168,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => advanceOrderStatus(order.id, cashier.id, "READY"),
-      (err: unknown) => err instanceof AppError && err.code === "CONFLICT"
+      (err: unknown) => err instanceof AppError && err.code === "INVALID_TRANSITION"
     );
 
     const preparing = await advanceOrderStatus(order.id, cashier.id, "PREPARING");
@@ -175,7 +176,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => advanceOrderStatus(order.id, cashier.id, "COMPLETED"),
-      (err: unknown) => err instanceof AppError && err.code === "CONFLICT"
+      (err: unknown) => err instanceof AppError && err.code === "INVALID_TRANSITION"
     );
 
     const ready = await advanceOrderStatus(order.id, cashier.id, "READY");
@@ -183,5 +184,30 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     const completed = await advanceOrderStatus(order.id, cashier.id, "COMPLETED");
     assert.equal(completed.status, OrderStatus.COMPLETED);
+  });
+
+  await t.test("5. Hitungan riwayat memakai total DB, bukan panjang 50", async () => {
+    const rows = await prisma.order.createManyAndReturn({
+      data: Array.from({ length: 51 }, (_, index) => ({
+        code: `KSR-HIST-${stamp}-${index}`,
+        accessToken: `hist-token-${stamp}-${index}`,
+        tableId: table.id,
+        subtotal: 1000,
+        total: 1000,
+        status: OrderStatus.COMPLETED,
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+      })),
+      select: { id: true },
+    });
+    orderIds.push(...rows.map((row) => row.id));
+
+    const queue = await listCashierOrders();
+    const expected = await prisma.order.count({
+      where: { status: { in: ["COMPLETED", "PAYMENT_REJECTED", "CANCELLED"] } },
+    });
+
+    assert.equal(queue.history.length, 50, "Daftar tetap dibatasi 50");
+    assert.equal(queue.counts.history, expected, "Badge memakai count DB");
+    assert.ok(queue.counts.history >= 51);
   });
 });

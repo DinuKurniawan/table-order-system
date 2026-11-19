@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { runInTransaction } from "@/lib/tx";
 import { getPublicUrl, deleteObject } from "@/lib/r2";
 import { env } from "@/lib/env";
 import {
@@ -120,16 +121,17 @@ export async function listProducts(
   const where = buildWhere(query);
   const skip = (query.page - 1) * query.pageSize;
 
-  const [total, products] = await prisma.$transaction([
-    prisma.product.count({ where }),
-    prisma.product.findMany({
+  const [total, products] = await runInTransaction(async (tx) => {
+    const total = await tx.product.count({ where });
+    const products = await tx.product.findMany({
       where,
       include: { category: true },
       orderBy: buildOrderBy(query.sort),
       skip,
       take: query.pageSize,
-    }),
-  ]);
+    });
+    return [total, products] as const;
+  });
 
   return {
     items: products.map(toDTO),
@@ -145,7 +147,7 @@ export async function listProducts(
 async function assertCategoryExists(categoryId: string): Promise<void> {
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
   if (!category) {
-    throw new AppError("BAD_REQUEST", "Kategori yang dipilih tidak ditemukan", 400);
+    throw new AppError("VALIDATION_ERROR", "Kategori yang dipilih tidak ditemukan", 400);
   }
 }
 
@@ -156,7 +158,7 @@ export async function createProduct(
   const data = productCreateSchema.parse(input);
   await assertCategoryExists(data.categoryId);
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await runInTransaction(async (tx) => {
     const product = await tx.product.create({
       data: {
         name: data.name,
@@ -233,11 +235,7 @@ export async function updateProduct(
     await assertCategoryExists(data.categoryId);
   }
 
-  const nextTrackStock = data.trackStock ?? current.trackStock;
-  const nextStock = data.stock ?? current.stock;
-  const stockChanged = data.stock !== undefined && data.stock !== current.stock;
-
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx) => {
     const product = await tx.product.update({
       where: { id },
       data: {
@@ -249,26 +247,12 @@ export async function updateProduct(
         ...(data.thumbKey !== undefined ? { thumbKey: data.thumbKey ?? null } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         ...(data.trackStock !== undefined ? { trackStock: data.trackStock } : {}),
-        stock: nextTrackStock ? nextStock : 0,
         ...(data.lowStockThreshold !== undefined
           ? { lowStockThreshold: data.lowStockThreshold }
           : {}),
       },
       include: { category: true },
     });
-
-    if (stockChanged && product.trackStock) {
-      await tx.stockMovement.create({
-        data: {
-          productId: product.id,
-          type: StockMoveType.ADJUSTMENT,
-          quantity: product.stock - current.stock,
-          balance: product.stock,
-          note: "Penyesuaian stok dari form edit produk",
-          userId,
-        },
-      });
-    }
 
     await tx.auditLog.create({
       data: {
@@ -322,12 +306,12 @@ export async function deleteProduct(
   const everOrdered = product._count.orderItems > 0;
 
   if (everOrdered) {
-    await prisma.$transaction([
-      prisma.product.update({
+    await runInTransaction(async (tx) => {
+      await tx.product.update({
         where: { id },
         data: { deletedAt: new Date(), isActive: false },
-      }),
-      prisma.auditLog.create({
+      });
+      await tx.auditLog.create({
         data: {
           userId,
           action: "product.delete",
@@ -335,13 +319,13 @@ export async function deleteProduct(
           entityId: id,
           meta: { mode: "soft", name: product.name },
         },
-      }),
-    ]);
+      });
+    });
   } else {
-    await prisma.$transaction([
-      prisma.stockMovement.deleteMany({ where: { productId: id } }),
-      prisma.product.delete({ where: { id } }),
-      prisma.auditLog.create({
+    await runInTransaction(async (tx) => {
+      await tx.stockMovement.deleteMany({ where: { productId: id } });
+      await tx.product.delete({ where: { id } });
+      await tx.auditLog.create({
         data: {
           userId,
           action: "product.delete",
@@ -349,8 +333,8 @@ export async function deleteProduct(
           entityId: id,
           meta: { mode: "hard", name: product.name },
         },
-      }),
-    ]);
+      });
+    });
 
     await deleteR2ObjectsQuietly([product.imageKey, product.thumbKey]);
   }

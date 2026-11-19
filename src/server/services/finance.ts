@@ -1,8 +1,10 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, Prisma, TxType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import { deleteObject } from "@/lib/r2";
 import {
   financeListQuerySchema,
@@ -14,8 +16,9 @@ import {
 import {
   emitOrderStatus,
   emitStockChanges,
-  releaseStock,
 } from "@/server/services/orders";
+import { releaseStock } from "@/server/services/stock";
+import { CANCELLABLE_BY_ADMIN } from "@/server/domain/order-state";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -238,7 +241,7 @@ function parseOccurredAt(value: string | undefined): Date {
   if (!value) return new Date();
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new AppError("BAD_REQUEST", "Tanggal transaksi tidak valid", 400);
+    throw new AppError("VALIDATION_ERROR", "Tanggal transaksi tidak valid", 400);
   }
   return date;
 }
@@ -336,8 +339,8 @@ export async function listFinanceTransactions(
 }
 
 function emitFinanceChange(action: "created" | "updated" | "deleted", id: string) {
-  emitToChannel("private-admin", "transaction.created", { id, action });
-  emitToChannel("private-admin", "kpi.updated", { source: "finance" });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, { id, action });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, { source: "finance" });
 }
 
 export async function createFinanceTransaction(
@@ -347,7 +350,7 @@ export async function createFinanceTransaction(
   const data = financeTransactionCreateSchema.parse(input);
   const occurredAt = parseOccurredAt(data.occurredAt);
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await runInTransaction(async (tx, after) => {
     const transaction = await tx.transaction.create({
       data: {
         type: data.type,
@@ -374,10 +377,11 @@ export async function createFinanceTransaction(
       },
     });
 
+    after(() => emitFinanceChange("created", transaction.id));
+
     return transaction;
   });
 
-  emitFinanceChange("created", created.id);
   return (await toRows([created]))[0];
 }
 
@@ -394,13 +398,13 @@ export async function updateFinanceTransaction(
   }
   if (current.orderId) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Transaksi penjualan otomatis tidak dapat diubah",
       400
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await runInTransaction(async (tx, after) => {
     const transaction = await tx.transaction.update({
       where: { id },
       data: {
@@ -430,10 +434,11 @@ export async function updateFinanceTransaction(
       },
     });
 
+    after(() => emitFinanceChange("updated", transaction.id));
+
     return transaction;
   });
 
-  emitFinanceChange("updated", updated.id);
   return (await toRows([updated]))[0];
 }
 
@@ -447,13 +452,13 @@ export async function deleteFinanceTransaction(
   }
   if (current.orderId) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Transaksi penjualan otomatis tidak dapat dihapus. Catat koreksi/refund.",
       400
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  await runInTransaction(async (tx, after) => {
     await tx.transaction.delete({ where: { id } });
     await tx.auditLog.create({
       data: {
@@ -468,6 +473,7 @@ export async function deleteFinanceTransaction(
         },
       },
     });
+    after(() => emitFinanceChange("deleted", id));
   });
 
   if (current.attachKey) {
@@ -478,7 +484,6 @@ export async function deleteFinanceTransaction(
     }
   }
 
-  emitFinanceChange("deleted", id);
   return { id };
 }
 
@@ -539,14 +544,7 @@ export async function cancelAcceptedOrder(
   userId: string,
   reason?: string
 ): Promise<{ code: string; status: OrderStatus; version: number }> {
-  const cancellable: OrderStatus[] = [
-    "ACCEPTED",
-    "PREPARING",
-    "READY",
-    "COMPLETED",
-  ];
-
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: {
@@ -558,7 +556,7 @@ export async function cancelAcceptedOrder(
     if (!order) {
       throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
     }
-    if (!cancellable.includes(order.status)) {
+    if (!CANCELLABLE_BY_ADMIN.includes(order.status)) {
       throw new AppError(
         "CONFLICT",
         "Pesanan tidak dapat dibatalkan pada status ini",
@@ -605,18 +603,18 @@ export async function cancelAcceptedOrder(
 
     const changes = await releaseStock(tx, order.id, order.code);
 
+    after(() => {
+      emitOrderStatus(order.code, "CANCELLED", order.version + 1);
+      emitStockChanges(order.table.token, order.code, changes);
+      emitFinanceChange("created", orderId);
+    });
+
     return {
       code: order.code,
       version: order.version + 1,
-      tableToken: order.table.token,
       cancelled: true as const,
-      changes,
     };
   });
-
-  emitOrderStatus(result.code, "CANCELLED", result.version);
-  emitStockChanges(result.tableToken, result.code, result.changes);
-  emitFinanceChange("created", orderId);
 
   return { code: result.code, status: "CANCELLED", version: result.version };
 }

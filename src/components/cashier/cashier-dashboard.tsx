@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -88,7 +91,7 @@ const STATUS_CLASS: Record<string, string> = {
 async function fetchQueue(): Promise<CashierQueue> {
   const res = await fetch("/api/cashier/orders", { cache: "no-store" });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? "Gagal memuat antrean");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal memuat antrean"));
   return json.data as CashierQueue;
 }
 
@@ -142,14 +145,14 @@ export function CashierDashboard() {
     [highlight, refresh]
   );
 
-  useRealtimeEvent("private-cashier", "order.created", (payload) =>
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.orderCreated, (payload) =>
     notify(payload, "Pesanan baru dari")
   );
-  useRealtimeEvent("private-cashier", "payment.uploaded", (payload) =>
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.paymentUploaded, (payload) =>
     notify(payload, "Bukti bayar masuk dari")
   );
-  useRealtimeEvent("private-cashier", "order.status_changed", refresh);
-  useRealtimeEvent("private-cashier", "transaction.created", refresh);
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.orderStatusChanged, refresh);
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.transactionCreated, refresh);
 
   const verificationCount = data?.counts.verification ?? 0;
   React.useEffect(() => {

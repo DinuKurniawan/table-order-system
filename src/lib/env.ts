@@ -4,6 +4,14 @@ const serverEnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL wajib diisi"),
   DIRECT_URL: z.string().optional(),
   APP_BASE_URL: z.string().url("APP_BASE_URL harus berupa URL yang valid").default("http://localhost:3000"),
+  ALLOWED_ORIGINS: z.string().default(""),
+  TRUSTED_PROXY: z
+    .string()
+    .regex(
+      /^(vercel|cloudflare|none|[1-9]\d*)$/,
+      "TRUSTED_PROXY harus vercel|cloudflare|none|<jumlah hop>"
+    )
+    .default("none"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET wajib minimal 32 karakter"),
   CRON_SECRET: z.string().min(8, "CRON_SECRET wajib minimal 8 karakter"),
   R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID wajib diisi"),

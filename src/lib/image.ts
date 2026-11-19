@@ -107,19 +107,19 @@ export interface ImageValidationResult {
  */
 export async function validateImage(buffer: Buffer): Promise<ImageValidationResult> {
   if (!buffer || buffer.length === 0) {
-    throw new AppError("BAD_REQUEST", "Berkas gambar kosong atau tidak valid");
+    throw new AppError("VALIDATION_ERROR", "Berkas gambar kosong atau tidak valid");
   }
 
   if (buffer.length > MAX_IMAGE_SIZE_BYTES) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Ukuran gambar melebihi batas maksimal 10 MB"
     );
   }
 
   if (!detectImageMagicBytes(buffer)) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Format berkas tidak didukung atau bukan gambar valid (JPEG, PNG, WEBP, GIF, TIFF, BMP, AVIF/HEIC)"
     );
   }
@@ -129,7 +129,7 @@ export async function validateImage(buffer: Buffer): Promise<ImageValidationResu
     const metadata = await image.metadata();
 
     if (!metadata.width || !metadata.height) {
-      throw new AppError("BAD_REQUEST", "Gagal membaca dimensi berkas gambar");
+      throw new AppError("VALIDATION_ERROR", "Gagal membaca dimensi berkas gambar");
     }
 
     if (
@@ -137,7 +137,7 @@ export async function validateImage(buffer: Buffer): Promise<ImageValidationResu
       metadata.height > MAX_IMAGE_DIMENSION
     ) {
       throw new AppError(
-        "BAD_REQUEST",
+        "VALIDATION_ERROR",
         `Dimensi gambar (${metadata.width}x${metadata.height}px) melebihi batas maksimal ${MAX_IMAGE_DIMENSION}x${MAX_IMAGE_DIMENSION}px`
       );
     }
@@ -150,7 +150,7 @@ export async function validateImage(buffer: Buffer): Promise<ImageValidationResu
   } catch (err) {
     if (err instanceof AppError) throw err;
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Berkas gambar rusak atau tidak dapat didekode oleh parser gambar"
     );
   }

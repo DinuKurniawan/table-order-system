@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,7 +62,7 @@ const SERIES_OPTIONS: Array<{
 async function api<T>(url: string): Promise<T> {
   const res = await fetch(url);
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Gagal memuat ringkasan");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal memuat ringkasan"));
   return json.data as T;
 }
 
@@ -295,11 +298,11 @@ export function DashboardManager() {
     };
   }, []);
 
-  useRealtimeEvent("private-admin", "order.created", invalidate);
-  useRealtimeEvent("private-admin", "order.status_changed", invalidate);
-  useRealtimeEvent("private-admin", "stock.low", invalidate);
-  useRealtimeEvent("private-admin", "transaction.created", invalidate);
-  useRealtimeEvent("private-admin", "kpi.updated", invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.orderCreated, invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.orderStatusChanged, invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.stockLow, invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, invalidate);
 
   const data = query.data;
   const errors = data?.errors ?? {};

@@ -1,18 +1,24 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Check, Trash2, Eye, EyeOff, Plus, Loader2, RefreshCw, Copy, Pencil } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SectionCard } from "@/components/admin/section-card";
-import { formatRupiah } from "@/lib/utils";
-import { formatWIB, relativeTime } from "@/lib/utils";
-import { appSettingsSchema, getSettings, updateSettings } from "@/server/services/settings";
 import { toast } from "sonner";
+
+type Settings = {
+  namaKafe?: string;
+  timeoutBayarMenit?: number;
+  maksUploadUlang?: number;
+  footerStruk?: string;
+  isOrderingOpen?: boolean;
+};
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -20,7 +26,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json as T;
 }
 
@@ -29,17 +35,11 @@ export function AdminSettingsPage() {
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
-  const [dialogValues, setDialogValues] = React.useState<{
-    namaKafe?: string;
-    timeoutBayarMenit?: number;
-    maksUploadUlang?: number;
-    footerStruk?: string;
-    isOrderingOpen?: boolean;
-  }>({});
+  const [dialogValues, setDialogValues] = React.useState<Settings>({});
 
   const settingsQuery = useQuery({
     queryKey: ["settings"],
-    queryFn: () => api<{ data: any }>("/api/admin/settings"),
+    queryFn: () => api<{ data: Settings }>("/api/admin/settings"),
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["settings"] });
@@ -58,19 +58,6 @@ export function AdminSettingsPage() {
   }
 
   const settings = settingsQuery.data?.data ?? {};
-
-  const openDialog = (initial?: any) => {
-    setDialogValues(
-      initial ?? {
-        namaKafe: settings.namaKafe,
-        timeoutBayarMenit: settings.timeoutBayarMenit,
-        maksUploadUlang: settings.maksUploadUlang,
-        footerStruk: settings.footerStruk,
-        isOrderingOpen: settings.isOrderingOpen !== false,
-      }
-    );
-    setSettingsDialogOpen(true);
-  };
 
   const closeDialog = () => setSettingsDialogOpen(false);
 

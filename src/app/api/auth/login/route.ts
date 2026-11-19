@@ -4,12 +4,13 @@ import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import {
-  getClientIp,
   isRateLimited,
   rateLimitHeaders,
   recordFailedAttempt,
   resetRateLimit,
 } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
+import { apiErrorResponse } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { Role } from "@prisma/client";
 
@@ -19,12 +20,11 @@ export async function POST(req: NextRequest) {
     const parseResult = loginSchema.safeParse(json);
 
     if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: "Validasi gagal",
-          details: parseResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
+      return apiErrorResponse(
+        "VALIDATION_ERROR",
+        "Validasi gagal",
+        400,
+        parseResult.error.flatten().fieldErrors
       );
     }
 
@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
     if (blocked.limited) {
       return NextResponse.json(
         {
-          error: `Terlalu banyak percobaan login. Silakan coba lagi dalam ${blocked.retryAfterSeconds} detik.`,
+          error: {
+            code: "RATE_LIMITED",
+            message: `Terlalu banyak percobaan login. Silakan coba lagi dalam ${blocked.retryAfterSeconds} detik.`,
+          },
         },
         { status: 429, headers: rateLimitHeaders(blocked) }
       );
@@ -54,26 +57,44 @@ export async function POST(req: NextRequest) {
       where: { username },
     });
 
-    if (!user || !user.isActive) {
+    // Audit login gagal (tanpa password) — audit R-06.
+    async function recordLoginFailure(): Promise<void> {
       await Promise.all([
         recordFailedAttempt(rateLimitKey),
         recordFailedAttempt(ipRateLimitKey),
       ]);
-      return NextResponse.json(
-        { error: "Username atau password salah" },
-        { status: 401 }
+      try {
+        await prisma.auditLog.create({
+          data: {
+            userId: user?.id ?? null,
+            action: "auth.login_failed",
+            entity: "User",
+            entityId: user?.id ?? "anonymous",
+            meta: { username },
+          },
+        });
+      } catch (auditErr) {
+        // Audit tidak boleh menggagalkan respons autentikasi.
+        logger.error("Gagal mencatat audit login gagal", auditErr);
+      }
+    }
+
+    if (!user || !user.isActive) {
+      await recordLoginFailure();
+      return apiErrorResponse(
+        "UNAUTHENTICATED",
+        "Username atau password salah",
+        401
       );
     }
 
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
-      await Promise.all([
-        recordFailedAttempt(rateLimitKey),
-        recordFailedAttempt(ipRateLimitKey),
-      ]);
-      return NextResponse.json(
-        { error: "Username atau password salah" },
-        { status: 401 }
+      await recordLoginFailure();
+      return apiErrorResponse(
+        "UNAUTHENTICATED",
+        "Username atau password salah",
+        401
       );
     }
 
@@ -87,6 +108,20 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "auth.login",
+          entity: "User",
+          entityId: user.id,
+          meta: { username },
+        },
+      });
+    } catch (auditErr) {
+      logger.error("Gagal mencatat audit login", auditErr);
+    }
 
     const redirectUrl = user.role === Role.SUPER_ADMIN ? "/admin" : "/cashier";
 
@@ -110,9 +145,10 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (err) {
     logger.error("Login API error", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan pada server saat login" },
-      { status: 500 }
+    return apiErrorResponse(
+      "INTERNAL",
+      "Terjadi kesalahan pada server saat login",
+      500
     );
   }
 }

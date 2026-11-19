@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
-import { CategoryType, DrinkSubtype, Prisma } from "@prisma/client";
+import { CategoryType, DrinkSubtype } from "@prisma/client";
+import { runInTransaction } from "@/lib/tx";
 import { CategoryInput, categoryInputSchema } from "@/lib/validators/product";
 
 export interface CategoryDTO {
@@ -175,17 +176,17 @@ export async function reorderCategories(
 
   const unknown = ids.filter((id) => !known.has(id));
   if (unknown.length > 0) {
-    throw new AppError("BAD_REQUEST", "Terdapat id kategori yang tidak dikenal", 400);
+    throw new AppError("VALIDATION_ERROR", "Terdapat id kategori yang tidak dikenal", 400);
   }
 
-  const updates: Prisma.PrismaPromise<unknown>[] = ids.map((id, index) =>
-    prisma.category.update({
-      where: { id },
-      data: { sortOrder: index + 1 },
-    })
-  );
-
-  await prisma.$transaction(updates);
+  await runInTransaction(async (tx) => {
+    for (const [index, id] of ids.entries()) {
+      await tx.category.update({
+        where: { id },
+        data: { sortOrder: index + 1 },
+      });
+    }
+  });
 
   await prisma.auditLog.create({
     data: {

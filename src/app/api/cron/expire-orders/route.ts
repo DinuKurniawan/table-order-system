@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const provided = req.headers.get("authorization") ?? "";
 
     if (!timingSafeEqualString(provided, expected)) {
-      throw new AppError("UNAUTHORIZED", "Kredensial cron tidak valid", 401);
+      throw new AppError("UNAUTHENTICATED", "Kredensial cron tidak valid", 401);
     }
 
     const result = await expireOrders();

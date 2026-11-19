@@ -1,7 +1,9 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { Prisma, StockMoveType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { emitToChannel } from "@/lib/pusher-server";
+import { runInTransaction } from "@/lib/tx";
 import {
   stockAdjustSchema,
   stockSettingsSchema,
@@ -113,16 +115,16 @@ function broadcastStock(params: {
     lowStockThreshold: params.lowStockThreshold,
   };
 
-  emitToChannel("private-admin", "stock.changed", payload);
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockChanged, payload);
   for (const token of params.tableTokens) {
-    emitToChannel(`private-table-${token}`, "stock.changed", payload);
+    emitToChannel(CHANNELS.table(token), REALTIME_EVENTS.stockChanged, payload);
   }
 
   if (params.low) {
-    emitToChannel("private-admin", "stock.low", payload);
+    emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, payload);
   }
 
-  emitToChannel("private-admin", "kpi.updated", { source: "stock" });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, { source: "stock" });
 }
 
 export interface AdjustStockResult {
@@ -130,6 +132,99 @@ export interface AdjustStockResult {
   stock: number;
   balance: number;
   status: StockStatus;
+}
+
+export interface StockChange {
+  productId: string;
+  newStock: number;
+}
+
+/**
+ * Reservasi stok atomik untuk satu item checkout. Produk non-tracked tidak
+ * menyentuh stok maupun StockMovement (K-02). Untuk produk tracked, UPDATE
+ * bersyarat menjamin stok tidak pernah negatif.
+ */
+export async function reserveStock(
+  tx: Prisma.TransactionClient,
+  item: { productId: string; name: string; quantity: number; trackStock: boolean },
+  orderCode: string
+): Promise<StockChange | null> {
+  if (!item.trackStock) return null;
+
+  const rows = await tx.$queryRaw<Array<{ stock: number }>>`
+    UPDATE "Product"
+    SET stock = stock - ${item.quantity}, "updatedAt" = NOW()
+    WHERE id = ${item.productId}
+      AND "trackStock" = true
+      AND "isActive" = true
+      AND "deletedAt" IS NULL
+      AND stock >= ${item.quantity}
+    RETURNING stock
+  `;
+
+  if (rows.length === 0) {
+    throw new AppError(
+      "STOCK_INSUFFICIENT",
+      `Stok tidak cukup untuk produk ${item.name}`,
+      409
+    );
+  }
+
+  const newStock = rows[0].stock;
+
+  await tx.stockMovement.create({
+    data: {
+      productId: item.productId,
+      type: "ORDER_RESERVE",
+      quantity: item.quantity,
+      balance: newStock,
+      note: `Pesanan order ${orderCode}`,
+    },
+  });
+
+  return { productId: item.productId, newStock };
+}
+
+/**
+ * Mengembalikan stok pesanan yang batal/kedaluwarsa. Produk non-tracked
+ * dilewati: tidak ada stok yang pernah direservasi (K-02).
+ */
+export async function releaseStock(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  code: string
+): Promise<StockChange[]> {
+  const items = await tx.orderItem.findMany({
+    where: { orderId },
+    include: { product: { select: { trackStock: true } } },
+  });
+  const changes: StockChange[] = [];
+
+  for (const item of items) {
+    if (!item.product.trackStock) continue;
+
+    const rows = await tx.$queryRaw<Array<{ stock: number }>>`
+      UPDATE "Product" SET stock = stock + ${item.quantity}, "updatedAt" = NOW()
+      WHERE id = ${item.productId} AND "trackStock" = true
+      RETURNING stock
+    `;
+    if (rows.length === 0) continue;
+
+    await tx.stockMovement.create({
+      data: {
+        productId: item.productId,
+        type: "ORDER_RELEASE",
+        quantity: item.quantity,
+        balance: rows[0].stock,
+        orderId,
+        note: `Stok dikembalikan untuk ${code}`,
+      },
+    });
+
+    changes.push({ productId: item.productId, newStock: rows[0].stock });
+  }
+
+  return changes;
 }
 
 /**
@@ -158,20 +253,20 @@ export async function adjustStock(
   }
   if (!product.trackStock) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Produk ini tidak melacak stok. Aktifkan pelacakan terlebih dahulu.",
       400
     );
   }
   if (product.stock + delta < 0) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       `Stok tidak mencukupi. Sisa stok ${product.stock}.`,
       400
     );
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInTransaction(async (tx, after) => {
     const updated = await tx.$queryRaw<Array<{ stock: number }>>`
       UPDATE "Product"
       SET stock = stock + ${delta}, "updatedAt" = NOW()
@@ -210,16 +305,18 @@ export async function adjustStock(
       },
     });
 
-    return balance;
-  });
+    after(async () =>
+      broadcastStock({
+        productId: product.id,
+        name: product.name,
+        stock: balance,
+        lowStockThreshold: product.lowStockThreshold,
+        low: balance <= product.lowStockThreshold,
+        tableTokens: await activeTableTokens(),
+      })
+    );
 
-  broadcastStock({
-    productId: product.id,
-    name: product.name,
-    stock: result,
-    lowStockThreshold: product.lowStockThreshold,
-    low: result <= product.lowStockThreshold,
-    tableTokens: await activeTableTokens(),
+    return balance;
   });
 
   return {
@@ -237,19 +334,31 @@ export async function updateStockSettings(
 ): Promise<{ productId: string; stock: number; trackStock: boolean; lowStockThreshold: number }> {
   const data = stockSettingsSchema.parse(input);
 
-  const product = await prisma.product.findFirst({
-    where: { id: productId, deletedAt: null },
-    select: { id: true, name: true, stock: true, trackStock: true, lowStockThreshold: true },
-  });
+  const updated = await runInTransaction(async (tx, after) => {
+    // Kunci baris (audit T-02): baca stok terkini di dalam transaksi agar
+    // reservasi checkout yang berjalan bersamaan tidak tertimpa stok absolut.
+    const rows = await tx.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        stock: number;
+        trackStock: boolean;
+        lowStockThreshold: number;
+      }>
+    >`
+      SELECT id, name, stock, "trackStock", "lowStockThreshold"
+      FROM "Product"
+      WHERE id = ${productId} AND "deletedAt" IS NULL
+      FOR UPDATE
+    `;
 
-  if (!product) {
-    throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
-  }
+    const product = rows[0];
+    if (!product) {
+      throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
+    }
 
-  const nextTrack = data.trackStock ?? product.trackStock;
-  const nextThreshold = data.lowStockThreshold ?? product.lowStockThreshold;
-
-  const updated = await prisma.$transaction(async (tx) => {
+    const nextTrack = data.trackStock ?? product.trackStock;
+    const nextThreshold = data.lowStockThreshold ?? product.lowStockThreshold;
     const disableTracking = nextTrack === false && product.stock > 0;
     const nextStock = nextTrack ? product.stock : 0;
 
@@ -290,21 +399,22 @@ export async function updateStockSettings(
       },
     });
 
+    after(async () =>
+      broadcastStock({
+        productId: product.id,
+        name: product.name,
+        stock: saved.stock,
+        lowStockThreshold: saved.lowStockThreshold,
+        low: saved.trackStock && saved.stock <= saved.lowStockThreshold,
+        tableTokens: await activeTableTokens(),
+      })
+    );
+
     return saved;
   });
 
-  const tables = await activeTableTokens();
-  broadcastStock({
-    productId: product.id,
-    name: product.name,
-    stock: updated.stock,
-    lowStockThreshold: updated.lowStockThreshold,
-    low: updated.trackStock && updated.stock <= updated.lowStockThreshold,
-    tableTokens: tables,
-  });
-
   return {
-    productId: product.id,
+    productId,
     stock: updated.stock,
     trackStock: updated.trackStock,
     lowStockThreshold: updated.lowStockThreshold,

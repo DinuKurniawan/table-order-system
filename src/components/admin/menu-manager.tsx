@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
@@ -115,7 +116,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json as T;
 }
 
@@ -533,8 +534,11 @@ function ProductDialog({
 
   const saveMutation = useMutation({
     mutationFn: (values: ProductFormValues) => {
+      // Stok hanya lewat modul stok; jangan pernah dikirim saat edit produk (K-01).
+      const { stock, ...withoutStock } = values;
       const payload = {
-        ...values,
+        ...withoutStock,
+        ...(isEdit ? {} : { stock }),
         description: values.description || null,
         imageKey: values.imageKey || null,
         thumbKey: values.thumbKey || null,
@@ -666,9 +670,15 @@ function ProductDialog({
                   id="product-stock"
                   type="number"
                   min={0}
+                  disabled={isEdit}
                   {...form.register("stock", { valueAsNumber: true })}
                   className="rounded-xl h-10"
                 />
+                {isEdit && (
+                  <p className="text-[11px] text-text-muted">
+                    Stok diubah lewat halaman Stok, bukan di sini.
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="product-low" className="text-xs font-semibold">

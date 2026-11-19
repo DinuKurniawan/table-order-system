@@ -8,6 +8,9 @@ export const tableInputSchema = z.object({
 
 export type TableInput = z.infer<typeof tableInputSchema>;
 
-export const tableUpdateSchema = tableInputSchema.partial();
+// Default `isActive` tidak boleh ikut pada update (audit S-01).
+export const tableUpdateSchema = tableInputSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
 
 export type TableUpdateInput = z.infer<typeof tableUpdateSchema>;

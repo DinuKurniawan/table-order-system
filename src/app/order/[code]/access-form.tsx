@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Loader2, AlertCircle } from "lucide-react";
@@ -39,7 +40,7 @@ export function AccessForm({
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error ?? "Kode akses salah.");
+        setError(apiErrorMessage(json, "Kode akses salah."));
         return;
       }
 

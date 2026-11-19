@@ -1,6 +1,12 @@
 import * as argon2 from "argon2";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSessionPayload, destroySession } from "@/lib/session";
+import {
+  getSessionPayload,
+  destroySession,
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/session";
 import { AuthError } from "@/lib/errors";
 import { Role, User } from "@prisma/client";
 
@@ -65,7 +71,7 @@ export function authorizeRole(
 ): SafeUser {
   if (!user) {
     throw new AuthError(
-      "UNAUTHORIZED",
+      "UNAUTHENTICATED",
       "Sesi Anda tidak valid atau telah berakhir. Silakan login kembali."
     );
   }
@@ -78,6 +84,19 @@ export function authorizeRole(
   }
 
   return user;
+}
+
+/**
+ * Validasi sesi dari cookie pada NextRequest. Memakai jalur yang sama dengan
+ * getCurrentUser/requireRole: authenticateSession memeriksa isActive dan
+ * tokenVersion di database (audit T-04).
+ */
+export async function authenticateRequest(
+  req: NextRequest
+): Promise<SafeUser | null> {
+  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value ?? null;
+  const payload = token ? await verifySessionToken(token) : null;
+  return authenticateSession(payload);
 }
 
 /**

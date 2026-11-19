@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { AuthHeader } from "@/components/auth-header";
 import { CashierHeaderControls } from "@/components/cashier/cashier-header-controls";
+import { CashierSessionGuard } from "@/components/cashier/cashier-session-guard";
 import { SessionEnded } from "@/components/session-ended";
 
 export const instant = false;
@@ -18,6 +19,7 @@ export default async function CashierLayout({
 
   return (
     <div className="min-h-screen bg-app flex flex-col">
+      <CashierSessionGuard userId={user.id} />
       <AuthHeader
         userName={user.name}
         role={user.role}
