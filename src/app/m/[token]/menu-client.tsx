@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,6 +14,7 @@ import { useRealtimeEvent } from "@/lib/pusher-client";
 import { SectionCard } from "@/components/admin/section-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRupiah } from "@/lib/utils";
+import { parseStoredCart, type CartItems } from "@/lib/cart";
 
 interface MenuProduct {
   id: string;
@@ -23,15 +27,6 @@ interface MenuProduct {
   thumbUrl: string | null;
   category: { name: string; type: string; subtype: string | null } | null;
 }
-
-interface CartItem {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-type CartItems = Record<string, CartItem>;
 
 const CATEGORY_TABS = [
   { value: "all", label: "Semua" },
@@ -60,7 +55,7 @@ export function MenuClient({
       const saved = window.localStorage.getItem(cartKey);
       // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCart(saved ? (JSON.parse(saved).items as CartItems) : {});
+      setCart(parseStoredCart(saved));
     } catch {
       setCart({});
     }
@@ -79,7 +74,7 @@ export function MenuClient({
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        throw new Error(json?.error ?? "Gagal memuat menu");
+        throw new Error(apiErrorMessage(json, "Gagal memuat menu"));
       }
       return (await res.json()) as { products: MenuProduct[] };
     },
@@ -90,7 +85,7 @@ export function MenuClient({
         : undefined,
   });
 
-  useRealtimeEvent(`private-table-${token}`, "stock.changed", () => {
+  useRealtimeEvent(CHANNELS.table(token), REALTIME_EVENTS.stockChanged, () => {
     queryClient.invalidateQueries({ queryKey: ["menu", token] });
   });
 
