@@ -385,14 +385,17 @@ Prisma → PostgreSQL
 
 ## Screenshot
 
-> **Catatan:** keempat berkas di bawah saat ini berupa **gambar placeholder** (kotak abu-abu berisi label), bukan tangkapan layar asli. Ganti dengan tangkapan layar sungguhan memakai nama berkas yang sama.
+Tangkapan layar dari build produksi (`next start`) dengan data `prisma/seed.ts` + `prisma/seed-demo.ts` (500 pesanan demo). Desktop 1920×1080, customer 390×844.
 
-![Dashboard Super Admin](docs/screenshots/admin-dashboard.png)
-![Katalog Menu](docs/screenshots/admin-menu.png)
-![Panel Kasir](docs/screenshots/cashier-queue.png)
-![Halaman Customer](docs/screenshots/customer-menu.png)
+| Dashboard Super Admin | Panel Kasir |
+|:---:|:---:|
+| <img src="docs/screenshots/admin-dashboard.png" alt="Dashboard Super Admin" width="620"> | <img src="docs/screenshots/cashier-queue.png" alt="Panel Kasir" width="620"> |
+| **Dashboard Super Admin** — KPI, grafik penjualan, komposisi kategori, aktivitas | **Panel Kasir** — antrean verifikasi pembayaran dan progres pesanan realtime |
 
-Halaman `/cashier`, menu customer `/m/[token]`, dan alur pelacakan pesanan sudah diimplementasikan; screenshot asli tinggal diambil dan menggantikan placeholder.
+| Katalog Menu | Halaman Customer |
+|:---:|:---:|
+| <img src="docs/screenshots/admin-menu.png" alt="Katalog Menu" width="620"> | <img src="docs/screenshots/customer-menu.png" alt="Halaman Customer" width="220"> |
+| **Katalog Menu** — kelola produk, harga, stok, dan kategori | **Halaman Customer** — menu via QR meja `/m/[token]` |
 
 ---
 
