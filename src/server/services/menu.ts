@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { AppError } from "@/lib/errors";
 import { getPublicUrl } from "@/lib/r2";
 import { findActiveTableByToken } from "@/server/services/tables";
 
@@ -25,7 +26,11 @@ export async function getPublicMenu(input: {
   category?: string;
 }): Promise<PublicMenuProduct[]> {
   if (!input.token || !(await findActiveTableByToken(input.token))) {
-    throw new Error("Meja tidak aktif atau tidak ditemukan");
+    throw new AppError(
+      "NOT_FOUND",
+      "Meja tidak aktif atau tidak ditemukan",
+      404
+    );
   }
 
   const where: Prisma.ProductWhereInput = { deletedAt: null, isActive: true };

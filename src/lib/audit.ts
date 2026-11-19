@@ -27,6 +27,12 @@ export function describeAudit(
   const amount =
     Number.isFinite(amountRaw) && amountRaw > 0 ? ` ${formatRupiah(amountRaw)}` : "";
 
+  if (action === "auth.login") {
+    return `Login berhasil: ${username ?? "pengguna"}`;
+  }
+  if (action === "auth.login_failed") {
+    return `Login gagal: ${username ?? "pengguna"}`;
+  }
   if (action === "payment.upload") {
     return `Bukti pembayaran pesanan ${code ?? ""} diunggah`.trim();
   }

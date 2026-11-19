@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -85,7 +88,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json.data as T;
 }
 
@@ -139,8 +142,8 @@ export function FinanceManager() {
     queryClient.invalidateQueries({ queryKey: ["finance-transactions"] });
   }, [queryClient]);
 
-  useRealtimeEvent("private-admin", "transaction.created", invalidate);
-  useRealtimeEvent("private-admin", "kpi.updated", invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, invalidate);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, invalidate);
 
   const remove = useMutation({
     mutationFn: (id: string) =>
@@ -668,7 +671,7 @@ function TransactionDialog({
         body: form,
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Gagal mengunggah lampiran");
+      if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal mengunggah lampiran"));
       setAttachKey(json.data.key as string);
       setFileName(file.name);
       toast.success("Lampiran diunggah");

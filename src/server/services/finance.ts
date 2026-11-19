@@ -1,3 +1,4 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, Prisma, TxType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -17,6 +18,7 @@ import {
   emitStockChanges,
 } from "@/server/services/orders";
 import { releaseStock } from "@/server/services/stock";
+import { CANCELLABLE_BY_ADMIN } from "@/server/domain/order-state";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -239,7 +241,7 @@ function parseOccurredAt(value: string | undefined): Date {
   if (!value) return new Date();
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new AppError("BAD_REQUEST", "Tanggal transaksi tidak valid", 400);
+    throw new AppError("VALIDATION_ERROR", "Tanggal transaksi tidak valid", 400);
   }
   return date;
 }
@@ -337,8 +339,8 @@ export async function listFinanceTransactions(
 }
 
 function emitFinanceChange(action: "created" | "updated" | "deleted", id: string) {
-  emitToChannel("private-admin", "transaction.created", { id, action });
-  emitToChannel("private-admin", "kpi.updated", { source: "finance" });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, { id, action });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, { source: "finance" });
 }
 
 export async function createFinanceTransaction(
@@ -396,7 +398,7 @@ export async function updateFinanceTransaction(
   }
   if (current.orderId) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Transaksi penjualan otomatis tidak dapat diubah",
       400
     );
@@ -450,7 +452,7 @@ export async function deleteFinanceTransaction(
   }
   if (current.orderId) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Transaksi penjualan otomatis tidak dapat dihapus. Catat koreksi/refund.",
       400
     );
@@ -542,13 +544,6 @@ export async function cancelAcceptedOrder(
   userId: string,
   reason?: string
 ): Promise<{ code: string; status: OrderStatus; version: number }> {
-  const cancellable: OrderStatus[] = [
-    "ACCEPTED",
-    "PREPARING",
-    "READY",
-    "COMPLETED",
-  ];
-
   const result = await runInTransaction(async (tx, after) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
@@ -561,7 +556,7 @@ export async function cancelAcceptedOrder(
     if (!order) {
       throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
     }
-    if (!cancellable.includes(order.status)) {
+    if (!CANCELLABLE_BY_ADMIN.includes(order.status)) {
       throw new AppError(
         "CONFLICT",
         "Pesanan tidak dapat dibatalkan pada status ini",

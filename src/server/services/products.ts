@@ -147,7 +147,7 @@ export async function listProducts(
 async function assertCategoryExists(categoryId: string): Promise<void> {
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
   if (!category) {
-    throw new AppError("BAD_REQUEST", "Kategori yang dipilih tidak ditemukan", 400);
+    throw new AppError("VALIDATION_ERROR", "Kategori yang dipilih tidak ditemukan", 400);
   }
 }
 

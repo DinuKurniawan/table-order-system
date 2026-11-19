@@ -1,9 +1,10 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { AppError } from "@/lib/errors";
-import { handleApiError, readJson } from "@/lib/api";
+import { handleApiError, readJson, apiErrorResponse } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import {
   consumeRateLimit,
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
   try {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-      throw new AppError("BAD_REQUEST", "Body request terlalu besar", 413);
+      throw new AppError("VALIDATION_ERROR", "Body request terlalu besar", 413);
     }
 
     const ip = getClientIp(req);
@@ -97,12 +98,10 @@ export async function POST(req: Request) {
       req.headers.get("idempotency-key") ?? ""
     );
     if (!keyCheck.success) {
-      return NextResponse.json(
-        {
-          error: keyCheck.error.issues[0]?.message ?? "Idempotency-Key tidak valid",
-          code: "BAD_REQUEST",
-        },
-        { status: 400 }
+      return apiErrorResponse(
+        "VALIDATION_ERROR",
+        keyCheck.error.issues[0]?.message ?? "Idempotency-Key tidak valid",
+        400
       );
     }
     const idempotencyKey = keyCheck.data;
@@ -110,13 +109,11 @@ export async function POST(req: Request) {
     const body = await readJson(req);
     const validation = orderSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: "Validasi gagal",
-          code: "BAD_REQUEST",
-          details: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 }
+      return apiErrorResponse(
+        "VALIDATION_ERROR",
+        "Validasi gagal",
+        400,
+        validation.error.flatten().fieldErrors
       );
     }
 
@@ -133,7 +130,7 @@ export async function POST(req: Request) {
     // 1. Validasi meja aktif
     const table = await prisma.table.findUnique({ where: { token: tableToken } });
     if (!table || !table.isActive) {
-      throw new AppError("BAD_REQUEST", "Meja tidak aktif atau tidak ditemukan", 400);
+      throw new AppError("VALIDATION_ERROR", "Meja tidak aktif atau tidak ditemukan", 400);
     }
     requestTableId = table.id;
 
@@ -164,14 +161,14 @@ export async function POST(req: Request) {
       const product = productMap.get(item.productId);
       if (!product) {
         throw new AppError(
-          "BAD_REQUEST",
+          "VALIDATION_ERROR",
           "Salah satu produk tidak tersedia atau sudah tidak aktif",
           400
         );
       }
       if (product.trackStock && product.stock < item.quantity) {
         throw new AppError(
-          "CONFLICT",
+          "STOCK_INSUFFICIENT",
           `Stok tidak cukup untuk produk ${product.name}`,
           409
         );
@@ -222,7 +219,7 @@ export async function POST(req: Request) {
       for (const item of items) {
         const product = productMap.get(item.productId);
         if (!product) {
-          throw new AppError("BAD_REQUEST", "Produk tidak ditemukan", 400);
+          throw new AppError("VALIDATION_ERROR", "Produk tidak ditemukan", 400);
         }
 
         // Produk non-tracked tidak mereservasi stok dan tidak menulis movement (K-02).
@@ -241,7 +238,7 @@ export async function POST(req: Request) {
         const newStock = reserved.newStock;
 
         after(() => {
-          emitToChannel(`private-table-${tableToken}`, "stock.changed", {
+          emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
             productId: item.productId,
             newStock,
             orderCode,
@@ -250,7 +247,7 @@ export async function POST(req: Request) {
 
         if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
           after(() => {
-            emitToChannel("private-admin", "stock.low", {
+            emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, {
               productId: item.productId,
               newStock,
               orderCode,
@@ -274,14 +271,14 @@ export async function POST(req: Request) {
       });
 
       after(() => {
-        emitToChannel("private-cashier", "order.created", {
+        emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.orderCreated, {
           orderCode,
           orderId: order.id,
           tableToken,
           tableName: table.name,
           customerName,
         });
-        emitToChannel("private-admin", "order.created", {
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.orderCreated, {
           orderCode,
           orderId: order.id,
           tableToken,
@@ -312,9 +309,10 @@ export async function POST(req: Request) {
           return orderResponse(replay, 200, settings.timeoutBayarMenit * 60);
         }
         if (replay) {
-          return NextResponse.json(
-            { error: "Idempotency-Key sudah dipakai", code: "CONFLICT" },
-            { status: 409 }
+          return apiErrorResponse(
+            "CONFLICT",
+            "Idempotency-Key sudah dipakai",
+            409
           );
         }
       }

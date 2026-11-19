@@ -95,7 +95,7 @@ test("T-01: PATCH settings hanya menulis field yang dikirim", async (t) => {
   await t.test("payload kosong ditolak", async () => {
     await assert.rejects(
       () => updateSettings({}, admin.id),
-      (err: Error) => err instanceof AppError && err.code === "BAD_REQUEST"
+      (err: Error) => err instanceof AppError && err.code === "VALIDATION_ERROR"
     );
   });
 

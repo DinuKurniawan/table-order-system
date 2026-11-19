@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -76,7 +79,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json.data as T;
 }
 
@@ -108,8 +111,8 @@ export function StockManager() {
     queryClient.invalidateQueries({ queryKey: ["menu"] });
   }, [queryClient]);
 
-  useRealtimeEvent("private-admin", "stock.changed", refresh);
-  useRealtimeEvent("private-admin", "stock.low", (payload) => {
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.stockChanged, refresh);
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.stockLow, (payload) => {
     const name = (payload as { name?: string } | null)?.name;
     toast.warning(name ? `Stok menipis: ${name}` : "Ada stok menipis");
     refresh();

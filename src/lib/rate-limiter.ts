@@ -145,8 +145,10 @@ export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
 export function tooManyRequests(result: RateLimitResult): Response {
   return Response.json(
     {
-      error: `Terlalu banyak permintaan. Coba lagi dalam ${result.retryAfterSeconds} detik.`,
-      code: "RATE_LIMITED",
+      error: {
+        code: "RATE_LIMITED",
+        message: `Terlalu banyak permintaan. Coba lagi dalam ${result.retryAfterSeconds} detik.`,
+      },
     },
     { status: 429, headers: rateLimitHeaders(result) }
   );

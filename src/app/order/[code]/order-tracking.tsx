@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -49,7 +52,7 @@ async function fetchOrder(code: string): Promise<CustomerOrderDTO> {
   const res = await fetch(`/api/public/orders/${code}`, { cache: "no-store" });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.error ?? "Gagal memuat pesanan");
+    throw new Error(apiErrorMessage(json, "Gagal memuat pesanan"));
   }
   return json as CustomerOrderDTO;
 }
@@ -66,19 +69,19 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
     refetchInterval: 30_000,
   });
 
-  const channel = `private-order-${code}`;
+  const channel = CHANNELS.order(code);
   usePusherChannel(channel);
 
   const refresh = React.useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["customer-order", code] });
   }, [queryClient, code]);
 
-  useRealtimeEvent(channel, "order.status_changed", (payload) => {
+  useRealtimeEvent(channel, REALTIME_EVENTS.orderStatusChanged, (payload) => {
     const status = (payload as { status?: string } | null)?.status;
     if (status) toast.info(`Status pesanan: ${STATUS_LABEL[status] ?? status}`);
     refresh();
   });
-  useRealtimeEvent(channel, "payment.uploaded", refresh);
+  useRealtimeEvent(channel, REALTIME_EVENTS.paymentUploaded, refresh);
 
   const [now, setNow] = React.useState<number | null>(null);
   React.useEffect(() => {
@@ -114,7 +117,7 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
       const json = await res.json();
 
       if (!res.ok) {
-        toast.error(json.error ?? "Gagal mengunggah bukti pembayaran");
+        toast.error(apiErrorMessage(json, "Gagal mengunggah bukti pembayaran"));
         return;
       }
 
@@ -138,7 +141,7 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error ?? "Gagal membatalkan pesanan");
+        toast.error(apiErrorMessage(json, "Gagal membatalkan pesanan"));
         return;
       }
       toast.success("Pesanan dibatalkan");

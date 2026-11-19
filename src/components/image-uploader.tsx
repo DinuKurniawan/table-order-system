@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { UploadCloud, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -139,7 +140,7 @@ export function ImageUploader({
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Gagal mengunggah gambar");
+        throw new Error(apiErrorMessage(json, "Gagal mengunggah gambar"));
       }
 
       const uploadedUrl = json.data.url;

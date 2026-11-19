@@ -176,7 +176,7 @@ export async function reorderCategories(
 
   const unknown = ids.filter((id) => !known.has(id));
   if (unknown.length > 0) {
-    throw new AppError("BAD_REQUEST", "Terdapat id kategori yang tidak dikenal", 400);
+    throw new AppError("VALIDATION_ERROR", "Terdapat id kategori yang tidak dikenal", 400);
   }
 
   await runInTransaction(async (tx) => {

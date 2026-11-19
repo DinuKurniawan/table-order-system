@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -60,7 +61,7 @@ function fmtWib(iso: string): string {
 }
 
 function actionTone(action: string): string {
-  if (action.startsWith("payment.approve") || action === "order.create") {
+  if (action.startsWith("payment.approve") || action === "order.created") {
     return "bg-accent-green/10 text-accent-green";
   }
   if (action.includes("reject") || action.includes("delete") || action.includes("cancel")) {
@@ -103,7 +104,7 @@ export function AuditManager() {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        throw new Error(json?.error ?? "Gagal memuat log audit");
+        throw new Error(apiErrorMessage(json, "Gagal memuat log audit"));
       }
       return (await res.json()).data as AuditResponse;
     },

@@ -17,7 +17,7 @@ export async function POST(
     const { code } = await params;
     const token = getOrderAccessToken(req, code);
     if (!token) {
-      throw new AppError("UNAUTHORIZED", "Kode akses pesanan diperlukan", 401);
+      throw new AppError("UNAUTHENTICATED", "Kode akses pesanan diperlukan", 401);
     }
 
     await cancelOrderByCustomer(code, token);

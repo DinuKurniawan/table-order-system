@@ -71,7 +71,7 @@ export function authorizeRole(
 ): SafeUser {
   if (!user) {
     throw new AuthError(
-      "UNAUTHORIZED",
+      "UNAUTHENTICATED",
       "Sesi Anda tidak valid atau telah berakhir. Silakan login kembali."
     );
   }

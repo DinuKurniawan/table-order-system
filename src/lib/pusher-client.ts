@@ -8,16 +8,10 @@
 import { useEffect, useRef, useState } from "react";
 import Pusher from "pusher-js";
 import { useQueryClient } from "@tanstack/react-query";
+import { REALTIME_EVENTS } from "@/lib/realtime-events";
+import type { RealTimeEvent } from "@/lib/realtime-events";
 
-export type RealTimeEvent =
-  | "order.created"
-  | "payment.uploaded"
-  | "order.status_changed"
-  | "stock.changed"
-  | "stock.low"
-  | "transaction.created"
-  | "kpi.updated"
-  | "user.deactivated";
+export type { RealTimeEvent };
 
 type ConnectionStatus = "connected" | "connecting" | "unavailable";
 
@@ -117,7 +111,7 @@ export function useRealtimeEvent(
     const channel = retainChannel(client, channelName);
     const listener = (payload: unknown) => {
       handlerRef.current(payload);
-      if (event === "user.deactivated") {
+      if (event === REALTIME_EVENTS.userDeactivated) {
         deactivatedRef.current?.();
       }
     };

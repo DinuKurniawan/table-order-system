@@ -1,3 +1,4 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
@@ -201,8 +202,8 @@ export async function updateCashier(
     if (deactivated) {
       after(() => {
         const payload = { userId: cashier.id, username: cashier.username };
-        emitToChannel(`private-user-${cashier.id}`, "user.deactivated", payload);
-        emitToChannel("private-admin", "user.deactivated", payload);
+        emitToChannel(CHANNELS.user(cashier.id), REALTIME_EVENTS.userDeactivated, payload);
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
       });
     }
 
@@ -239,8 +240,8 @@ export async function resetCashierPassword(
 
     after(() => {
       const payload = { userId: id, username: current.username };
-      emitToChannel(`private-user-${id}`, "user.deactivated", payload);
-      emitToChannel("private-admin", "user.deactivated", payload);
+      emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
     });
   });
 }
@@ -282,8 +283,8 @@ export async function deleteCashier(
 
       after(() => {
         const payload = { userId: id, username: cashier.username };
-        emitToChannel(`private-user-${id}`, "user.deactivated", payload);
-        emitToChannel("private-admin", "user.deactivated", payload);
+        emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
       });
     });
 
@@ -304,8 +305,8 @@ export async function deleteCashier(
 
     after(() => {
       const payload = { userId: id, username: cashier.username };
-      emitToChannel(`private-user-${id}`, "user.deactivated", payload);
-      emitToChannel("private-admin", "user.deactivated", payload);
+      emitToChannel(CHANNELS.user(id), REALTIME_EVENTS.userDeactivated, payload);
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, payload);
     });
   });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -25,7 +26,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json as T;
 }
 

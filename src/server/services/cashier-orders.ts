@@ -1,3 +1,4 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -9,15 +10,12 @@ import {
   emitStockChanges,
 } from "@/server/services/orders";
 import { releaseStock } from "@/server/services/stock";
-
-const PROCESSING: OrderStatus[] = ["ACCEPTED", "PREPARING"];
-const HISTORY: OrderStatus[] = ["COMPLETED", "PAYMENT_REJECTED", "CANCELLED"];
-
-const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
-  ACCEPTED: "PREPARING",
-  PREPARING: "READY",
-  READY: "COMPLETED",
-};
+import {
+  HISTORY_STATUSES,
+  PROCESSING_STATUSES,
+  canAdvance,
+  isProgressStatus,
+} from "@/server/domain/order-state";
 
 export interface CashierOrderListItem {
   id: string;
@@ -116,7 +114,7 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       select: listSelect,
     }),
     prisma.order.findMany({
-      where: { status: { in: PROCESSING } },
+      where: { status: { in: PROCESSING_STATUSES } },
       orderBy: { updatedAt: "asc" },
       select: listSelect,
     }),
@@ -126,12 +124,12 @@ export async function listCashierOrders(): Promise<CashierQueue> {
       select: listSelect,
     }),
     prisma.order.findMany({
-      where: { status: { in: HISTORY } },
+      where: { status: { in: HISTORY_STATUSES } },
       orderBy: { updatedAt: "desc" },
       take: 50,
       select: listSelect,
     }),
-    prisma.order.count({ where: { status: { in: HISTORY } } }),
+    prisma.order.count({ where: { status: { in: HISTORY_STATUSES } } }),
   ]);
 
   return {
@@ -246,7 +244,7 @@ export async function approvePayment(
     }
     if (order.status !== "AWAITING_VERIFICATION") {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -271,7 +269,7 @@ export async function approvePayment(
 
     if (updated.count === 0) {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -315,15 +313,15 @@ export async function approvePayment(
 
     after(() => {
       emitOrderStatus(order.code, "ACCEPTED", order.version + 1);
-      emitToChannel("private-cashier", "transaction.created", {
+      emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.transactionCreated, {
         orderCode: order.code,
         amount: order.total,
       });
-      emitToChannel("private-admin", "transaction.created", {
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.transactionCreated, {
         orderCode: order.code,
         amount: order.total,
       });
-      emitToChannel("private-admin", "kpi.updated", {
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, {
         orderCode: order.code,
         amount: order.total,
       });
@@ -357,10 +355,10 @@ export async function rejectPayment(
 ): Promise<RejectResult> {
   const cleanReason = reason.trim();
   if (!cleanReason) {
-    throw new AppError("BAD_REQUEST", "Alasan penolakan wajib diisi", 400);
+    throw new AppError("VALIDATION_ERROR", "Alasan penolakan wajib diisi", 400);
   }
   if (cleanReason.length > 500) {
-    throw new AppError("BAD_REQUEST", "Alasan penolakan maksimal 500 karakter", 400);
+    throw new AppError("VALIDATION_ERROR", "Alasan penolakan maksimal 500 karakter", 400);
   }
 
   const settings = await getSettings();
@@ -379,7 +377,7 @@ export async function rejectPayment(
     }
     if (order.status !== "AWAITING_VERIFICATION") {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -409,7 +407,7 @@ export async function rejectPayment(
 
     if (updated.count === 0) {
       throw new AppError(
-        "CONFLICT",
+        "ALREADY_PROCESSED",
         "Pesanan sudah diproses kasir lain",
         409
       );
@@ -457,11 +455,7 @@ export async function rejectPayment(
   return result;
 }
 
-export type ProgressStatus = "PREPARING" | "READY" | "COMPLETED";
-
-function isProgressStatus(value: string): value is ProgressStatus {
-  return value === "PREPARING" || value === "READY" || value === "COMPLETED";
-}
+export type { ProgressStatus } from "@/server/domain/order-state";
 
 export async function advanceOrderStatus(
   orderId: string,
@@ -469,7 +463,7 @@ export async function advanceOrderStatus(
   next: string
 ): Promise<{ code: string; status: OrderStatus; version: number }> {
   if (!isProgressStatus(next)) {
-    throw new AppError("BAD_REQUEST", "Status tujuan tidak valid", 400);
+    throw new AppError("VALIDATION_ERROR", "Status tujuan tidak valid", 400);
   }
 
   const order = await prisma.order.findUnique({
@@ -481,9 +475,9 @@ export async function advanceOrderStatus(
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
   }
 
-  if (NEXT_STATUS[order.status] !== next) {
+  if (!canAdvance(order.status, next)) {
     throw new AppError(
-      "CONFLICT",
+      "INVALID_TRANSITION",
       `Tidak dapat mengubah status dari ${order.status} ke ${next}`,
       409
     );

@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { processAndStore } from "@/server/services/upload";
 import { ImagePresetKey } from "@/lib/image";
 import { logger } from "@/lib/logger";
+import { handleApiError } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("BAD_REQUEST", "Ukuran unggahan terlalu besar", 413);
+      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
     }
 
     // 2. Baca multipart/form-data
@@ -33,20 +34,20 @@ export async function POST(req: NextRequest) {
     const presetParam = formData.get("preset");
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json(
-        { error: "Berkas gambar ('file') wajib dilampirkan" },
-        { status: 400 }
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Berkas gambar ('file') wajib dilampirkan",
+        400
       );
     }
 
     const preset = (presetParam as ImagePresetKey) || "product";
 
     if (!ALLOWED_ADMIN_PRESETS.includes(preset)) {
-      return NextResponse.json(
-        {
-          error: `Preset tidak valid. Preset yang diizinkan: ${ALLOWED_ADMIN_PRESETS.join(", ")}`,
-        },
-        { status: 400 }
+      throw new AppError(
+        "VALIDATION_ERROR",
+        `Preset tidak valid. Preset yang diizinkan: ${ALLOWED_ADMIN_PRESETS.join(", ")}`,
+        400
       );
     }
 
@@ -67,17 +68,9 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (err) {
-    if (err instanceof AppError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: err.status }
-      );
+    if (!(err instanceof AppError)) {
+      logger.error("API Upload Image Error", err);
     }
-
-    logger.error("API Upload Image Error", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan pada server saat memproses gambar" },
-      { status: 500 }
-    );
+    return handleApiError(err);
   }
 }

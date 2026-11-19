@@ -1,3 +1,4 @@
+import { CHANNELS } from "@/lib/realtime-events";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Pusher from "pusher";
@@ -5,6 +6,7 @@ import { Role } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/db";
 import { authenticateRequest } from "@/lib/auth";
+import { apiErrorResponse } from "@/lib/api";
 import { orderAccessCookieName, timingSafeEqualString } from "@/lib/order-access";
 import { logger } from "@/lib/logger";
 
@@ -28,7 +30,7 @@ async function readAuthBody(req: NextRequest): Promise<AuthBody> {
 
 function forbidden(): NextResponse {
   // Pesan generik: jangan bocorkan alasan penolakan (audit T-04).
-  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  return apiErrorResponse("FORBIDDEN", "Forbidden", 403);
 }
 
 /**
@@ -47,9 +49,10 @@ export async function POST(req: NextRequest) {
       channelName.length > 200 ||
       !/^[A-Za-z0-9_.:-]+$/.test(channelName)
     ) {
-      return NextResponse.json(
-        { error: "socket_id dan channel_name tidak valid" },
-        { status: 400 }
+      return apiErrorResponse(
+        "VALIDATION_ERROR",
+        "socket_id dan channel_name tidak valid",
+        400
       );
     }
 
@@ -57,16 +60,16 @@ export async function POST(req: NextRequest) {
 
     let allowed = false;
 
-    if (channelName === "private-cashier") {
+    if (channelName === CHANNELS.cashier) {
       allowed =
         user?.role === Role.SUPER_ADMIN || user?.role === Role.CASHIER;
-    } else if (channelName === "private-admin") {
+    } else if (channelName === CHANNELS.admin) {
       allowed = user?.role === Role.SUPER_ADMIN;
-    } else if (channelName.startsWith("private-user-")) {
-      const userId = channelName.slice("private-user-".length);
+    } else if (channelName.startsWith(CHANNELS.userPrefix)) {
+      const userId = channelName.slice(CHANNELS.userPrefix.length);
       allowed = Boolean(user && user.id === userId);
-    } else if (channelName.startsWith("private-order-")) {
-      const code = channelName.slice("private-order-".length);
+    } else if (channelName.startsWith(CHANNELS.orderPrefix)) {
+      const code = channelName.slice(CHANNELS.orderPrefix.length);
       const token = req.cookies.get(orderAccessCookieName(code))?.value;
 
       if (token) {
@@ -78,8 +81,8 @@ export async function POST(req: NextRequest) {
           order && timingSafeEqualString(token, order.accessToken)
         );
       }
-    } else if (channelName.startsWith("private-table-")) {
-      const token = channelName.slice("private-table-".length);
+    } else if (channelName.startsWith(CHANNELS.tablePrefix)) {
+      const token = channelName.slice(CHANNELS.tablePrefix.length);
       const table = await prisma.table.findUnique({
         where: { token },
         select: { isActive: true },
@@ -102,9 +105,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(pusher.authorizeChannel(socketId, channelName));
   } catch (err) {
     logger.error("Pusher auth error", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return apiErrorResponse("INTERNAL", "Internal server error", 500);
   }
 }

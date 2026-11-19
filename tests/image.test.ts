@@ -63,7 +63,7 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
       (err: Error) => {
         return (
           err instanceof AppError &&
-          err.code === "BAD_REQUEST" &&
+          err.code === "VALIDATION_ERROR" &&
           err.message.includes("Format berkas tidak didukung")
         );
       },
@@ -80,7 +80,7 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
       (err: Error) => {
         return (
           err instanceof AppError &&
-          err.code === "BAD_REQUEST" &&
+          err.code === "VALIDATION_ERROR" &&
           err.message.includes("Format berkas tidak didukung")
         );
       },
@@ -108,7 +108,7 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
       (err: Error) => {
         return (
           err instanceof AppError &&
-          err.code === "BAD_REQUEST" &&
+          err.code === "VALIDATION_ERROR" &&
           err.message.includes("melebihi batas maksimal 4096x4096px")
         );
       },

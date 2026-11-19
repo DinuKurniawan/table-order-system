@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRealtimeEvent, RealTimeEvent } from "@/lib/pusher-client";
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { emitToChannel } from "@/lib/pusher-server";
 import { SectionCard } from "@/components/admin/section-card";
 
@@ -18,13 +19,13 @@ export default function RealTimeTestPage() {
   const queryClient = useQueryClient();
 
   // Hook level atas (aturan hooks): berlangganan event user.deactivated.
-  useRealtimeEvent("private-admin", "user.deactivated", (payload) => {
+  useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.userDeactivated, (payload) => {
     const timestamp = new Date().toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
     });
     setLogs((prev) => [
-      { event: "user.deactivated", payload, timestamp },
+      { event: REALTIME_EVENTS.userDeactivated, payload, timestamp },
       ...prev.slice(0, 49),
     ]);
     queryClient.invalidateQueries({ queryKey: ["settings"] });
@@ -35,7 +36,7 @@ export default function RealTimeTestPage() {
   // Kirim event uji
   // ============================================================
   const sendTestEvent = (event: RealTimeEvent) => {
-    emitToChannel("private-admin", event, {
+    emitToChannel(CHANNELS.admin, event, {
       test: true,
       timestamp: new Date().toISOString(),
     });

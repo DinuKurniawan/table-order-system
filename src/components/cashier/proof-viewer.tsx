@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import {
   Maximize2,
@@ -30,7 +31,7 @@ export function ProofViewer({
     })
       .then(async (res) => {
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Gagal memuat bukti");
+        if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal memuat bukti"));
         if (!cancelled) setUrl(json.data.url);
       })
       .catch((err) => {

@@ -1,5 +1,7 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { getPusherClient, useRealtimeEvent } from "@/lib/pusher-client";
@@ -12,7 +14,7 @@ export function CashierSessionGuard({ userId }: { userId: string }) {
   const router = useRouter();
   const ended = React.useRef(false);
 
-  useRealtimeEvent(`private-user-${userId}`, "user.deactivated", () => {
+  useRealtimeEvent(CHANNELS.user(userId), REALTIME_EVENTS.userDeactivated, () => {
     if (ended.current) return;
     ended.current = true;
 

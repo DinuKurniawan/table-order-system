@@ -108,8 +108,8 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
     assert.equal(rejected.length, 1, "Permintaan kedua harus ditolak");
     assert.ok(
       rejected[0].reason instanceof AppError &&
-        rejected[0].reason.code === "CONFLICT",
-      "Permintaan kedua harus CONFLICT"
+        rejected[0].reason.code === "ALREADY_PROCESSED",
+      "Permintaan kedua harus ALREADY_PROCESSED"
     );
 
     const payments = await prisma.payment.findMany({ where: { orderId: order.id } });
@@ -134,7 +134,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => rejectPayment(order.id, cashier.id, "   "),
-      (err: unknown) => err instanceof AppError && err.code === "BAD_REQUEST"
+      (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
     );
 
     const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
@@ -168,7 +168,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => advanceOrderStatus(order.id, cashier.id, "READY"),
-      (err: unknown) => err instanceof AppError && err.code === "CONFLICT"
+      (err: unknown) => err instanceof AppError && err.code === "INVALID_TRANSITION"
     );
 
     const preparing = await advanceOrderStatus(order.id, cashier.id, "PREPARING");
@@ -176,7 +176,7 @@ test("Kasir: approve bersamaan, alasan wajib, state machine", async (t) => {
 
     await assert.rejects(
       () => advanceOrderStatus(order.id, cashier.id, "COMPLETED"),
-      (err: unknown) => err instanceof AppError && err.code === "CONFLICT"
+      (err: unknown) => err instanceof AppError && err.code === "INVALID_TRANSITION"
     );
 
     const ready = await advanceOrderStatus(order.id, cashier.id, "READY");

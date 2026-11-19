@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/session";
 import { logger } from "@/lib/logger";
+import { apiErrorResponse } from "@/lib/api";
 
 export async function POST() {
   try {
@@ -14,9 +15,6 @@ export async function POST() {
     return response;
   } catch (err) {
     logger.error("Logout API error", err);
-    return NextResponse.json(
-      { error: "Gagal memproses logout" },
-      { status: 500 }
-    );
+    return apiErrorResponse("INTERNAL", "Gagal memproses logout", 500);
   }
 }

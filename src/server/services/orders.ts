@@ -1,3 +1,4 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -7,6 +8,7 @@ import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { timingSafeEqualString } from "@/lib/order-access";
 import { getSettings } from "@/server/services/settings";
+import { CANCELLABLE_BY_CUSTOMER } from "@/server/domain/order-state";
 import { releaseStock, type StockChange } from "@/server/services/stock";
 import {
   listPaymentMethods,
@@ -14,7 +16,7 @@ import {
 } from "@/server/services/payment-methods";
 import { processAndStore } from "@/server/services/upload";
 
-const CANCELLABLE: OrderStatus[] = ["AWAITING_PAYMENT", "PAYMENT_REJECTED"];
+
 
 export interface CustomerPaymentDTO {
   attempt: number;
@@ -98,9 +100,9 @@ export async function getCustomerOrder(
   const attemptsUsed = latest?.attempt ?? 0;
   const isExpired =
     order.expiresAt.getTime() <= Date.now() &&
-    CANCELLABLE.includes(order.status);
+    CANCELLABLE_BY_CUSTOMER.includes(order.status);
   const canUpload =
-    CANCELLABLE.includes(order.status) &&
+    CANCELLABLE_BY_CUSTOMER.includes(order.status) &&
     !isExpired &&
     attemptsUsed < maxAttempts;
 
@@ -142,9 +144,9 @@ export async function getCustomerOrder(
 
 export function emitOrderStatus(code: string, status: OrderStatus, version: number): void {
   const payload = { orderCode: code, status, version };
-  emitToChannel(`private-order-${code}`, "order.status_changed", payload);
-  emitToChannel("private-cashier", "order.status_changed", payload);
-  emitToChannel("private-admin", "order.status_changed", payload);
+  emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.orderStatusChanged, payload);
+  emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.orderStatusChanged, payload);
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.orderStatusChanged, payload);
 }
 
 export function emitStockChanges(
@@ -153,7 +155,7 @@ export function emitStockChanges(
   changes: StockChange[]
 ): void {
   for (const change of changes) {
-    emitToChannel(`private-table-${tableToken}`, "stock.changed", {
+    emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
       ...change,
       orderCode,
     });
@@ -180,7 +182,7 @@ export async function submitPaymentProof(
   const settings = await getSettings();
   const maxAttempts = settings.maksUploadUlang;
 
-  if (!CANCELLABLE.includes(order.status)) {
+  if (!CANCELLABLE_BY_CUSTOMER.includes(order.status)) {
     throw new AppError(
       "CONFLICT",
       "Bukti pembayaran tidak dapat diunggah pada status pesanan ini",
@@ -191,7 +193,7 @@ export async function submitPaymentProof(
   if (order.expiresAt.getTime() <= Date.now()) {
     await expireOrders();
     throw new AppError(
-      "CONFLICT",
+      "ORDER_EXPIRED",
       "Waktu pembayaran telah habis. Pesanan dibatalkan.",
       409
     );
@@ -222,7 +224,7 @@ export async function submitPaymentProof(
       if (!current) {
         throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
       }
-      if (!CANCELLABLE.includes(current.status)) {
+      if (!CANCELLABLE_BY_CUSTOMER.includes(current.status)) {
         throw new AppError("CONFLICT", "Status pesanan sudah berubah", 409);
       }
 
@@ -236,7 +238,7 @@ export async function submitPaymentProof(
       }
 
       const updated = await tx.order.updateMany({
-        where: { id: current.id, version: current.version, status: { in: CANCELLABLE } },
+        where: { id: current.id, version: current.version, status: { in: CANCELLABLE_BY_CUSTOMER } },
         data: { status: "AWAITING_VERIFICATION", version: { increment: 1 } },
       });
 
@@ -267,21 +269,21 @@ export async function submitPaymentProof(
       });
 
       after(() => {
-        emitToChannel("private-cashier", "payment.uploaded", {
+        emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.paymentUploaded, {
           orderCode: code,
           orderId: current.id,
           paymentId: payment.id,
           attempt,
           tableName: order.table.name,
         });
-        emitToChannel("private-admin", "payment.uploaded", {
+        emitToChannel(CHANNELS.admin, REALTIME_EVENTS.paymentUploaded, {
           orderCode: code,
           orderId: current.id,
           paymentId: payment.id,
           attempt,
           tableName: order.table.name,
         });
-        emitToChannel(`private-order-${code}`, "payment.uploaded", {
+        emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.paymentUploaded, {
           orderCode: code,
           attempt,
         });
@@ -366,7 +368,7 @@ export async function expireOrders(
   now: Date = new Date()
 ): Promise<{ cancelled: number }> {
   const candidates = await prisma.order.findMany({
-    where: { status: { in: CANCELLABLE }, expiresAt: { lte: now } },
+    where: { status: { in: CANCELLABLE_BY_CUSTOMER }, expiresAt: { lte: now } },
     select: {
       id: true,
       code: true,
@@ -382,7 +384,7 @@ export async function expireOrders(
       const updated = await tx.order.updateMany({
         where: {
           id: order.id,
-          status: { in: CANCELLABLE },
+          status: { in: CANCELLABLE_BY_CUSTOMER },
           expiresAt: { lte: now },
           version: order.version,
         },

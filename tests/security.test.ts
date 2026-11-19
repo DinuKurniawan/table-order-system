@@ -187,7 +187,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
         () => validateImage(php),
         (err: unknown) =>
           err instanceof AppError &&
-          err.code === "BAD_REQUEST" &&
+          err.code === "VALIDATION_ERROR" &&
           err.status === 400
       );
 
@@ -200,7 +200,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       const { submitPaymentProof } = await import("../src/server/services/orders");
       await assert.rejects(
         () => submitPaymentProof(order.code, order.accessToken, php),
-        (err: unknown) => err instanceof AppError && err.code === "BAD_REQUEST"
+        (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
       );
 
       const payments = await prisma.payment.count({
@@ -258,7 +258,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       assert.throws(
         () => authorizeRole(null, [Role.SUPER_ADMIN]),
         (err: unknown) =>
-          err instanceof AppError && err.code === "UNAUTHORIZED" && err.status === 401
+          err instanceof AppError && err.code === "UNAUTHENTICATED" && err.status === 401
       );
     });
 
@@ -272,7 +272,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
           { headers: { "x-forwarded-for": testIp } }
         )
       );
-      assert.equal(fake.status, 400, "Token meja palsu harus 400");
+      assert.equal(fake.status, 404, "Token meja palsu harus 404");
 
       const ok = await GET(
         new NextRequest(

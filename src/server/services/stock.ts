@@ -1,3 +1,4 @@
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { Prisma, StockMoveType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -114,16 +115,16 @@ function broadcastStock(params: {
     lowStockThreshold: params.lowStockThreshold,
   };
 
-  emitToChannel("private-admin", "stock.changed", payload);
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockChanged, payload);
   for (const token of params.tableTokens) {
-    emitToChannel(`private-table-${token}`, "stock.changed", payload);
+    emitToChannel(CHANNELS.table(token), REALTIME_EVENTS.stockChanged, payload);
   }
 
   if (params.low) {
-    emitToChannel("private-admin", "stock.low", payload);
+    emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, payload);
   }
 
-  emitToChannel("private-admin", "kpi.updated", { source: "stock" });
+  emitToChannel(CHANNELS.admin, REALTIME_EVENTS.kpiUpdated, { source: "stock" });
 }
 
 export interface AdjustStockResult {
@@ -163,7 +164,7 @@ export async function reserveStock(
 
   if (rows.length === 0) {
     throw new AppError(
-      "CONFLICT",
+      "STOCK_INSUFFICIENT",
       `Stok tidak cukup untuk produk ${item.name}`,
       409
     );
@@ -252,14 +253,14 @@ export async function adjustStock(
   }
   if (!product.trackStock) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       "Produk ini tidak melacak stok. Aktifkan pelacakan terlebih dahulu.",
       400
     );
   }
   if (product.stock + delta < 0) {
     throw new AppError(
-      "BAD_REQUEST",
+      "VALIDATION_ERROR",
       `Stok tidak mencukupi. Sisa stok ${product.stock}.`,
       400
     );

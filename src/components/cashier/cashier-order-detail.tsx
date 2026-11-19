@@ -1,5 +1,8 @@
 "use client";
 
+import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+
+import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -70,7 +73,7 @@ const REJECT_PRESETS = [
 async function fetchDetail(id: string): Promise<OrderDetail> {
   const res = await fetch(`/api/cashier/orders/${id}`, { cache: "no-store" });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? "Gagal memuat pesanan");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal memuat pesanan"));
   return json.data as OrderDetail;
 }
 
@@ -81,7 +84,7 @@ async function postJson(url: string, body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Permintaan gagal");
+  if (!res.ok) throw new Error(apiErrorMessage(json, "Permintaan gagal"));
   return json.data;
 }
 
@@ -108,8 +111,8 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
     queryClient.invalidateQueries({ queryKey: ["cashier-orders"] });
   }, [queryClient, initial.id]);
 
-  useRealtimeEvent("private-cashier", "order.status_changed", refresh);
-  useRealtimeEvent("private-cashier", "payment.uploaded", refresh);
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.orderStatusChanged, refresh);
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.paymentUploaded, refresh);
 
   const run = async (key: string, fn: () => Promise<unknown>, done: string) => {
     setPending(key);

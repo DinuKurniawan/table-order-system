@@ -108,7 +108,7 @@ export async function updateSettings(
   );
 
   if (entries.length === 0) {
-    throw new AppError("BAD_REQUEST", "Tidak ada perubahan pengaturan", 400);
+    throw new AppError("VALIDATION_ERROR", "Tidak ada perubahan pengaturan", 400);
   }
 
   const current = await getSettings();

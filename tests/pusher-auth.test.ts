@@ -147,8 +147,11 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
       authRequest("private-cashier", { session_token: inactiveToken })
     );
     assert.equal(response.status, 403);
-    const body = (await response.json()) as { error: string };
-    assert.equal(body.error, "Forbidden");
+    const body = (await response.json()) as {
+      error: { code: string; message: string };
+    };
+    assert.equal(body.error.code, "FORBIDDEN");
+    assert.equal(body.error.message, "Forbidden");
   });
 
   await t.test("tokenVersion lama ditolak 403", async () => {

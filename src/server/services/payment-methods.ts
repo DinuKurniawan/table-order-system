@@ -175,7 +175,7 @@ export async function reorderPaymentMethods(
   const known = new Set(methods.map((method) => method.id));
 
   if (ids.some((id) => !known.has(id))) {
-    throw new AppError("BAD_REQUEST", "Terdapat id metode pembayaran yang tidak dikenal", 400);
+    throw new AppError("VALIDATION_ERROR", "Terdapat id metode pembayaran yang tidak dikenal", 400);
   }
 
   await runInTransaction(async (tx) => {
