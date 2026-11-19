@@ -233,10 +233,6 @@ export async function updateProduct(
     await assertCategoryExists(data.categoryId);
   }
 
-  const nextTrackStock = data.trackStock ?? current.trackStock;
-  const nextStock = data.stock ?? current.stock;
-  const stockChanged = data.stock !== undefined && data.stock !== current.stock;
-
   const updated = await prisma.$transaction(async (tx) => {
     const product = await tx.product.update({
       where: { id },
@@ -249,26 +245,12 @@ export async function updateProduct(
         ...(data.thumbKey !== undefined ? { thumbKey: data.thumbKey ?? null } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         ...(data.trackStock !== undefined ? { trackStock: data.trackStock } : {}),
-        stock: nextTrackStock ? nextStock : 0,
         ...(data.lowStockThreshold !== undefined
           ? { lowStockThreshold: data.lowStockThreshold }
           : {}),
       },
       include: { category: true },
     });
-
-    if (stockChanged && product.trackStock) {
-      await tx.stockMovement.create({
-        data: {
-          productId: product.id,
-          type: StockMoveType.ADJUSTMENT,
-          quantity: product.stock - current.stock,
-          balance: product.stock,
-          note: "Penyesuaian stok dari form edit produk",
-          userId,
-        },
-      });
-    }
 
     await tx.auditLog.create({
       data: {
