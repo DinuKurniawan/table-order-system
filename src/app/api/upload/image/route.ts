@@ -3,6 +3,10 @@ import { requireRole } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { processAndStore } from "@/server/services/upload";
 import { ImagePresetKey } from "@/lib/image";
+import { logger } from "@/lib/logger";
+import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
+
+const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 const ALLOWED_ADMIN_PRESETS: ImagePresetKey[] = [
   "product",
@@ -13,7 +17,15 @@ const ALLOWED_ADMIN_PRESETS: ImagePresetKey[] = [
 export async function POST(req: NextRequest) {
   try {
     // 1. Otorisasi: hanya Super Admin yang diizinkan mengunggah via rute ini
-    await requireRole(["SUPER_ADMIN"]);
+    const user = await requireRole(["SUPER_ADMIN"]);
+
+    const limiter = await consumeRateLimit(`upload:${user.id}`, 30, 60);
+    if (limiter.limited) return tooManyRequests(limiter);
+
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+      throw new AppError("BAD_REQUEST", "Ukuran unggahan terlalu besar", 413);
+    }
 
     // 2. Baca multipart/form-data
     const formData = await req.formData();
@@ -62,7 +74,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error("API Upload Image Error:", err);
+    logger.error("API Upload Image Error", err);
     return NextResponse.json(
       { error: "Terjadi kesalahan pada server saat memproses gambar" },
       { status: 500 }

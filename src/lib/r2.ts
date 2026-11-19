@@ -17,6 +17,8 @@ function getR2Endpoint(): string {
 export const r2Client = new S3Client({
   region: "auto",
   endpoint: getR2Endpoint(),
+  // MinIO/CI memakai path-style; R2 produksi tetap virtual-hosted.
+  forcePathStyle: process.env.R2_FORCE_PATH_STYLE === "true",
   credentials: {
     accessKeyId: env.R2_ACCESS_KEY_ID,
     secretAccessKey: env.R2_SECRET_ACCESS_KEY,

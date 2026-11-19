@@ -17,6 +17,7 @@ let pusherInstance: Pusher | null = null;
  * Gunakan .env: PUSHER_APP_ID, PUSHER_KEY, PUSHER_SECRET, PUSHER_CLUSTER.
  */
 export function getPusher(): Pusher | null {
+  if (process.env.DISABLE_REALTIME === "true") return null;
   if (!pusherInstance) {
     const appId = process.env.PUSHER_APP_ID;
     const key = process.env.PUSHER_KEY;

@@ -1,43 +1,33 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import { consumeRateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limiter";
+import { getPublicMenu } from "@/server/services/menu";
 
 export async function GET(request: Request) {
   try {
+    const ipLimit = await consumeRateLimit(`menu:${getClientIp(request)}`, 120, 60);
+    if (ipLimit.limited) return tooManyRequests(ipLimit);
+
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") || "";
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
 
-    let where: any = { deletedAt: null };
-
-    // Filter by search query
-    if (search) {
-      where.name = { contains: search, mode: "insensitive" };
+    // Token meja palsu/nonaktif tidak boleh membuka katalog.
+    if (!token) {
+      return NextResponse.json(
+        { error: "Meja tidak aktif atau tidak ditemukan" },
+        { status: 400 }
+      );
     }
 
-    // Filter by category
-    if (category) {
-      if (category === "makanan") {
-        where.category = { type: "FOOD" };
-      } else if (category === "kopi") {
-        where.category = { type: "DRINK", subtype: "COFFEE" };
-      } else if (category === "non-kopi") {
-        where.category = { type: "DRINK", subtype: "NON_COFFEE" };
-      }
-    }
-
-    const products = await prisma.product.findMany({
-      where,
-      include: { category: true },
-      orderBy: { name: "asc" },
-    });
-
+    const products = await getPublicMenu({ token, search, category });
     return NextResponse.json({ products });
   } catch (err) {
-    console.error("Error fetching public menu:", err);
-    return NextResponse.json(
-      { error: "Gagal memuat menu" },
-      { status: 500 }
-    );
+    if (err instanceof Error && /Meja tidak aktif/.test(err.message)) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    logger.error("Error fetching public menu", err);
+    return NextResponse.json({ error: "Gagal memuat menu" }, { status: 500 });
   }
 }

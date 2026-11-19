@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/session";
+import { logger } from "@/lib/logger";
 
 export async function POST() {
   try {
@@ -12,7 +13,7 @@ export async function POST() {
 
     return response;
   } catch (err) {
-    console.error("Logout API error:", err);
+    logger.error("Logout API error", err);
     return NextResponse.json(
       { error: "Gagal memproses logout" },
       { status: 500 }

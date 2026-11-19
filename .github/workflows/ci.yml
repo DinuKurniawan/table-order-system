@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coffeeshop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        command: server /data
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/coffeeshop?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/coffeeshop?schema=public
+      APP_BASE_URL: http://localhost:3000
+      SESSION_SECRET: ci-session-secret-at-least-32-characters-long
+      CRON_SECRET: ci-cron-secret
+      R2_ACCOUNT_ID: http://localhost:9000
+      R2_ACCESS_KEY_ID: minioadmin
+      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_BUCKET_PUBLIC: coffeeshop-public
+      R2_BUCKET_PRIVATE: coffeeshop-private
+      R2_PUBLIC_BASE_URL: http://localhost:9000/coffeeshop-public
+      R2_FORCE_PATH_STYLE: "true"
+      PUSHER_APP_ID: ci-disabled
+      PUSHER_KEY: ci-disabled
+      PUSHER_SECRET: ci-disabled
+      PUSHER_CLUSTER: ap1
+      NEXT_PUBLIC_PUSHER_KEY: ci-disabled
+      NEXT_PUBLIC_PUSHER_CLUSTER: ap1
+      DISABLE_REALTIME: "true"
+      CI: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx prisma generate
+      - run: npm run db:seed
+      - run: node scripts/init-buckets.mjs
+
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run test:unit
+      - run: npm run build
+
+      - name: E2E (Playwright)
+        run: npx playwright test
+
+      - name: Lighthouse menu (mobile)
+        run: |
+          npm start &
+          for i in {1..60}; do
+            curl -sf http://localhost:3000/login > /dev/null && break
+            sleep 1
+          done
+          npm run lighthouse:menu
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            test-results/
+            playwright-report/
+            lighthouse-menu.json
+            lighthouse.log
+          if-no-files-found: ignore

@@ -1,216 +1,339 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { formatWIB, relativeTime } from "@/lib/utils";
+import { AppError } from "@/lib/errors";
+import { handleApiError, readJson } from "@/lib/api";
+import { logger } from "@/lib/logger";
+import {
+  consumeRateLimit,
+  getClientIp,
+  tooManyRequests,
+} from "@/lib/rate-limiter";
 import { emitToChannel } from "@/lib/pusher-server";
 import { afterCommit } from "@/lib/after-commit";
+import { getSettings } from "@/server/services/settings";
 import crypto from "crypto";
 
-// Rate limit sederhana per IP (melacak melalui req.ip)
-function checkRateLimit(ip: string): boolean {
-  // Implementasi sederhana: izinkan untuk sekarang
-  // Di production, gunakan redis atau rate limiter middleware
-  return true;
+const MAX_BODY_BYTES = 64 * 1024;
+
+const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(16, "Idempotency-Key minimal 16 karakter")
+  .max(120, "Idempotency-Key maksimal 120 karakter")
+  .regex(/^[A-Za-z0-9_-]+$/, "Idempotency-Key mengandung karakter tidak valid");
+
+const orderSchema = z
+  .object({
+    tableToken: z.string().trim().min(8, "Token meja tidak valid").max(120),
+    customerName: z.string().trim().max(80, "Nama maksimal 80 karakter").optional(),
+    note: z.string().trim().max(300, "Catatan maksimal 300 karakter").optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string().trim().min(1).max(64),
+          quantity: z
+            .number({ error: "Jumlah wajib berupa angka" })
+            .int("Jumlah harus bilangan bulat")
+            .min(1, "Minimal 1")
+            .max(100, "Maksimal 100 per item"),
+          note: z.string().trim().max(200, "Catatan item maksimal 200 karakter").optional(),
+        })
+      )
+      .min(1, "Pesanan minimal berisi 1 item")
+      .max(50, "Maksimal 50 item per pesanan"),
+  })
+  .superRefine((value, ctx) => {
+    const seen = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seen.has(item.productId)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["items", index, "productId"],
+          message: "Produk duplikat dalam satu pesanan",
+        });
+      }
+      seen.add(item.productId);
+    });
+  });
+
+interface CreatedOrder {
+  code: string;
+  accessToken: string;
 }
 
-const orderSchema = z.object({
-  tableToken: z.string().min(1, "Token meja wajib diisi"),
-  customerName: z.string().optional(),
-  note: z.string().optional(),
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      quantity: z.number().int().min(1, "Minimal 1"),
-      note: z.string().optional(),
-    })
-  ),
-});
+function orderResponse(order: CreatedOrder, status: number, maxAgeSeconds: number) {
+  const response = NextResponse.json(
+    { code: order.code, accessToken: order.accessToken },
+    { status }
+  );
+
+  response.cookies.set(`order_${order.code}`, order.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: maxAgeSeconds,
+  });
+
+  return response;
+}
 
 export async function POST(req: Request) {
+  let requestTableId: string | null = null;
   try {
-    const body = await req.json();
-    const validation = orderSchema.safeParse(body);
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+      throw new AppError("BAD_REQUEST", "Body request terlalu besar", 413);
+    }
 
+    const ip = getClientIp(req);
+    const ipLimit = await consumeRateLimit(`order:${ip}`, 20, 60);
+    if (ipLimit.limited) return tooManyRequests(ipLimit);
+
+    const keyCheck = idempotencyKeySchema.safeParse(
+      req.headers.get("idempotency-key") ?? ""
+    );
+    if (!keyCheck.success) {
+      return NextResponse.json(
+        {
+          error: keyCheck.error.issues[0]?.message ?? "Idempotency-Key tidak valid",
+          code: "BAD_REQUEST",
+        },
+        { status: 400 }
+      );
+    }
+    const idempotencyKey = keyCheck.data;
+
+    const body = await readJson(req);
+    const validation = orderSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Validasi gagal", details: validation.error.format() },
+        {
+          error: "Validasi gagal",
+          code: "BAD_REQUEST",
+          details: validation.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
     const { tableToken, customerName, note, items } = validation.data;
 
-    // 1. Validasi meja aktif & pemesanan tidak ditutup
-    const table = await prisma.table.findUnique({
-      where: { token: tableToken },
-    });
-
-    if (!table || !table.isActive) {
-      return NextResponse.json(
-        { error: "Meja tidak aktif atau tidak ditemukan" },
-        { status: 400 }
-      );
+    const settings = await getSettings();
+    if (!settings.isOrderingOpen) {
+      throw new AppError("CONFLICT", "Pemesanan sedang ditutup", 409);
     }
 
-    // 2. Cek bahwa semua produk ada dan dapat dihitung stok
-    // Ambil produk dari DB untuk harga dan stok aktual
+    const tableLimit = await consumeRateLimit(`order:table:${tableToken}`, 10, 60);
+    if (tableLimit.limited) return tooManyRequests(tableLimit);
+
+    // 1. Validasi meja aktif
+    const table = await prisma.table.findUnique({ where: { token: tableToken } });
+    if (!table || !table.isActive) {
+      throw new AppError("BAD_REQUEST", "Meja tidak aktif atau tidak ditemukan", 400);
+    }
+    requestTableId = table.id;
+
+    // 2. Idempotensi: kunci yang sama mengembalikan pesanan yang sama.
+    const existing = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      select: { code: true, accessToken: true, tableId: true },
+    });
+    if (existing) {
+      if (existing.tableId !== table.id) {
+        throw new AppError("CONFLICT", "Idempotency-Key sudah dipakai", 409);
+      }
+      return orderResponse(existing, 200, settings.timeoutBayarMenit * 60);
+    }
+
+    // 3. Ambil produk aktif dari DB; harga & stok tidak pernah dari client.
     const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: {
+        id: { in: productIds },
+        deletedAt: null,
+        isActive: true,
+      },
     });
+    const productMap = new Map(products.map((product) => [product.id, product]));
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    for (const item of items) {
+      const product = productMap.get(item.productId);
+      if (!product) {
+        throw new AppError(
+          "BAD_REQUEST",
+          "Salah satu produk tidak tersedia atau sudah tidak aktif",
+          400
+        );
+      }
+      if (product.trackStock && product.stock < item.quantity) {
+        throw new AppError(
+          "CONFLICT",
+          `Stok tidak cukup untuk produk ${product.name}`,
+          409
+        );
+      }
+    }
 
-    // 3. Hitung subtotal & total sebelum transaction
-    const subtotal = items.reduce((sum, it) => {
-      const product = productMap.get(it.productId);
-      return sum + (product?.price ?? 0) * it.quantity;
+    const subtotal = items.reduce((sum, item) => {
+      const product = productMap.get(item.productId);
+      return sum + (product?.price ?? 0) * item.quantity;
     }, 0);
-    const total = subtotal; // untung dikurangi dari stok, total = subtotal untuk kasus sederhana
+    const total = subtotal;
 
-    // 3. Validasi stok atomik: UPDATE ... WHERE stock >= qty
-    // Lakukan dalam satu transaction
     const now = new Date();
-    const timeoutMinutes = 15; // timeout bayar
+    const timeoutMinutes = settings.timeoutBayarMenit;
     const expiresAt = new Date(now.getTime() + timeoutMinutes * 60000);
 
-    // Generate order code ORD-YYMMDD-XXXX
     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
     const randomPart = crypto.randomBytes(2).toString("hex").toUpperCase();
     const orderCode = `ORD-${datePart}-${randomPart}`;
-
-    // Generate access token acak 16 karakter
-    const accessToken = crypto.randomBytes(8).toString("hex");
+    const accessToken = crypto.randomBytes(16).toString("hex");
 
     await prisma.$transaction(async (tx) => {
-      // Buat Order
       const order = await tx.order.create({
         data: {
           code: orderCode,
           accessToken,
+          idempotencyKey,
           tableId: table.id,
-          customerName,
-          note,
+          customerName: customerName || null,
+          note: note || null,
           status: "AWAITING_PAYMENT",
           expiresAt,
           version: 0,
           subtotal,
           total,
           items: {
-            create: items.map((it) => ({
-              productId: it.productId,
-              quantity: it.quantity,
-              note: it.note,
-              // Snapshot nama produk dari DB (diberantas client manipulation)
-              nameSnapshot: productMap.get(it.productId)?.name ?? "",
-              // Snapshot harga dari DB (diberantas client manipulation)
-              priceSnapshot: productMap.get(it.productId)?.price ?? 0,
+            create: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              note: item.note || null,
+              nameSnapshot: productMap.get(item.productId)?.name ?? "",
+              priceSnapshot: productMap.get(item.productId)?.price ?? 0,
             })),
           },
         },
       });
 
-      // Reservasi stok atomik dan buat StockMovement
       for (const item of items) {
         const product = productMap.get(item.productId);
-        if (!product) throw new Error(`Produk ${item.productId} tidak ditemukan`);
+        if (!product) {
+          throw new AppError("BAD_REQUEST", "Produk tidak ditemukan", 400);
+        }
 
-        // Update stok: hanya kurangi jika stock >= qty
-        const [updatedProduct] = (await tx.$queryRaw`
-          UPDATE product SET stock = stock - ${item.quantity}
+        // Reservasi stok atomik: hanya berkurang bila stok masih cukup.
+        const updated = await tx.$queryRaw<Array<{ stock: number }>>`
+          UPDATE "Product" SET stock = stock - ${item.quantity}
           WHERE id = ${item.productId} AND stock >= ${item.quantity}
-        `) as [any, ...any[]];
+          RETURNING stock
+        `;
 
-        if (updatedProduct.affectedRows === 0) {
-          throw new Error(
-            `Stok tidak cukup untuk produk ${item.productId}. Sisa stok: ${product?.stock}`
+        if (updated.length === 0) {
+          throw new AppError(
+            "CONFLICT",
+            `Stok tidak cukup untuk produk ${product.name}`,
+            409
           );
         }
 
-        // Buat StockMovement ORDER_RESERVE
+        const newStock = updated[0].stock;
+
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
             type: "ORDER_RESERVE",
             quantity: item.quantity,
-            balance: product?.stock - item.quantity, // stok setelah reserve
+            balance: newStock,
             note: `Pesanan order ${orderCode}`,
           },
         });
 
-        // Emit stock.changed ke channel private-table-{token}
         afterCommit(() => {
-          emitToChannel(
-            `private-table-${tableToken}`,
-            "stock.changed",
-            {
-              productId: item.productId,
-              newStock: product?.stock - item.quantity,
-              orderCode,
-            }
-          );
+          emitToChannel(`private-table-${tableToken}`, "stock.changed", {
+            productId: item.productId,
+            newStock,
+            orderCode,
+          });
         });
 
-        // Emit stock.low jika stok melewati threshold
-        if (product?.lowStockThreshold && product.stock - item.quantity <= product.lowStockThreshold) {
+        if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
           afterCommit(() => {
-            emitToChannel(
-              `private-admin`,
-              "stock.low",
-              {
-                productId: item.productId,
-                newStock: product?.stock - item.quantity,
-                orderCode,
-              }
-            );
+            emitToChannel("private-admin", "stock.low", {
+              productId: item.productId,
+              newStock,
+              orderCode,
+            });
           });
         }
       }
 
-      // Emit order.created ke channel cashier & admin
+      await tx.auditLog.create({
+        data: {
+          action: "order.create",
+          entity: "Order",
+          entityId: order.id,
+          meta: {
+            code: orderCode,
+            tableName: table.name,
+            total,
+            itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+          },
+        },
+      });
+
       afterCommit(() => {
         emitToChannel("private-cashier", "order.created", {
           orderCode,
           orderId: order.id,
           tableToken,
+          tableName: table.name,
           customerName,
         });
         emitToChannel("private-admin", "order.created", {
           orderCode,
           orderId: order.id,
           tableToken,
+          tableName: table.name,
           customerName,
         });
       });
-
-      // Set cookie httpOnly `order_{code}` berisi accessToken
-      const response = NextResponse.json({
-        code: orderCode,
-        accessToken,
-      });
-
-      // Set cookie dengan httpOnly
-      response.cookies.set(`order_${orderCode}`, accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        path: "/",
-        maxAge: timeoutMinutes * 60,
-      });
-
-      return response;
     });
 
-    // Jika transaction gagal (stok insufficient)
-    return NextResponse.json(
-      { error: "Stok tidak cukup untuk semua item pesanan" },
-      { status: 400 }
+    return orderResponse(
+      { code: orderCode, accessToken },
+      201,
+      timeoutMinutes * 60
     );
   } catch (err) {
-    console.error("Error creating order:", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan saat memesan" },
-      { status: 500 }
-    );
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      const key = req.headers.get("idempotency-key")?.trim();
+      if (key) {
+        const replay = await prisma.order.findUnique({
+          where: { idempotencyKey: key },
+          select: { code: true, accessToken: true, tableId: true },
+        });
+        if (replay && replay.tableId === requestTableId) {
+          const settings = await getSettings();
+          return orderResponse(replay, 200, settings.timeoutBayarMenit * 60);
+        }
+        if (replay) {
+          return NextResponse.json(
+            { error: "Idempotency-Key sudah dipakai", code: "CONFLICT" },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    if (!(err instanceof AppError)) {
+      logger.error("Error creating order", err);
+    }
+    return handleApiError(err);
   }
 }

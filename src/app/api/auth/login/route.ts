@@ -3,7 +3,14 @@ import { loginSchema } from "@/lib/validators/auth";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
-import { isRateLimited, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limiter";
+import {
+  getClientIp,
+  isRateLimited,
+  rateLimitHeaders,
+  recordFailedAttempt,
+  resetRateLimit,
+} from "@/lib/rate-limiter";
+import { logger } from "@/lib/logger";
 import { Role } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
@@ -23,24 +30,22 @@ export async function POST(req: NextRequest) {
 
     const { username, password } = parseResult.data;
 
-    // Deteksi IP pengakses untuk rate limiter
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
+    // Rate limit terdistribusi: per IP+username dan per IP (anti spraying).
+    const ip = getClientIp(req);
     const rateLimitKey = `login:${ip}:${username.toLowerCase()}`;
+    const ipRateLimitKey = `login-ip:${ip}`;
 
-    // Cek batas percobaan login
-    const rateLimit = isRateLimited(rateLimitKey, 5);
-    if (rateLimit.limited) {
+    const [rateLimit, ipRateLimit] = await Promise.all([
+      isRateLimited(rateLimitKey, 5),
+      isRateLimited(ipRateLimitKey, 20),
+    ]);
+    const blocked = rateLimit.limited ? rateLimit : ipRateLimit;
+    if (blocked.limited) {
       return NextResponse.json(
         {
-          error: `Terlalu banyak percobaan login. Silakan coba lagi dalam ${rateLimit.retryAfterSeconds} detik.`,
+          error: `Terlalu banyak percobaan login. Silakan coba lagi dalam ${blocked.retryAfterSeconds} detik.`,
         },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": rateLimit.retryAfterSeconds.toString(),
-          },
-        }
+        { status: 429, headers: rateLimitHeaders(blocked) }
       );
     }
 
@@ -50,7 +55,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user || !user.isActive) {
-      recordFailedAttempt(rateLimitKey);
+      await Promise.all([
+        recordFailedAttempt(rateLimitKey),
+        recordFailedAttempt(ipRateLimitKey),
+      ]);
       return NextResponse.json(
         { error: "Username atau password salah" },
         { status: 401 }
@@ -59,7 +67,10 @@ export async function POST(req: NextRequest) {
 
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
-      recordFailedAttempt(rateLimitKey);
+      await Promise.all([
+        recordFailedAttempt(rateLimitKey),
+        recordFailedAttempt(ipRateLimitKey),
+      ]);
       return NextResponse.json(
         { error: "Username atau password salah" },
         { status: 401 }
@@ -67,7 +78,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Berhasil login: reset percobaan rate limit & catat waktu login
-    resetRateLimit(rateLimitKey);
+    await Promise.all([
+      resetRateLimit(rateLimitKey),
+      resetRateLimit(ipRateLimitKey),
+    ]);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -95,7 +109,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (err) {
-    console.error("Login API error:", err);
+    logger.error("Login API error", err);
     return NextResponse.json(
       { error: "Terjadi kesalahan pada server saat login" },
       { status: 500 }

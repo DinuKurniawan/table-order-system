@@ -99,7 +99,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Masukkan username"
-                    className="pl-9 rounded-xl border-border bg-surface-muted focus-visible:ring-primary-600 h-10 text-sm"
+                    className="pl-9 rounded-xl border-border bg-surface-muted focus-visible:ring-primary-600 h-11 text-sm"
                   />
                 </div>
               </div>
@@ -120,12 +120,17 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Masukkan kata sandi"
-                    className="pl-9 pr-10 rounded-xl border-border bg-surface-muted focus-visible:ring-primary-600 h-10 text-sm"
+                    className="pl-9 pr-12 rounded-xl border-border bg-surface-muted focus-visible:ring-primary-600 h-11 text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-strong transition-colors"
+                    aria-label={
+                      showPassword
+                        ? "Sembunyikan kata sandi"
+                        : "Tampilkan kata sandi"
+                    }
+                    className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     {showPassword ? (
                       <EyeOff className="size-4" />
@@ -139,7 +144,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition-colors shadow-sm"
+                className="w-full h-11 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition-colors shadow-sm"
               >
                 {isLoading ? (
                   <>

@@ -54,7 +54,7 @@ flowchart TD
 
 ## Fitur
 
-Status diambil dari kode yang ada di repositori per Step 7.
+Status diambil dari kode yang ada di repositori per Step 22.
 
 ### Super Admin
 
@@ -67,23 +67,27 @@ Status diambil dari kode yang ada di repositori per Step 7.
 | CRUD produk: harga, gambar AVIF, stok awal, toggle aktif, soft/hard delete | Selesai |
 | Tabel menu: pencarian, filter status, sort, paginasi server-side | Selesai |
 | Upload gambar ke R2 + konversi AVIF + thumbnail | Selesai |
-| Pencatatan AuditLog untuk aksi kategori, produk, dan akun kasir | Selesai |
+| Pencatatan AuditLog untuk aksi kategori, produk, akun kasir, stok, keuangan, dan pesanan | Selesai |
+| Halaman audit log: filter pengguna/aksi/tanggal + paginasi | Selesai |
 | Manajemen kasir: tambah, ubah nama, toggle status, reset password, soft/hard delete | Selesai |
-| Kartu statistik dashboard dari data nyata | Dalam Pengerjaan (masih angka statis) |
+| Kartu statistik dashboard dari data nyata | Selesai |
+| Dashboard analitik realtime: KPI, grafik 3 seri, komposisi kategori, menu terlaris, aktivitas | Selesai |
 | Manajemen stok & riwayat pergerakan | Selesai |
-| Laporan keuangan | Direncanakan |
+| Laporan keuangan: ringkasan, grafik arus kas, jurnal manual, refund, ekspor CSV | Selesai |
 | Manajemen meja & QR code | Selesai |
 | Halaman pengaturan kafe | Selesai |
 | Infrastruktur realtime: Pusher server/client, auth endpoint, events constants, afterCommit helper | Selesai |
+| Cron kedaluwarsa pesanan (`/api/cron/expire-orders`, tiap menit) | Selesai |
+| Hardening: rate limit terdistribusi, CSP/CSRF, security headers, bukti bayar privat | Selesai |
 
 ### Kasir
 
 | Fitur | Status |
 | --- | --- |
 | Login dan layout panel kasir terproteksi | Selesai |
-| Antrean pesanan realtime | Direncanakan |
-| Verifikasi bukti bayar (setuju/tolak) | Direncanakan |
-| Cetak pesanan | Direncanakan |
+| Antrean pesanan realtime (tab verifikasi/diproses/siap/riwayat, badge & suara) | Selesai |
+| Verifikasi bukti bayar (setuju/tolak + alasan, optimistic locking) | Selesai |
+| Cetak struk thermal 58/80 mm (cetak ulang, printedAt & printCount) | Selesai |
 
 ### Customer
 
@@ -91,7 +95,8 @@ Status diambil dari kode yang ada di repositori per Step 7.
 | --- | --- |
 | Halaman menu via QR meja | Selesai |
 | Keranjang & checkout | Selesai |
-| Upload bukti pembayaran | Direncanakan |
+| Upload bukti pembayaran | Selesai |
+| Unggah ulang bukti setelah ditolak & pembatalan pesanan | Selesai |
 | Pelacakan status pesanan realtime | Selesai |
 | Halaman meja mobile-first (320-430px) | Selesai |
 
@@ -110,14 +115,16 @@ Status diambil dari kode yang ada di repositori per Step 7.
 | Storage | Cloudflare R2 (`@aws-sdk/client-s3`) | Penyimpanan gambar publik & privat |
 | Konversi gambar | `sharp` | Resize dan konversi ke AVIF |
 | Realtime | Pusher Channels (`pusher`, `pusher-js`) | Sinyal perubahan data ke klien (signal-only; klien invalidate cache TanStack Query lalu ambil data terbaru) |
-| State & data client | TanStack Query, Zustand | Cache server state, state keranjang |
+| State & data client | TanStack Query, localStorage | Cache server state, state keranjang |
 | After-transaction hook | `afterCommit` | Emit event setelah `$transaction` Prisma commit sukses |
 | Form | React Hook Form + `@hookform/resolvers` | Form produk & validasi klien |
 | UI | Tailwind CSS 4, shadcn/ui (Base UI), lucide-react | Komponen dan styling |
-| Grafik | Recharts | Grafik dashboard (belum dipakai) |
-| QR | `qrcode` | Pembuatan QR meja (belum dipakai) |
+| Grafik | Recharts | Grafik dashboard & keuangan (dimuat dinamis) |
+| QR | `qrcode` | Pembuatan QR meja |
 | Notifikasi | Sonner | Toast |
-| Pengujian | `tsx` + `node:test` | Unit & integrasi |
+| Pengujian unit & integrasi | `tsx` + `node:test`, Vitest | Aturan bisnis, stok, pembayaran, keuangan, gambar, auth |
+| Pengujian E2E | Playwright | Alur customer → kasir dengan dua browser context + realtime |
+| Performa | Lighthouse (mobile) | Audit `/m/[token]`: LCP, aksesibilitas, best practices |
 
 ---
 
@@ -127,6 +134,7 @@ Status diambil dari kode yang ada di repositori per Step 7.
 - **PostgreSQL** yang dapat diakses (lokal, Neon, Supabase, atau Prisma Postgres).
 - **Akun Cloudflare R2** dengan dua bucket: satu publik (gambar produk) dan satu privat (bukti bayar).
 - **Akun Pusher Channels** beserta `app_id`, `key`, `secret`, dan cluster.
+- **Google Chrome** untuk `npm run test:e2e` dan `npm run lighthouse:menu` di lingkungan lokal.
 
 ---
 
@@ -159,7 +167,8 @@ Buka `http://localhost:3000`. Halaman login ada di `http://localhost:3000/login`
 
 Catatan:
 
-- `npm run test` membaca `.env` secara langsung (`tsx --env-file=.env`), jadi berkas `.env` harus sudah terisi.
+- `npm run test` dan `npm run test:unit` memuat `.env` melalui `dotenv`, jadi berkas `.env` harus sudah terisi.
+- `npm run test:e2e` memakai Chrome terpasang, database yang sudah dimigrasi + di-seed, dan server di `http://localhost:3000` (Playwright menjalankan `npm run dev`, atau `npm run start` saat `CI=true`).
 - Variabel lingkungan divalidasi Zod di `src/lib/env.ts`; aplikasi gagal start bila variabel wajib kosong.
 
 ---
@@ -187,10 +196,19 @@ Contoh nilai di bawah adalah nilai palsu. Jangan menyimpan kredensial asli di re
 | `PUSHER_CLUSTER` | Wajib | Cluster Pusher | `ap1` |
 | `NEXT_PUBLIC_PUSHER_KEY` | Wajib | Key Pusher untuk browser | `contoh-pusher-key` |
 | `NEXT_PUBLIC_PUSHER_CLUSTER` | Wajib | Cluster Pusher untuk browser | `ap1` |
-| `SEED_ADMIN_USERNAME` | Opsional | Username Super Admin saat seeder dijalankan | `admin_kafe` |
-| `SEED_ADMIN_PASSWORD` | Opsional | Password Super Admin saat seeder dijalankan | `kata-sandi-kuat-anda` |
+| `SEED_ADMIN_USERNAME` | Opsional | Username Super Admin saat seeder dijalankan (default `admin`) | `admin_kafe` |
+| `SEED_ADMIN_PASSWORD` | Opsional | Password Super Admin saat seeder dijalankan (default `Admin123456!`) | `kata-sandi-kuat-anda` |
+| `R2_FORCE_PATH_STYLE` | Opsional | `true` untuk MinIO/CI yang memakai path-style URL; kosong untuk R2 | `true` |
+| `DISABLE_REALTIME` | Opsional | `true` untuk mematikan Pusher (dipakai E2E/CI) | `true` |
 
-`SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` dibaca oleh `prisma/seed.ts` tetapi belum tercantum di `.env.example`. Bila tidak diisi, seeder memakai nilai bawaan yang tertulis di berkas tersebut.
+Semua variabel di atas tercantum di `.env.example`. `SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` hanya dipakai saat akun Super Admin dibuat pertama kali.
+
+### Cron kedaluwarsa pesanan
+
+`vercel.json` menjadwalkan `GET /api/cron/expire-orders` setiap menit. Vercel Cron mengirim
+`Authorization: Bearer <CRON_SECRET>`. Paket Hobby Vercel hanya mendukung cron harian; untuk
+interval per menit gunakan paket Pro, atau panggil endpoint yang sama dari penjadwal eksternal
+(cron-job.org, GitHub Actions, dsb.) dengan header tersebut.
 
 ---
 
@@ -216,24 +234,32 @@ Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu d
 
 ```text
 .
+├── .github/workflows/ci.yml   # CI: Postgres + MinIO, tes, build, E2E, Lighthouse
 ├── prisma/
 │   ├── schema.prisma          # Model & enum database
 │   ├── migrations/            # Migrasi SQL
-│   └── seed.ts                # Data awal (admin, kategori, produk, meja, pengaturan)
+│   ├── seed.ts                # Data awal (admin, kategori, produk, meja, pengaturan)
+│   └── seed-demo.ts           # Data demo 500 pesanan / 90 hari
 ├── public/                    # Aset statis
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/login/      # Halaman login
-│   │   ├── admin/             # Shell + halaman dashboard Super Admin
+│   │   ├── admin/             # Dashboard admin: menu, kasir, stok, keuangan, meja, pengaturan, audit
+│   │   ├── m/[token]/         # Menu & keranjang customer via QR meja
+│   │   ├── order/             # Halaman lacak pesanan customer + upload bukti
 │   │   ├── api/
-│   │   │   ├── admin/         # CRUD kategori & produk
+│   │   │   ├── admin/         # CRUD admin, dashboard, keuangan, stok, audit
 │   │   │   ├── auth/          # Login & logout
+│   │   │   ├── cashier/       # Antrean, verifikasi bayar, bukti, struk
+│   │   │   ├── cron/          # Penjadwal kedaluwarsa pesanan
+│   │   │   ├── public/        # Menu, pesanan, bukti bayar, akses pesanan
 │   │   │   └── upload/        # Upload gambar (AVIF)
 │   │   ├── cashier/           # Panel kasir
 │   │   ├── layout.tsx         # Root layout + provider
 │   │   └── page.tsx           # Landing page
 │   ├── components/
-│   │   ├── admin/             # AdminShell, StatCard, tabel menu, dll.
+│   │   ├── admin/             # AdminShell, StatCard, tabel menu, grafik dinamis
+│   │   ├── cashier/           # Dashboard antrean, detail pesanan, viewer bukti dinamis
 │   │   ├── ui/                # Komponen shadcn/ui
 │   │   ├── image-uploader.tsx # Drag & drop + pratinjau upload
 │   │   └── providers.tsx      # QueryClient + Toaster
@@ -242,21 +268,29 @@ Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu d
 │   │   ├── session.ts         # JWT sesi di cookie httpOnly
 │   │   ├── r2.ts              # Klien S3 untuk Cloudflare R2
 │   │   ├── image.ts           # Validasi gambar & konversi AVIF
-│   │   ├── rate-limiter.ts    # Batas percobaan login
+│   │   ├── rate-limiter.ts    # Rate limit terdistribusi (tabel PostgreSQL)
 │   │   ├── validators/        # Skema Zod
 │   │   ├── env.ts, db.ts, api.ts, errors.ts, utils.ts
 │   │   ├── pusher-server.ts   # Instance Pusher useTLS, helper emitToChannel error best-effort
 │   │   ├── pusher-client.ts   # Singleton pusher-js, hook usePusherChannel dan useRealtimeEvent, status koneksi untuk ConnectionIndicator, auto-invalidate QueryClient saat connected
 │   │   ├── after-commit.ts    # Helper emit setelah transaction Prisma selesai
+│   │   ├── order-access.ts    # Cookie & token akses pesanan customer
 │   │   └── realtime-events.ts # Konstanta event dan channel
 │   ├── server/services/       # Aturan bisnis & akses Prisma
 │   └── middleware.ts          # Route guard /admin dan /cashier
 ├── tests/                     # Unit & integrasi (node:test)
+├── quality/                   # Unit & integrasi (Vitest) + fixture DB
+├── e2e/                       # Alur end-to-end (Playwright)
+├── scripts/                   # Benchmark dashboard, Lighthouse, init bucket CI
 ├── .env.example               # Template variabel lingkungan
 ├── ARCHITECTURE.md            # Arsitektur & alur detail
 ├── DESIGN-SYSTEM.md           # Token desain & komponen
 ├── PRD.md                     # Kebutuhan produk
 ├── AI-AGENT.md                # Aturan kerja agen/kontributor
+├── SECURITY-CHECKLIST.md      # Hasil audit keamanan
+├── TEST-REPORT.md             # Hasil tes, performa, aksesibilitas
+├── playwright.config.ts       # Konfigurasi E2E
+├── vitest.config.ts           # Konfigurasi Vitest
 └── README.md
 ```
 
@@ -280,7 +314,7 @@ Prisma → PostgreSQL
 
 - **UI tidak mengakses Prisma langsung.** Semua akses data melewati service.
 - **Otorisasi dicek di server** pada setiap endpoint (`requireRole`), bukan hanya di middleware.
-- **Realtime memakai prinsip "signal + refetch":** server mengirim event ringkas setelah commit, klien meng-invalidasi cache TanStack Query lalu mengambil data terbaru. Integrasi Pusher belum diimplementasikan.
+- **Realtime memakai prinsip "signal + refetch":** server mengirim event ringkas setelah commit, klien meng-invalidasi cache TanStack Query lalu mengambil data terbaru. Channel private diotorisasi di `/api/pusher/auth` (role staf, cookie pesanan, atau token meja aktif).
 - Detail keputusan teknis, aturan impor antar layer, dan diagram sequence ada di [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
@@ -294,9 +328,14 @@ Prisma → PostgreSQL
 | `npm run start` | Menjalankan hasil build |
 | `npm run lint` | Pemeriksaan ESLint |
 | `npm run typecheck` | Pemeriksaan tipe (`tsc --noEmit`) |
-| `npm run test` | Menjalankan seluruh tes di `tests/` |
+| `npm run test` | Menjalankan seluruh tes di `tests/` (node:test) |
+| `npm run test:unit` | Menjalankan suite Vitest di `quality/` |
+| `npm run test:e2e` | Menjalankan alur Playwright di `e2e/` |
 | `npm run db:migrate` | Membuat/menerapkan migrasi Prisma (dev) |
 | `npm run db:seed` | Menjalankan seeder |
+| `npm run db:seed:demo` | Mengisi data demo 500 pesanan / 90 hari (setelah `db:seed`) |
+| `npm run bench:dashboard` | Benchmark agregasi dashboard (butuh data demo) |
+| `npm run lighthouse:menu` | Audit Lighthouse mobile `/m/[token]` (server produksi berjalan) |
 | `npm run db:studio` | Membuka Prisma Studio |
 | `npm run db:generate` | Regenerasi Prisma Client |
 
@@ -311,6 +350,8 @@ Prisma → PostgreSQL
 | [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) | Token warna, tipografi, radius, dan spesifikasi komponen |
 | [AI-AGENT.md](AI-AGENT.md) | Aturan kerja, konvensi kode, dan definition of done |
 | [AGENTS.md](AGENTS.md) | Catatan aturan otomatis untuk agen di repositori ini |
+| [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) | Hasil audit keamanan dan batasan yang diketahui |
+| [TEST-REPORT.md](TEST-REPORT.md) | Hasil tes, Lighthouse, aksesibilitas, dan benchmark dashboard |
 
 > `PROMPTS.md` yang dirujuk pada rencana pengembangan tidak ada di repositori saat README ini ditulis, sehingga nomor step di bawah mengikuti riwayat pengerjaan yang dapat diverifikasi dari kode.
 
@@ -329,14 +370,18 @@ Prisma → PostgreSQL
 - [x] Step 8 — *(indikatif)* Infrastruktur realtime (Pusher server/client, auth endpoint, events constants, afterCommit helper)
 - [x] Step 9 — *(indikatif)* Sisi customer bagian 1 (mobile-first 320-430px, halaman meja & keranjang type fixes)
 - [x] Step 10 — *(indikatif)* Sisi customer bagian 2 (lanjut pengembangan antar tab & diagnose)
-- [ ] Step 11 — *(indikatif)* Manajemen meja & QR
-- [ ] Step 12 — *(indikatif)* Pengaturan kafe
-- [ ] Step 13 — *(indikatif)* Halaman customer (menu & keranjang)
-- [ ] Step 14 — *(indikatif)* Checkout & reservasi stok
-- [ ] Step 15 — *(indikatif)* Realtime Pusher
-- [ ] Step 16 — *(indikatif)* Dashboard analitik
-- [ ] Step 17 — *(indikatif)* Cron kedaluwarsa pesanan
-- [ ] Step 18 — *(indikatif)* Cetak, pengujian end-to-end, dan hardening
+- [x] Step 11 - Manajemen meja & QR
+- [x] Step 12 - Pengaturan kafe
+- [x] Step 13 - Halaman customer (menu & keranjang)
+- [x] Step 14 - Checkout & reservasi stok
+- [x] Step 15 - Realtime Pusher
+- [x] Step 16 - Dashboard analitik: KPI realtime, grafik penjualan, menu terlaris, kasir & meja aktif
+- [x] Step 17 - Cron kedaluwarsa pesanan
+- [x] Step 18 - Modul kasir realtime, verifikasi pembayaran, dan cetak struk thermal
+- [x] Step 19 - Modul stok: penyesuaian atomik, batas minimum, riwayat pergerakan, ekspor CSV
+- [x] Step 20 - Modul keuangan: ringkasan, grafik arus kas, jurnal, refund, lampiran privat
+- [x] Step 21 - Pengujian end-to-end dan hardening (rate limit terdistribusi, CSP/header, CSRF, audit log, bukti bayar privat) - lihat `SECURITY-CHECKLIST.md`
+- [x] Step 22 - Kualitas: Vitest, Playwright E2E, Lighthouse mobile, aksesibilitas, seed demo 500 pesanan - lihat `TEST-REPORT.md`
 
 ---
 
@@ -349,17 +394,21 @@ Prisma → PostgreSQL
 ![Panel Kasir](docs/screenshots/cashier-queue.png)
 ![Halaman Customer](docs/screenshots/customer-menu.png)
 
-Halaman `/cashier` baru sebatas kerangka dan halaman menu customer belum diimplementasikan, sehingga dua gambar terakhir belum bisa diambil dari aplikasi saat ini.
+Halaman `/cashier`, menu customer `/m/[token]`, dan alur pelacakan pesanan sudah diimplementasikan; screenshot asli tinggal diambil dan menggantikan placeholder.
 
 ---
 
 ## Keamanan
 
-- **Bukti pembayaran dirancang di bucket privat.** Helper `getSignedReadUrl` menyediakan presigned URL berumur pendek, sedangkan endpoint upload saat ini hanya menulis ke bucket publik untuk aset admin.
+- **Bukti pembayaran disimpan di bucket privat.** URL publik langsung mengembalikan 404; akses hanya lewat presigned URL 60 detik dari endpoint kasir/admin. Rute upload admin hanya menerima preset `product`, `qris`, dan `attachment` ke bucket publik.
 - **Validasi di server, bukan hanya di klien.** Setiap endpoint memvalidasi input dengan Zod dan memeriksa role dengan `requireRole`.
 - **RBAC berlapis.** Middleware menyaring rute, service memeriksa ulang role; `tokenVersion` di database memungkinkan pencabutan sesi aktif.
-- **Rate limit login.** Maksimal 5 percobaan gagal per menit per kombinasi IP + username (in-memory; pada deployment multi-instance perlu diganti penyimpanan terpusat seperti Redis).
+- **Rate limit terdistribusi.** Tabel PostgreSQL `RateLimit` dengan upsert atomik: login 5/15 menit per IP + username dan 20/15 menit per IP, checkout 20/menit per IP + 10/menit per meja, serta batas terpisah untuk menu, akses pesanan, bukti bayar, dan upload.
+- **CSRF & security headers.** `src/proxy.ts` menolak mutasi lintas situs; `next.config.ts` memasang CSP, HSTS (produksi), `X-Frame-Options`, `Referrer-Policy`, dan `Permissions-Policy`.
+- **Audit & error terpusat.** Aksi penting tercatat di `AuditLog` dan dapat difilter di `/admin/settings/audit`; `handleApiError` menyembunyikan detail internal dan logger meredaksi data sensitif.
 - **`.env` tidak pernah di-commit.** `.gitignore` mengabaikan `.env*` kecuali `.env.example`. Jangan menaruh rahasia asli di dokumentasi.
+
+Detail temuan, bukti uji, dan batasan ada di [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md).
 
 Melaporkan kerentanan: hubungi maintainer repositori secara privat (jangan membuka issue publik yang memuat detail eksploitasi).
 

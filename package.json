@@ -8,9 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --env-file=.env --test tests/**/*.test.ts",
+    "test": "tsx --import dotenv/config --test tests/**/*.test.ts",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:demo": "npx tsx prisma/seed-demo.ts",
+    "bench:dashboard": "tsx --import dotenv/config scripts/benchmark-dashboard.ts",
+    "lighthouse:menu": "node scripts/lighthouse-menu.mjs",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"
   },
@@ -54,16 +59,20 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^18.0.10",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "lighthouse": "^13.6.0",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

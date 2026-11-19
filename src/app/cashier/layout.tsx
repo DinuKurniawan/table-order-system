@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { AuthHeader } from "@/components/auth-header";
+import { CashierHeaderControls } from "@/components/cashier/cashier-header-controls";
 import { SessionEnded } from "@/components/session-ended";
 
 export const instant = false;
@@ -21,8 +22,11 @@ export default async function CashierLayout({
         userName={user.name}
         role={user.role}
         title="Panel Antrean Kasir"
+        actions={<CashierHeaderControls />}
       />
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto">{children}</main>
+      <main className="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto print:p-0 print:max-w-none">
+        {children}
+      </main>
     </div>
   );
 }

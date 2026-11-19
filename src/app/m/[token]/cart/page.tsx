@@ -1,17 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SectionCard } from "@/components/admin/section-card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
-import { Minus, Plus, Search } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 type CartItem = {
   productId: string;
@@ -28,23 +24,40 @@ type CartItems = {
 };
 
 export default function CartPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen p-8 text-center text-text-muted">
+          Memuat keranjang...
+        </div>
+      }
+    >
+      <CartContent />
+    </Suspense>
+  );
+}
+
+function CartContent() {
   const { token } = useParams() as { token: string };
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   // ============================================================
   // Cart state persisted to localStorage
   // ============================================================
   const CART_KEY = `cart-${token || "default"}`;
 
-  const [items, setItems] = useState<CartItems>(() => {
+  const [items, setItems] = useState<CartItems>({});
+  const [cartReady, setCartReady] = useState(false);
+
+  useEffect(() => {
     try {
-      const data = localStorage.getItem(CART_KEY);
-      return data ? JSON.parse(data).items : {};
-    } catch (e) {
-      return {};
+      const data = window.localStorage.getItem(CART_KEY);
+      setItems(data ? (JSON.parse(data).items as CartItems) : {});
+    } catch {
+      setItems({});
     }
-  });
+    setCartReady(true);
+  }, [CART_KEY]);
 
   // ============================================================
   // Fetch order summary - items from cart
@@ -62,18 +75,28 @@ export default function CartPage() {
   // Form: ubah qty, catatan, nama customer
   // ============================================================
   const [isSaving, setIsSaving] = useState(false);
-  const [customerName, setCustomerName] = useState<string | "">("");
+  const [customerName, setCustomerName] = useState("");
+  const [generalNote, setGeneralNote] = useState("");
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const cartSignature = JSON.stringify(items);
+
+  // Kunci idempotensi berubah saat isi keranjang berubah, sehingga klik ganda
+  // pada checkout yang sama tidak membuat pesanan/ reservasi stok ganda.
+  useEffect(() => {
+    idempotencyKeyRef.current = crypto.randomUUID();
+  }, [cartSignature]);
 
   // ============================================================
   // Simpan keranjang ke localStorage
   // ============================================================
   useEffect(() => {
+    if (!cartReady) return;
     try {
       localStorage.setItem(CART_KEY, JSON.stringify({ items }));
-    } catch (e) {
-      console.error("Gagal menyimpan keranjang", e);
+    } catch {
+      // Kuota/privacy mode: keranjang tetap jalan di memori.
     }
-  }, [items]);
+  }, [items, cartReady, CART_KEY]);
 
   // ============================================================
   // Submit order (POST /api/public/orders)
@@ -94,11 +117,13 @@ export default function CartPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key":
+            idempotencyKeyRef.current || crypto.randomUUID(),
         },
         body: JSON.stringify({
           tableToken: token,
           customerName: customerName || undefined,
-          note: Object.values(items)[0]?.note || undefined,
+          note: generalNote || undefined,
           items: itemsForOrder,
         }),
       });
@@ -141,24 +166,35 @@ export default function CartPage() {
         {/* Form ubah qty dan catatan */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label
+              htmlFor="customer-name"
+              className="mb-2 block text-sm font-medium"
+            >
               Nama Pelanggan (opsional)
             </label>
             <Input
+              id="customer-name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Nama pelanggan"
-              className="rounded-xl h-10 w-full"
+              className="h-11 w-full rounded-xl"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label
+              htmlFor="general-note"
+              className="mb-2 block text-sm font-medium"
+            >
               Catatan umum
             </label>
             <Input
-              placeholder="Contoh: Untuk kamar kerja, tambahan es rimas..."
-              className="rounded-xl h-10 w-full"
+              id="general-note"
+              value={generalNote}
+              onChange={(e) => setGeneralNote(e.target.value)}
+              placeholder="Contoh: tambahan es sedikit"
+              maxLength={300}
+              className="h-11 w-full rounded-xl"
             />
           </div>
         </div>
@@ -166,12 +202,16 @@ export default function CartPage() {
         {/* Daftar item keranjang */}
         <div className="mt-6 space-y-3">
           {itemEntries.map((item) => (
-            <div key={item.productId} className="flex items-center justify-between p-3 border rounded">
-              <span className="font-medium">{item.name}</span>
-              <div className="flex items-center gap-2">
+            <div key={item.productId} className="flex items-center justify-between gap-3 rounded border p-3">
+              <span className="font-medium">
+                {item.name ?? item.productName}
+              </span>
+              <div className="flex items-center gap-1">
                 <Button
-                  variant="ghost"
+                  type="button"
+                  variant="outline"
                   size="icon"
+                  aria-label={`Kurangi ${item.name ?? item.productName}`}
                   onClick={() => setItems((prev) => {
                     const newItems = { ...prev };
                     if (newItems[item.productId].quantity > 1) {
@@ -180,16 +220,17 @@ export default function CartPage() {
                     return newItems;
                   })}
                   disabled={item.quantity <= 1}
-                  className="rounded-lg p-1"
+                  className="size-11 rounded-xl"
                 >
-                  <Minus className="size-3" />
+                  <Minus className="size-4" />
                 </Button>
-                <span className="text-sm font-medium">
+                <span className="w-7 text-center text-sm font-medium tabular-nums">
                   {item.quantity}
                 </span>
                 <Button
-                  variant="ghost"
+                  type="button"
                   size="icon"
+                  aria-label={`Tambah ${item.name ?? item.productName}`}
                   onClick={() => setItems((prev) => {
                     const newItems = { ...prev };
                     newItems[item.productId] = {
@@ -198,9 +239,9 @@ export default function CartPage() {
                     };
                     return newItems;
                   })}
-                  className="rounded-lg p-1"
+                  className="size-11 rounded-xl"
                 >
-                  <Plus className="size-3" />
+                  <Plus className="size-4" />
                 </Button>
               </div>
             </div>

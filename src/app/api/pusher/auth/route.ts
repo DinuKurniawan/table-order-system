@@ -4,74 +4,95 @@ import Pusher from "pusher";
 import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/db";
+import { verifySessionToken } from "@/lib/session";
+import { orderAccessCookieName, timingSafeEqualString } from "@/lib/order-access";
+import { logger } from "@/lib/logger";
+
+interface AuthBody {
+  socket_id?: string;
+  channel_name?: string;
+}
+
+async function readAuthBody(req: NextRequest): Promise<AuthBody> {
+  const contentType = req.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return (await req.json()) as AuthBody;
+  }
+
+  const form = await req.formData();
+  return {
+    socket_id: String(form.get("socket_id") ?? ""),
+    channel_name: String(form.get("channel_name") ?? ""),
+  };
+}
 
 /**
  * POST /api/pusher/auth
- * 
- * Mendapatkan token otorisasi Pusher untuk channel private.
- * 
- * Request body: { channel?: string }
- * Token diambil dari cookie session (session_token).
- * 
- * Response: { auth: string } untuk pusher-js channel auth
- * 
- * Prinsip: Pusher hanya mengirim "signal" perubahan. Klien lalu meng-invalidasi
- * cache TanStack Query dan mengambil data terbaru dari API.
- * Endpoint ini mengembalikan auth token yang pusher-js ambil via authEndpoint.
+ * Otorisasi channel private Pusher:
+ * - staff: private-cashier / private-admin / private-user-{id}
+ * - customer: private-order-{code} bila cookie accessToken cocok
+ * - meja: private-table-{token} bila token meja aktif
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const requestedChannel = body?.channel;
+    const { socket_id: socketId, channel_name: channelName } = await readAuthBody(req);
 
-    // --- Baca session token dari cookie ---
+    if (
+      !socketId ||
+      !channelName ||
+      socketId.length > 100 ||
+      channelName.length > 200 ||
+      !/^[A-Za-z0-9_.:-]+$/.test(channelName)
+    ) {
+      return NextResponse.json(
+        { error: "socket_id dan channel_name tidak valid" },
+        { status: 400 }
+      );
+    }
+
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session_token")?.value;
+    const session = sessionToken ? await verifySessionToken(sessionToken) : null;
 
-    // --- Autentikasi user dari JWT session ---
-    let user: { id: string; role: Role; isActive: boolean } | null = null;
+    const isStaff =
+      session?.role === Role.SUPER_ADMIN || session?.role === Role.CASHIER;
 
-    if (sessionToken) {
-      try {
-        const payload = await import("@/lib/session")
-          .then((mod) => mod.verifySessionToken(sessionToken));
+    let allowed = false;
 
-        if (payload?.sub && payload?.role) {
-          user = {
-            id: payload.sub,
-            role: payload.role as Role,
-            isActive: true,
-          };
-        }
-      } catch {
-        // session invalid - user remains null
+    if (channelName === "private-cashier" && isStaff) {
+      allowed = true;
+    } else if (channelName === "private-admin" && session?.role === Role.SUPER_ADMIN) {
+      allowed = true;
+    } else if (session && channelName === `private-user-${session.sub}`) {
+      allowed = true;
+    } else if (channelName.startsWith("private-order-")) {
+      const code = channelName.slice("private-order-".length);
+      const token = cookieStore.get(orderAccessCookieName(code))?.value;
+
+      if (token) {
+        const order = await prisma.order.findUnique({
+          where: { code },
+          select: { accessToken: true },
+        });
+        allowed = Boolean(order && timingSafeEqualString(token, order.accessToken));
       }
+    } else if (channelName.startsWith("private-table-")) {
+      const token = channelName.slice("private-table-".length);
+      const table = await prisma.table.findUnique({
+        where: { token },
+        select: { isActive: true },
+      });
+      allowed = Boolean(table?.isActive);
     }
 
-    // --- Tentukan channel berdasarkan role ---
-    let channelName: string | null = null;
-
-    // 1. private-cashier: SUPER_ADMIN atau CASHIER
-    if (user?.role === Role.SUPER_ADMIN || user?.role === Role.CASHIER) {
-      channelName = "private-cashier";
-    }
-    // 2. private-admin: SUPER_ADMIN hanya
-    else if (user?.role === Role.SUPER_ADMIN) {
-      channelName = "private-admin";
-    }
-    // 3. private-user-{id}: hanya user yang bersangkutan
-    else if (user?.id) {
-      channelName = `private-user-${user.id}`;
-    }
-
-    if (!channelName) {
+    if (!allowed) {
       return NextResponse.json(
-        { error: "Forbidden: no matching channel" },
+        { error: "Forbidden: channel tidak diizinkan" },
         { status: 403 }
       );
     }
 
-    // Generate Pusher auth token menggunakan server SDK
     const pusher = new Pusher({
       appId: env.PUSHER_APP_ID,
       key: env.PUSHER_KEY,
@@ -80,14 +101,9 @@ export async function POST(req: NextRequest) {
       useTLS: true,
     });
 
-    // authenticate dengan socketId kosong (client pakai authEndpoint)
-    // dan channelName yang sudah ditentukan
-    const authResult = pusher.authenticate("", requestedChannel || channelName);
-
-    return NextResponse.json({ auth: authResult.auth });
-
+    return NextResponse.json(pusher.authorizeChannel(socketId, channelName));
   } catch (err) {
-    console.error("Pusher auth error:", err);
+    logger.error("Pusher auth error", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,0 +1,70 @@
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getPublicUrl } from "@/lib/r2";
+import { findActiveTableByToken } from "@/server/services/tables";
+
+export interface PublicMenuProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stock: number;
+  trackStock: boolean;
+  imageUrl: string | null;
+  thumbUrl: string | null;
+  category: { name: string; type: string; subtype: string | null } | null;
+}
+
+/**
+ * Katalog publik untuk satu meja aktif. Dipakai route API dan render awal
+ * halaman menu agar LCP tidak menunggu fetch client.
+ */
+export async function getPublicMenu(input: {
+  token: string;
+  search?: string;
+  category?: string;
+}): Promise<PublicMenuProduct[]> {
+  if (!input.token || !(await findActiveTableByToken(input.token))) {
+    throw new Error("Meja tidak aktif atau tidak ditemukan");
+  }
+
+  const where: Prisma.ProductWhereInput = { deletedAt: null, isActive: true };
+
+  if (input.search) {
+    where.name = {
+      contains: input.search.slice(0, 80),
+      mode: "insensitive",
+    };
+  }
+
+  const category = input.category;
+  if (category === "makanan" || category === "food") {
+    where.category = { type: "FOOD" };
+  } else if (category === "kopi" || category === "coffee") {
+    where.category = { type: "DRINK", subtype: "COFFEE" };
+  } else if (category === "non-kopi" || category === "non-coffee") {
+    where.category = { type: "DRINK", subtype: "NON_COFFEE" };
+  }
+
+  const products = await prisma.product.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      imageKey: true,
+      thumbKey: true,
+      stock: true,
+      trackStock: true,
+      category: { select: { name: true, type: true, subtype: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return products.map(({ imageKey, thumbKey, ...product }) => ({
+    ...product,
+    imageUrl: imageKey ? getPublicUrl(imageKey) : null,
+    thumbUrl: thumbKey ? getPublicUrl(thumbKey) : null,
+  }));
+}

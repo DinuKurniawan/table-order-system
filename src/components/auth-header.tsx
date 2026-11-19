@@ -10,9 +10,10 @@ interface AuthHeaderProps {
   userName: string;
   role: "SUPER_ADMIN" | "CASHIER";
   title: string;
+  actions?: React.ReactNode;
 }
 
-export function AuthHeader({ userName, role, title }: AuthHeaderProps) {
+export function AuthHeader({ userName, role, title, actions }: AuthHeaderProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -28,12 +29,13 @@ export function AuthHeader({ userName, role, title }: AuthHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-surface px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-surface px-6 shadow-sm print:hidden">
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-semibold text-text-strong">{title}</h1>
       </div>
 
       <div className="flex items-center gap-4">
+        {actions}
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-full bg-primary-50 text-primary-700">
             <UserIcon className="size-4" />

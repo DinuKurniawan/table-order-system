@@ -1,39 +1,53 @@
 /**
- * In-memory sliding rate limiter untuk proteksi brute force login.
- * 
- * BATASAN & CATATAN ARSITEKTUR:
- * Penyimpanan in-memory ini efektif untuk lingkungan single-instance (Node.js monolith / server mandiri).
- * Pada lingkungan multi-instance, serverless lambdas, atau multi-region deployment,
- * ganti penyimpanan ini dengan Redis terpusat (contoh: Upstash Redis / Redis Cloud).
+ * Rate limiter terdistribusi berbasis tabel PostgreSQL.
+ *
+ * Satu sumber kebenaran untuk semua instance/serverless: setiap percobaan
+ * menulis ke tabel "RateLimit" dengan operasi atomik INSERT ... ON CONFLICT,
+ * sehingga tidak ada race antar instance.
+ *
+ * Kunci harus sudah memuat konteks yang relevan (IP, username, token meja,
+ * kode pesanan) agar tidak saling mengunci.
  */
 
-interface RateLimitRecord {
-  attempts: number;
-  resetAt: number;
+import { prisma } from "@/lib/db";
+
+export interface RateLimitResult {
+  limited: boolean;
+  remaining: number;
+  retryAfterSeconds: number;
 }
 
-const memoryStore = new Map<string, RateLimitRecord>();
+const DEFAULT_WINDOW_SECONDS = 15 * 60;
 
-// Bersihkan data lama secara berkala setiap 5 menit
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, record] of memoryStore.entries()) {
-      if (now > record.resetAt) {
-        memoryStore.delete(key);
-      }
-    }
-  }, 5 * 60 * 1000).unref?.();
+function toResult(
+  attempts: number,
+  resetAt: Date,
+  maxAttempts: number
+): RateLimitResult {
+  const retryAfterSeconds = Math.max(
+    0,
+    Math.ceil((resetAt.getTime() - Date.now()) / 1000)
+  );
+
+  return {
+    limited: attempts >= maxAttempts,
+    remaining: Math.max(0, maxAttempts - attempts),
+    retryAfterSeconds,
+  };
 }
 
-export function isRateLimited(
+/**
+ * Membaca status tanpa menambah hitungan. Dipakai login: pengecekan dilakukan
+ * sebelum verifikasi password, pencatatan hanya saat gagal.
+ */
+export async function isRateLimited(
   key: string,
   maxAttempts: number = 5
-): { limited: boolean; remaining: number; retryAfterSeconds: number } {
-  const now = Date.now();
-  const record = memoryStore.get(key);
+): Promise<RateLimitResult> {
+  const now = new Date();
+  const record = await prisma.rateLimit.findUnique({ where: { key } });
 
-  if (!record || now > record.resetAt) {
+  if (!record || record.resetAt <= now) {
     return {
       limited: false,
       remaining: maxAttempts,
@@ -41,39 +55,114 @@ export function isRateLimited(
     };
   }
 
-  if (record.attempts >= maxAttempts) {
-    const retryAfterSeconds = Math.ceil((record.resetAt - now) / 1000);
-    return {
-      limited: true,
-      remaining: 0,
-      retryAfterSeconds: Math.max(1, retryAfterSeconds),
-    };
+  return toResult(record.attempts, record.resetAt, maxAttempts);
+}
+
+/**
+ * Menambah satu hitungan atomik dengan jendela waktu tetap. Dipakai endpoint
+ * publik: setiap request dihitung, termasuk yang berhasil.
+ */
+export async function consumeRateLimit(
+  key: string,
+  maxAttempts: number,
+  windowSeconds: number = 60
+): Promise<RateLimitResult> {
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowSeconds * 1000);
+
+  const rows = await prisma.$queryRaw<Array<{ attempts: number; resetAt: Date }>>`
+    INSERT INTO "RateLimit" ("key", "attempts", "resetAt")
+    VALUES (${key}, 1, ${resetAt})
+    ON CONFLICT ("key") DO UPDATE SET
+      "attempts" = CASE
+        WHEN "RateLimit"."resetAt" <= ${now} THEN 1
+        ELSE "RateLimit"."attempts" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "RateLimit"."resetAt" <= ${now} THEN ${resetAt}
+        ELSE "RateLimit"."resetAt"
+      END
+    RETURNING "attempts", "resetAt"
+  `;
+
+  const record = rows[0];
+  if (!record) {
+    // Tidak mungkin terjadi pada PostgreSQL, tetapi jangan fail-open diam-diam.
+    return { limited: true, remaining: 0, retryAfterSeconds: windowSeconds };
   }
 
+  return toResult(record.attempts, record.resetAt, maxAttempts);
+}
+
+/**
+ * Mencatat percobaan gagal (login). Atomik dan tidak memperpanjang jendela
+ * yang sedang berjalan.
+ */
+export async function recordFailedAttempt(
+  key: string,
+  windowSeconds: number = DEFAULT_WINDOW_SECONDS
+): Promise<void> {
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowSeconds * 1000);
+
+  await prisma.$queryRaw`
+    INSERT INTO "RateLimit" ("key", "attempts", "resetAt")
+    VALUES (${key}, 1, ${resetAt})
+    ON CONFLICT ("key") DO UPDATE SET
+      "attempts" = CASE
+        WHEN "RateLimit"."resetAt" <= ${now} THEN 1
+        ELSE "RateLimit"."attempts" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "RateLimit"."resetAt" <= ${now} THEN ${resetAt}
+        ELSE "RateLimit"."resetAt"
+      END
+  `;
+}
+
+export async function resetRateLimit(key: string): Promise<void> {
+  await prisma.rateLimit.deleteMany({ where: { key } });
+}
+
+/**
+ * Membersihkan baris kedaluwarsa. Dipanggil dari cron agar tabel tidak tumbuh
+ * tanpa batas.
+ */
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  const result = await prisma.rateLimit.deleteMany({
+    where: { resetAt: { lt: new Date() } },
+  });
+  return result.count;
+}
+
+/**
+ * IP klien dari header proxy tepercaya. Nilai dipakai sebagai bagian kunci
+ * rate limit, bukan untuk otorisasi.
+ */
+export function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  return "unknown";
+}
+
+export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
   return {
-    limited: false,
-    remaining: maxAttempts - record.attempts,
-    retryAfterSeconds: 0,
+    "Retry-After": String(result.retryAfterSeconds),
+    "X-RateLimit-Remaining": String(result.remaining),
   };
 }
 
-export function recordFailedAttempt(
-  key: string,
-  windowMs: number = 60 * 1000
-): void {
-  const now = Date.now();
-  const record = memoryStore.get(key);
-
-  if (!record || now > record.resetAt) {
-    memoryStore.set(key, {
-      attempts: 1,
-      resetAt: now + windowMs,
-    });
-  } else {
-    record.attempts += 1;
-  }
-}
-
-export function resetRateLimit(key: string): void {
-  memoryStore.delete(key);
+export function tooManyRequests(result: RateLimitResult): Response {
+  return Response.json(
+    {
+      error: `Terlalu banyak permintaan. Coba lagi dalam ${result.retryAfterSeconds} detik.`,
+      code: "RATE_LIMITED",
+    },
+    { status: 429, headers: rateLimitHeaders(result) }
+  );
 }

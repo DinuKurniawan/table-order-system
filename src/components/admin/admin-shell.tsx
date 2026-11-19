@@ -15,6 +15,7 @@ import {
   QrCode,
   Search,
   Settings,
+  ScrollText,
   Users,
   UtensilsCrossed,
   Wallet,
@@ -85,6 +86,11 @@ const navItems: NavItem[] = [
     href: "/admin/settings",
     icon: Settings,
   },
+  {
+    title: "Log Audit",
+    href: "/admin/settings/audit",
+    icon: ScrollText,
+  },
 ];
 
 const pageTitles: Record<string, string> = {
@@ -95,6 +101,7 @@ const pageTitles: Record<string, string> = {
   "/admin/finance": "Laporan Keuangan",
   "/admin/tables": "Meja & QR Code",
   "/admin/settings": "Pengaturan Kafe",
+  "/admin/settings/audit": "Log Audit",
 };
 
 interface AdminShellProps {
@@ -127,6 +134,7 @@ export function AdminShell({
 
   const isNavActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
+    if (href === "/admin/settings") return pathname === "/admin/settings";
     return pathname.startsWith(href);
   };
 

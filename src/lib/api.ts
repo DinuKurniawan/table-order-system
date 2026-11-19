@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 /**
  * Pemetaan error seragam untuk seluruh Route Handler admin.
@@ -23,7 +24,7 @@ export function handleApiError(err: unknown): NextResponse {
     );
   }
 
-  console.error("API error:", err);
+  logger.error("API error", err);
   return NextResponse.json(
     { error: "Terjadi kesalahan pada server" },
     { status: 500 }

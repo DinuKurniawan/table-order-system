@@ -1,0 +1,28 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { handleApiError } from "@/lib/api";
+import { AppError } from "@/lib/errors";
+import { getOrderAccessToken } from "@/lib/order-access";
+import { getCustomerOrder } from "@/server/services/orders";
+
+
+/**
+ * GET /api/public/orders/[code]
+ * Detail pesanan untuk halaman lacak customer. Butuh accessToken.
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  try {
+    const { code } = await params;
+    const token = getOrderAccessToken(req, code);
+    if (!token) {
+      throw new AppError("UNAUTHORIZED", "Kode akses pesanan diperlukan", 401);
+    }
+
+    const order = await getCustomerOrder(code, token);
+    return NextResponse.json(order);
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
