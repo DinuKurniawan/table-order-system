@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -311,17 +312,19 @@ export function AdminShell({ user, children }: AdminShellProps) {
                 align="end"
                 className="w-56 rounded-2xl border-border bg-surface p-2 shadow-pop"
               >
-                <DropdownMenuLabel className="px-2 py-1.5">
-                  <div className="text-xs font-bold text-text-strong">
-                    {user.name}
-                  </div>
-                  <div className="text-[11px] text-text-muted">
-                    @{user.username}
-                  </div>
-                  <Badge className="mt-1.5 bg-primary-50 text-primary-800 border-none text-[10px] font-medium">
-                    Super Admin
-                  </Badge>
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="px-2 py-1.5">
+                    <div className="text-xs font-bold text-text-strong">
+                      {user.name}
+                    </div>
+                    <div className="text-[11px] text-text-muted">
+                      @{user.username}
+                    </div>
+                    <Badge className="mt-1.5 bg-primary-50 text-primary-800 border-none text-[10px] font-medium">
+                      Super Admin
+                    </Badge>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator className="my-1.5" />
 
                 <DropdownMenuItem
