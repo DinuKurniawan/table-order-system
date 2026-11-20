@@ -28,17 +28,17 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   5. Token akses baru diturunkan dari `Idempotency-Key` + `SESSION_SECRET`; rotasi
      `SESSION_SECRET` membuat replay idempotensi lama mengembalikan token yang tidak cocok.
 
-- **SEC-04 (2026-11-20).** CSP dibuat di `src/proxy.ts` dengan nonce per permintaan dan
-  `script-src 'strict-dynamic'` tanpa `'unsafe-inline'`. Origin R2 dibatasi dari env
+- **SEC-04 + N-02 (2026-11-20).** CSP dibuat di `src/proxy.ts` dan **ditegakkan**
+  (`Content-Security-Policy`, bukan Report-Only). Origin R2 dibatasi dari env
   (`R2_PUBLIC_BASE_URL` + `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`), bukan wildcard.
   `style-src 'unsafe-inline'` diterima karena Tailwind/Recharts/komponen UI menulis style inline.
-  **Status: Report-Only secara default.** Dengan Cache Components, shell halaman PPR
-  (`/order/[code]`, `/cashier/orders/[id]`, dll.) diprerender saat build sehingga skripnya
-  tidak bisa membawa nonce per permintaan; `'strict-dynamic'` akan memblokir skrip tersebut.
-  `CSP_ENFORCE=true` menyalakan penegakan (hanya aman setelah prerender statis/PPR dimatikan
-  atau nonce bisa diterapkan ke shell). `CSP_REPORT_ONLY=true` memaksa Report-Only walau
-  enforcement aktif. `/api/cron` tanpa Origin tetap diizinkan, dan redirect dini dari proxy
-  tidak membawa header CSP karena tidak merender HTML.
+  **Nonce tidak dipakai:** shell halaman PPR (`/order/[code]`, `/m/[token]`, dll.) diprerender
+  saat build tanpa nonce, sehingga `'strict-dynamic'` akan memblokir bootstrap Next. Karena itu
+  `script-src 'self' 'unsafe-inline'` (tanpa `'strict-dynamic'`): skrip dari origin luar tetap
+  diblokir, tetapi XSS inline belum dimitigasi. Peningkatan berikutnya: nonce/hash hanya bisa
+  dipakai bila prerender statis/PPR dimatikan. `CSP_ENFORCE=false` atau `CSP_REPORT_ONLY=true`
+  mengembalikan Report-Only untuk darurat/uji. `/api/cron` tanpa Origin tetap diizinkan, dan
+  redirect dini dari proxy tidak membawa header CSP karena tidak merender HTML.
 
 - **SEC-10 (2026-11-20).** `R2_BUCKET_PRIVATE` wajib berbeda dari `R2_BUCKET_PUBLIC`.
   `GET /api/health` menguji objek probe tanpa tanda tangan ke endpoint storage privat;

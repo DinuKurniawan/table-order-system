@@ -313,7 +313,7 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-01 | Tinggi | Selesai | `152ab8f` |
 | SEC-02 | Sedang | Selesai | `0845730` |
 | SEC-03 | Sedang | Selesai | `624f976` |
-| SEC-04 | Sedang | Selesai (Report-Only default) | `76f282b` |
+| SEC-04 | Sedang | Selesai (CSP ditegakkan; nonce belum) | `76f282b` |
 | SEC-05 | Sedang | Selesai | `b81f513` |
 | SEC-06 | Rendah | Selesai | `a5f7e88` |
 | SEC-07 | Rendah | Selesai | `e8ab300` |
@@ -340,7 +340,7 @@ Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan men
 | SEC-01 | Terverifikasi | Seed tanpa `SEED_ADMIN_*` gagal; policy password production menolak placeholder; `mustChangePassword: true`; README/.env.example tanpa kredensial default. |
 | SEC-02 | Terverifikasi | `KNOWN_EXAMPLE_SECRETS` + `hasLowEntropy` menolak di production; tidak ada fallback secret (`requireSessionSecret` fail-closed). |
 | SEC-03 | Terverifikasi | Login memakai hash dummy saat user tidak ada; username/password dibatasi; respons gagal seragam. |
-| SEC-04 | Terverifikasi dengan catatan | `script-src` tanpa `'unsafe-inline'`, nonce per request, origin R2 eksplisit; header diperiksa via `curl`. **Default Report-Only** karena shell PPR tanpa nonce — belum menegakkan XSS sampai `CSP_ENFORCE=true` layak. |
+| SEC-04 | Terverifikasi dengan catatan | CSP **ditegakkan** default; `script-src 'self' 'unsafe-inline'` (tanpa nonce/strict-dynamic) karena shell PPR diprerender tanpa nonce; origin R2 eksplisit, `object-src`/`base-uri`/`frame-ancestors`/`form-action` ketat. XSS inline belum dimitigasi sampai nonce/hash bisa dipakai (perlu PPR dimatikan). |
 | SEC-05 | Terverifikasi | Rate limit 30/60s per IP + 60/60s per user; payload meja hanya `{productId, available}`. |
 | SEC-06 | Terverifikasi | Kode `ORD-YYMMDD-` + 8 base32; 404 seragam untuk kode/token salah; tes collision hijau. |
 | SEC-07 | Terverifikasi | `CRON_SECRET` ≥32 di production; perbandingan memakai HMAC `timingSafeEqual`. |
@@ -359,10 +359,10 @@ Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan men
 | ID | Tingkat | Temuan | Rekomendasi |
 |---|---|---|---|
 | N-01 | ~~Rendah~~ **Selesai** | Tiga route multipart (`/api/upload/image`, `/api/admin/finance/attachment`, `/api/public/orders/[code]/payment`) kini memakai `readFormData` yang menghitung byte saat stream dan menolak `413` sebelum `formData()` membuffer body; tes `tests/multipart-limit.test.ts` mencakup Content-Length palsu. | — |
-| N-02 | Informasi | CSP masih Report-Only default (SEC-04). | Aktifkan `CSP_ENFORCE=true` setelah shell PPR bisa membawa nonce atau prerender dimatikan. |
+| N-02 | ~~Informasi~~ **Selesai** | CSP kini ditegakkan default (`Content-Security-Policy`), `script-src 'self' 'unsafe-inline'` tanpa nonce/strict-dynamic agar shell PPR tetap jalan. `CSP_ENFORCE=false`/`CSP_REPORT_ONLY=true` tetap tersedia untuk darurat. | Nonce/hash hanya bisa ditambahkan bila prerender PPR dimatikan. |
 | N-03 | Informasi | Pesanan lama/demo masih menyimpan `accessToken` plaintext; fallback kompatibilitas masih aktif. | Jalankan `scripts/backfill-access-token-hash.ts` di produksi lalu eksekusi migrasi contract. |
 | N-04 | Informasi | `/api/health` tidak mengirim `Cache-Control`. | Tambahkan `no-store` bila endpoint diekspos publik. |
 | N-05 | Informasi | Fallback IP berbasis User-Agent/Accept-Language dapat dirotasi penyerang bila `TRUSTED_PROXY` salah konfigurasi. | Produksi wajib konfigurasi eksplisit (sudah ditegakkan); pantau `unknownIpRequests` di health. |
 
 **Kesimpulan:** seluruh SEC-01…SEC-16 terverifikasi; tidak ada regresi pada auth, orders, realtime, proxy, maupun env.
-Sisa risiko bersifat terdokumentasi (CSP Report-Only, backfill/contract SEC-09, health cache, fallback IP).
+Sisa risiko bersifat terdokumentasi (CSP tanpa nonce, backfill/contract SEC-09, health cache, fallback IP).

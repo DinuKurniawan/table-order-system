@@ -7,11 +7,11 @@ import { sessionCookieName } from "@/lib/session-cookie";
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
- * SEC-04: dengan Cache Components, shell halaman partial-prerender (mis.
- * /order/[code], /cashier/orders/[id]) dibuat saat build sehingga skripnya
- * tidak bisa diberi nonce per permintaan; 'strict-dynamic' akan memblokirnya.
- * Karena itu default produksi Report-Only. Set CSP_ENFORCE=true setelah
- * prerender statis/PPR dimatikan atau nonce bisa diterapkan ke shell.
+ * N-02: CSP ditegakkan secara default (`Content-Security-Policy`), bukan
+ * Report-Only. Nonce tidak dipakai karena shell PPR/prerender dibuat saat
+ * build tanpa nonce; `script-src 'self' 'unsafe-inline'` membuat skrip
+ * framework tetap jalan sementara origin skrip luar tetap diblokir.
+ * `CSP_ENFORCE=false` atau `CSP_REPORT_ONLY=true` mengembalikan Report-Only.
  */
 
 function originOf(value: string | undefined): string | null {
@@ -24,11 +24,12 @@ function originOf(value: string | undefined): string | null {
 }
 
 /**
- * SEC-04: CSP nonce per permintaan. `script-src` tanpa 'unsafe-inline';
- * nonce diteruskan ke Next.js lewat header request agar skrip framework
- * ikut ditandai nonce (lihat docs/01-app/02-guides/content-security-policy).
+ * SEC-04 + N-02: CSP yang ditegakkan. Nonce per permintaan tidak kompatibel
+ * dengan shell PPR yang diprerender (skripnya tidak membawa nonce), jadi
+ * `script-src` memakai 'self' + 'unsafe-inline' dan bukan 'strict-dynamic'.
+ * Origin skrip/connect/img tetap dibatasi secara eksplisit.
  */
-function buildCsp(nonce: string, reportOnly: boolean): string {
+function buildCsp(reportOnly: boolean): string {
   const isDev = process.env.NODE_ENV === "development";
   const cluster =
     process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? process.env.PUSHER_CLUSTER;
@@ -64,7 +65,7 @@ function buildCsp(nonce: string, reportOnly: boolean): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src ${img.join(" ")}`,
     "font-src 'self' data:",
@@ -108,11 +109,10 @@ export function isSameOrigin(req: NextRequest): boolean {
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const reportOnly =
     process.env.CSP_REPORT_ONLY === "true" ||
-    process.env.CSP_ENFORCE !== "true";
-  const csp = buildCsp(nonce, reportOnly);
+    process.env.CSP_ENFORCE === "false";
+  const csp = buildCsp(reportOnly);
   const cspHeaderName = reportOnly
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
@@ -210,7 +210,6 @@ export async function proxy(req: NextRequest) {
   }
 
   const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({
