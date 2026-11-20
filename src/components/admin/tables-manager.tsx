@@ -13,6 +13,7 @@ import {
   X,
   Copy,
   Eye,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,16 @@ export function AdminTablesPage() {
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["tables"] });
+
+  const deleteMutation = useMutation({
+    mutationFn: (table: TableRow) =>
+      api(`/api/admin/tables/${table.id}`, { method: "DELETE" }),
+    onSuccess: (_data, table) => {
+      toast.success(`Meja "${table.name}" dihapus`);
+      refresh();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   return (
     <div className="space-y-6">
@@ -158,6 +169,25 @@ export function AdminTablesPage() {
                           onClick={() => window.open(`/api/admin/tables/${table.id}/qr?format=svg&download=1`, "_blank")}
                         >
                           <Copy className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Hapus meja"
+                          title="Hapus meja & barcode"
+                          disabled={deleteMutation.isPending && deleteMutation.variables?.id === table.id}
+                          className="ml-auto text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm(`Hapus meja "${table.name}"? Barcode/QR meja ini langsung tidak berlaku dan tidak bisa dikembalikan.`)) {
+                              deleteMutation.mutate(table);
+                            }
+                          }}
+                        >
+                          {deleteMutation.isPending && deleteMutation.variables?.id === table.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-3.5" />
+                          )}
                         </Button>
                       </div>
                     </div>
