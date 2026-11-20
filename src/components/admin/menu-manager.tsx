@@ -44,6 +44,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { TableSkeleton } from "@/components/admin/table-skeleton";
 import { ImageUploader } from "@/components/image-uploader";
 import { formatRupiah, cn } from "@/lib/utils";
+import type { SizePrices } from "@/lib/size-pricing";
 import {
   productFormSchema,
   ProductFormValues,
@@ -65,7 +66,7 @@ interface ProductDTO {
   name: string;
   description: string | null;
   price: number;
-  sizePrices: { LARGE?: number; JUMBO?: number } | null;
+  sizePrices: SizePrices | null;
   imageKey: string | null;
   thumbKey: string | null;
   imageUrl: string | null;

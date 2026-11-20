@@ -148,11 +148,12 @@ export async function listProducts(
   };
 }
 
-async function assertCategoryExists(categoryId: string): Promise<void> {
+async function assertCategoryExists(categoryId: string) {
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
   if (!category) {
     throw new AppError("VALIDATION_ERROR", "Kategori yang dipilih tidak ditemukan", 400);
   }
+  return category;
 }
 
 export async function createProduct(
@@ -160,7 +161,14 @@ export async function createProduct(
   userId: string
 ): Promise<ProductDTO> {
   const data = productCreateSchema.parse(input);
-  await assertCategoryExists(data.categoryId);
+  const category = await assertCategoryExists(data.categoryId);
+  if (data.sizePrices && category.type !== "DRINK") {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Harga size hanya untuk kategori minuman",
+      400
+    );
+  }
 
   const created = await runInTransaction(async (tx) => {
     const product = await tx.product.create({
@@ -238,8 +246,15 @@ export async function updateProduct(
     throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
   }
 
-  if (data.categoryId) {
-    await assertCategoryExists(data.categoryId);
+  const nextCategory = data.categoryId
+    ? await assertCategoryExists(data.categoryId)
+    : current.category;
+  if (data.sizePrices && nextCategory.type !== "DRINK") {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Harga size hanya untuk kategori minuman",
+      400
+    );
   }
 
   const updated = await runInTransaction(async (tx) => {

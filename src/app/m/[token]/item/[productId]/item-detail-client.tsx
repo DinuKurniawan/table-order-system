@@ -49,7 +49,10 @@ export function ItemDetailClient({
   const isDrink = product.category?.type === "DRINK";
   const maxQty = product.trackStock ? Math.max(0, product.stock) : 99;
   const soldOut = maxQty <= 0;
-  const currentQty = cart[product.id]?.quantity ?? 0;
+  // Jumlah di keranjang dihitung lintas varian size/suhu produk yang sama.
+  const currentQty = Object.values(cart)
+    .filter((item) => item.productId === product.id)
+    .reduce((sum, item) => sum + item.quantity, 0);
   const remaining = Math.max(0, maxQty - currentQty);
   const totalItems = Object.values(cart).reduce(
     (sum, item) => sum + item.quantity,

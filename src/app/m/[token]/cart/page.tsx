@@ -46,8 +46,8 @@ function CartContent() {
   // ============================================================
   // Fetch order summary - items from cart
   // ============================================================
-  const itemEntries = Object.entries(items).map(([key, item]) => ({
-    key,
+  const itemEntries = Object.entries(items).map(([cartKey, item]) => ({
+    cartKey,
     ...item,
   }));
 
@@ -67,7 +67,7 @@ function CartContent() {
   const [generalNote, setGeneralNote] = useState("");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
-    key: string;
+    cartKey: string;
     name: string;
   } | null>(null);
   const swipeRef = useRef<{
@@ -313,18 +313,29 @@ function CartContent() {
         <div className="mt-2 space-y-3">
           {itemEntries.map((item) => {
             const label = item.name ?? item.productName ?? "Produk";
-            const isOpen = openItemId === item.key;
+            const variant =
+              item.drink === true
+                ? [
+                    item.size === "LARGE"
+                      ? "Large"
+                      : item.size === "JUMBO"
+                        ? "Jumbo"
+                        : "Reguler",
+                    item.temperature === "HOT" ? "Hot" : "Ice",
+                  ].join(" · ")
+                : null;
+            const isOpen = openItemId === item.cartKey;
             return (
               <div
-                key={item.key}
+                key={item.cartKey}
                 className="relative overflow-hidden rounded border"
               >
                 <button
                   type="button"
                   aria-label={`Hapus ${label}`}
-                  onFocus={() => setOpenItemId(item.key)}
+                  onFocus={() => setOpenItemId(item.cartKey)}
                   onClick={() =>
-                    setPendingDelete({ key: item.key, name: label })
+                    setPendingDelete({ cartKey: item.cartKey, name: label })
                   }
                   className="absolute inset-y-0 right-0 flex w-16 items-center justify-center bg-destructive text-white transition-colors hover:bg-destructive/90"
                 >
@@ -337,7 +348,7 @@ function CartContent() {
                   }}
                   onPointerDown={(event) => {
                     swipeRef.current = {
-                      id: item.key,
+                      id: item.cartKey,
                       startX: event.clientX,
                       startY: event.clientY,
                       dx: 0,
@@ -345,7 +356,7 @@ function CartContent() {
                   }}
                   onPointerMove={(event) => {
                     const swipe = swipeRef.current;
-                    if (!swipe || swipe.id !== item.key) return;
+                    if (!swipe || swipe.id !== item.cartKey) return;
                     const dx = event.clientX - swipe.startX;
                     const dy = event.clientY - swipe.startY;
                     // Gerakan vertikal = scroll halaman, bukan geser item.
@@ -353,12 +364,12 @@ function CartContent() {
                   }}
                   onPointerUp={() => {
                     const swipe = swipeRef.current;
-                    if (!swipe || swipe.id !== item.key) return;
+                    if (!swipe || swipe.id !== item.cartKey) return;
                     swipeRef.current = null;
-                    if (swipe.dx <= -40) setOpenItemId(item.key);
+                    if (swipe.dx <= -40) setOpenItemId(item.cartKey);
                     else if (swipe.dx >= 40)
                       setOpenItemId((current) =>
-                        current === item.key ? null : current
+                        current === item.cartKey ? null : current
                       );
                     else if (isOpen) setOpenItemId(null);
                   }}
@@ -381,7 +392,14 @@ function CartContent() {
                           <Coffee aria-hidden="true" className="size-5 text-text-muted/60" />
                         </div>
                       )}
-                      <span className="min-w-0 truncate font-medium">{label}</span>
+                      <div className="min-w-0">
+                        <span className="block truncate font-medium">{label}</span>
+                        {variant && (
+                          <span className="block text-xs text-text-muted">
+                            {variant}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
@@ -391,8 +409,8 @@ function CartContent() {
                         aria-label={`Kurangi ${label}`}
                         onClick={() => setItems((prev) => {
                           const newItems = { ...prev };
-                          if (newItems[item.key].quantity > 1) {
-                            newItems[item.key].quantity -= 1;
+                          if (newItems[item.cartKey].quantity > 1) {
+                            newItems[item.cartKey].quantity -= 1;
                           }
                           return newItems;
                         })}
@@ -410,9 +428,9 @@ function CartContent() {
                         aria-label={`Tambah ${label}`}
                         onClick={() => setItems((prev) => {
                           const newItems = { ...prev };
-                          newItems[item.key] = {
-                            ...newItems[item.key],
-                            quantity: newItems[item.key].quantity + 1,
+                          newItems[item.cartKey] = {
+                            ...newItems[item.cartKey],
+                            quantity: newItems[item.cartKey].quantity + 1,
                           };
                           return newItems;
                         })}
@@ -434,16 +452,16 @@ function CartContent() {
                     >
                       <div>
                         <label
-                          htmlFor={`sugar-${item.key}`}
+                          htmlFor={`sugar-${item.cartKey}`}
                           className="text-xs font-medium text-text-muted"
                         >
                           Gula
                         </label>
                         <select
-                          id={`sugar-${item.key}`}
+                          id={`sugar-${item.cartKey}`}
                           value={item.sugar ?? "REGULER"}
                           onChange={(event) =>
-                            setItemOption(item.key, {
+                            setItemOption(item.cartKey, {
                               sugar: event.target.value as SugarLevel,
                             })
                           }
@@ -457,16 +475,16 @@ function CartContent() {
                       {item.temperature !== "HOT" && (
                         <div>
                           <label
-                            htmlFor={`ice-${item.key}`}
+                            htmlFor={`ice-${item.cartKey}`}
                             className="text-xs font-medium text-text-muted"
                           >
                             Es batu
                           </label>
                           <select
-                            id={`ice-${item.key}`}
+                            id={`ice-${item.cartKey}`}
                             value={item.ice ?? "REGULER"}
                             onChange={(event) =>
-                              setItemOption(item.key, {
+                              setItemOption(item.cartKey, {
                                 ice: event.target.value as IceLevel,
                               })
                             }
@@ -546,7 +564,7 @@ function CartContent() {
               </Button>
               <Button
                 type="button"
-                onClick={() => removeItem(pendingDelete.key)}
+                onClick={() => removeItem(pendingDelete.cartKey)}
                 className="h-11 flex-1 rounded-xl bg-destructive text-white hover:bg-destructive/90"
               >
                 Hapus

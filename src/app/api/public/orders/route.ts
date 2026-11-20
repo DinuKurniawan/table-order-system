@@ -56,19 +56,6 @@ const orderSchema = z
       )
       .min(1, "Pesanan minimal berisi 1 item")
       .max(50, "Maksimal 50 item per pesanan"),
-  })
-  .superRefine((value, ctx) => {
-    const seen = new Set<string>();
-    value.items.forEach((item, index) => {
-      if (seen.has(item.productId)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["items", index, "productId"],
-          message: "Produk duplikat dalam satu pesanan",
-        });
-      }
-      seen.add(item.productId);
-    });
   });
 
 interface CreatedOrder {
@@ -77,9 +64,15 @@ interface CreatedOrder {
 }
 
 function unitPriceFor(
-  product: { price: number; sizePrices: Prisma.JsonValue | null },
+  product: {
+    price: number;
+    sizePrices: Prisma.JsonValue | null;
+    category: { type: string };
+  },
   size: CupSize | undefined
 ): number {
+  // Harga size hanya berlaku untuk minuman; produk makanan selalu harga dasar.
+  if (product.category.type !== "DRINK") return product.price;
   return priceForSize(product.price, parseSizePrices(product.sizePrices), size);
 }
 
@@ -174,9 +167,13 @@ export async function POST(req: Request) {
         deletedAt: null,
         isActive: true,
       },
+      include: { category: { select: { type: true } } },
     });
     const productMap = new Map(products.map((product) => [product.id, product]));
 
+    // Varian size/suhu boleh dikirim sebagai baris terpisah, jadi stok dicek
+    // dari total quantity per produk, bukan per baris.
+    const requiredQty = new Map<string, number>();
     for (const item of items) {
       const product = productMap.get(item.productId);
       if (!product) {
@@ -186,7 +183,17 @@ export async function POST(req: Request) {
           400
         );
       }
-      if (product.trackStock && product.stock < item.quantity) {
+      if (item.size && product.category.type !== "DRINK") {
+        throw new AppError("VALIDATION_ERROR", "Size hanya untuk minuman", 400);
+      }
+      requiredQty.set(
+        item.productId,
+        (requiredQty.get(item.productId) ?? 0) + item.quantity
+      );
+    }
+    for (const [productId, quantity] of requiredQty) {
+      const product = productMap.get(productId)!;
+      if (product.trackStock && product.stock < quantity) {
         throw new AppError(
           "STOCK_INSUFFICIENT",
           `Stok tidak cukup untuk produk ${product.name}`,
@@ -195,10 +202,15 @@ export async function POST(req: Request) {
       }
     }
 
-    const subtotal = items.reduce((sum, item) => {
-      const product = productMap.get(item.productId);
-      return sum + (product ? unitPriceFor(product, item.size) : 0) * item.quantity;
-    }, 0);
+    // Harga per baris dihitung sekali dari data server, dipakai untuk subtotal
+    // dan priceSnapshot agar tidak ada jalur harga yang berbeda.
+    const linePrices = items.map((item) =>
+      unitPriceFor(productMap.get(item.productId)!, item.size)
+    );
+    const subtotal = items.reduce(
+      (sum, item, index) => sum + linePrices[index] * item.quantity,
+      0
+    );
     const total = subtotal;
 
     const now = new Date();
@@ -242,18 +254,12 @@ export async function POST(req: Request) {
               subtotal,
               total,
               items: {
-                create: items.map((item) => ({
+                create: items.map((item, index) => ({
                   productId: item.productId,
                   quantity: item.quantity,
                   note: item.note || null,
-                  nameSnapshot: productMap.get(item.productId)?.name ?? "",
-                  priceSnapshot: unitPriceFor(
-                    productMap.get(item.productId) ?? {
-                      price: 0,
-                      sizePrices: null,
-                    },
-                    item.size
-                  ),
+                  nameSnapshot: productMap.get(item.productId)!.name,
+                  priceSnapshot: linePrices[index],
                 })),
               },
             },
