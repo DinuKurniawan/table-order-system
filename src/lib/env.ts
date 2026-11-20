@@ -32,16 +32,27 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_PUSHER_CLUSTER: z.string().min(1, "NEXT_PUBLIC_PUSHER_CLUSTER wajib diisi"),
 });
 
-const mergedEnvSchema = serverEnvSchema.merge(clientEnvSchema);
+const mergedEnvSchema = serverEnvSchema
+  .merge(clientEnvSchema)
+  .superRefine((value, ctx) => {
+    if (value.R2_BUCKET_PRIVATE === value.R2_BUCKET_PUBLIC) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["R2_BUCKET_PRIVATE"],
+        message:
+          "R2_BUCKET_PRIVATE tidak boleh sama dengan R2_BUCKET_PUBLIC (SEC-10)",
+      });
+    }
+  });
 
 export type Env = z.infer<typeof mergedEnvSchema>;
 
-function validateEnv(): Env {
-  if (process.env.SKIP_ENV_VALIDATION === "true" || process.env.SKIP_ENV_VALIDATION === "1") {
-    return process.env as unknown as Env;
+export function validateEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  if (source.SKIP_ENV_VALIDATION === "true" || source.SKIP_ENV_VALIDATION === "1") {
+    return source as unknown as Env;
   }
 
-  const parsed = mergedEnvSchema.safeParse(process.env);
+  const parsed = mergedEnvSchema.safeParse(source);
 
   if (!parsed.success) {
     const formattedErrors = parsed.error.issues

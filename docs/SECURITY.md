@@ -39,3 +39,10 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   atau nonce bisa diterapkan ke shell). `CSP_REPORT_ONLY=true` memaksa Report-Only walau
   enforcement aktif. `/api/cron` tanpa Origin tetap diizinkan, dan redirect dini dari proxy
   tidak membawa header CSP karena tidak merender HTML.
+
+- **SEC-10 (2026-11-20).** `R2_BUCKET_PRIVATE` wajib berbeda dari `R2_BUCKET_PUBLIC`.
+  `GET /api/health` menguji objek probe tanpa tanda tangan ke endpoint storage privat;
+  status 403/404 = lulus, status lain = gagal, error jaringan = `skipped`.
+  Bila CI/staging tidak punya akses keluar, jalankan manual:
+  `curl -I https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com/<R2_BUCKET_PRIVATE>/probe`
+  dan pastikan 403/404.
