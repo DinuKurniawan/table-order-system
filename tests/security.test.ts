@@ -303,7 +303,9 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       assert.ok(rules && rules.length > 0, "Harus ada aturan header");
 
       const headers = new Map(
-        rules[0].headers.map((header) => [header.key, header.value])
+        rules
+          .flatMap((rule) => rule.headers)
+          .map((header) => [header.key, header.value])
       );
       // SEC-04: CSP dibuat per permintaan di src/proxy.ts (tests/csp.test.ts).
       assert.equal(headers.get("X-Content-Type-Options"), "nosniff");
