@@ -42,6 +42,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
     `order:table:palsu-${stamp}`,
     `login:${testIp}:security-${stamp}`,
     `login-ip:${testIp}`,
+    "order-get:unknown",
     `menu:${testIp}`,
   ];
 
