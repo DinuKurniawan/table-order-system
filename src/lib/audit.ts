@@ -33,6 +33,9 @@ export function describeAudit(
   if (action === "auth.login_failed") {
     return `Login gagal: ${username ?? "pengguna"}`;
   }
+  if (action === "auth.password_changed") {
+    return `Password diubah: ${username ?? "pengguna"}`;
+  }
   if (action === "payment.upload") {
     return `Bukti pembayaran pesanan ${code ?? ""} diunggah`.trim();
   }

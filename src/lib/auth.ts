@@ -76,6 +76,13 @@ export function authorizeRole(
     );
   }
 
+  if (user.mustChangePassword) {
+    throw new AuthError(
+      "PASSWORD_CHANGE_REQUIRED",
+      "Anda wajib mengganti password sebelum mengakses fitur lain."
+    );
+  }
+
   if (!allowedRoles.includes(user.role)) {
     throw new AuthError(
       "FORBIDDEN",

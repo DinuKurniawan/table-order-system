@@ -9,6 +9,7 @@ interface TokenPayload {
   sub: string;
   role: string;
   tokenVersion: number;
+  mustChangePassword?: boolean;
 }
 
 /**
@@ -61,6 +62,7 @@ export async function proxy(req: NextRequest) {
           sub: payload.sub,
           role: payload.role as string,
           tokenVersion: payload.tokenVersion,
+          mustChangePassword: payload.mustChangePassword === true,
         };
       }
     } catch {
@@ -71,11 +73,34 @@ export async function proxy(req: NextRequest) {
   const isLoginPage = pathname === "/login";
   const isAdminPath = pathname.startsWith("/admin");
   const isCashierPath = pathname.startsWith("/cashier");
+  const isChangePasswordPath = pathname === "/change-password";
 
   // Jika sudah login dan mencoba mengakses /login, redirect ke dashboard yang sesuai
   if (isLoginPage && session) {
-    const targetUrl = session.role === "SUPER_ADMIN" ? "/admin" : "/cashier";
+    const targetUrl = session.mustChangePassword
+      ? "/change-password"
+      : session.role === "SUPER_ADMIN"
+        ? "/admin"
+        : "/cashier";
     return NextResponse.redirect(new URL(targetUrl, req.url));
+  }
+
+  // SEC-01: sesi dengan password awal hanya boleh membuka /change-password.
+  if (session?.mustChangePassword && (isAdminPath || isCashierPath)) {
+    return NextResponse.redirect(new URL("/change-password", req.url));
+  }
+
+  if (isChangePasswordPath) {
+    if (!session) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (!session.mustChangePassword) {
+      return NextResponse.redirect(
+        new URL(session.role === "SUPER_ADMIN" ? "/admin" : "/cashier", req.url)
+      );
+    }
   }
 
   // Lindungi rute /admin (hanya SUPER_ADMIN)
@@ -113,6 +138,7 @@ export const config = {
     "/admin/:path*",
     "/cashier/:path*",
     "/login",
+    "/change-password",
     "/api/:path*",
   ],
 };

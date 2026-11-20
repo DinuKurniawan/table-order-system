@@ -61,6 +61,7 @@ describe("auth", () => {
       role: "CASHIER",
       isActive: true,
       tokenVersion: 1,
+      mustChangePassword: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as SafeUser;

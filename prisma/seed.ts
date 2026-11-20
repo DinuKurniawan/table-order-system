@@ -1,15 +1,41 @@
 import { PrismaClient, CategoryType, DrinkSubtype, Role, StockMoveType } from "@prisma/client";
 import * as argon2 from "argon2";
 import { nanoid } from "nanoid";
+import { passwordPolicyError } from "../src/lib/password-policy";
 
 const prisma = new PrismaClient();
+
+/**
+ * SEC-01: tidak ada kredensial fallback. Seed wajib diberi kredensial eksplisit
+ * dan menolak password contoh/lemah.
+ */
+function requireSeedCredentials(): { username: string; password: string } {
+  const username = process.env.SEED_ADMIN_USERNAME?.trim();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!username || !password) {
+    throw new Error(
+      "SEED_ADMIN_USERNAME dan SEED_ADMIN_PASSWORD wajib diisi. Tidak ada lagi kredensial default; lihat README bagian Akun Awal."
+    );
+  }
+
+  const policyError = passwordPolicyError(password, {
+    username,
+    production: process.env.NODE_ENV === "production",
+  });
+  if (policyError) {
+    throw new Error(`SEED_ADMIN_PASSWORD ditolak: ${policyError}`);
+  }
+
+  return { username, password };
+}
 
 async function main() {
   console.log("🌱 Memulai proses seeding database...");
 
   // 1. Super Admin
-  const adminUsername = process.env.SEED_ADMIN_USERNAME || "admin";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "Admin123456!";
+  const { username: adminUsername, password: adminPassword } =
+    requireSeedCredentials();
   const passwordHash = await argon2.hash(adminPassword);
 
   const superAdmin = await prisma.user.upsert({
@@ -25,6 +51,8 @@ async function main() {
       passwordHash,
       role: Role.SUPER_ADMIN,
       isActive: true,
+      // Hanya akun baru wajib ganti sandi; seed ulang tidak mengunci admin aktif.
+      mustChangePassword: true,
     },
   });
   console.log(`✅ Super Admin siap: ${superAdmin.username}`);

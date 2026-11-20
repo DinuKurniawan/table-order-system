@@ -123,12 +123,17 @@ export async function POST(req: NextRequest) {
       logger.error("Gagal mencatat audit login", auditErr);
     }
 
-    const redirectUrl = user.role === Role.SUPER_ADMIN ? "/admin" : "/cashier";
+    const redirectUrl = user.mustChangePassword
+      ? "/change-password"
+      : user.role === Role.SUPER_ADMIN
+        ? "/admin"
+        : "/cashier";
 
     const response = NextResponse.json({
       success: true,
       message: "Login berhasil",
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
       redirectUrl,
     });
 
@@ -138,6 +143,7 @@ export async function POST(req: NextRequest) {
         sub: user.id,
         role: user.role,
         tokenVersion: user.tokenVersion,
+        mustChangePassword: user.mustChangePassword,
       },
       response
     );

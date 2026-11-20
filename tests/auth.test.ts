@@ -147,6 +147,7 @@ test("Auth & RBAC Test Suite", async (t) => {
       role: Role.CASHIER,
       isActive: true,
       tokenVersion: 1,
+      mustChangePassword: false,
       lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -216,7 +217,12 @@ test("Auth & RBAC Test Suite", async (t) => {
       "Audit login tidak boleh memuat password"
     );
 
-    // 2. Login benar Super Admin
+    // 2. Login benar (user uji, bukan kredensial seed)
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: { isActive: true },
+    });
+
     const goodReq = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
       headers: {
@@ -224,21 +230,21 @@ test("Auth & RBAC Test Suite", async (t) => {
         "x-forwarded-for": testIp,
       },
       body: JSON.stringify({
-        username: "admin",
-        password: "Admin123456!",
+        username: testUsername,
+        password: rawPassword,
       }),
     });
     const goodRes = await loginHandler(goodReq);
     assert.equal(goodRes.status, 200);
     const goodJson = await goodRes.json();
     assert.equal(goodJson.success, true);
-    assert.equal(goodJson.role, Role.SUPER_ADMIN);
-    assert.equal(goodJson.redirectUrl, "/admin");
+    assert.equal(goodJson.role, Role.CASHIER);
+    assert.equal(goodJson.redirectUrl, "/cashier");
 
     const loginAudit = await prisma.auditLog.findFirst({
       where: {
         action: "auth.login",
-        meta: { path: ["username"], equals: "admin" },
+        meta: { path: ["username"], equals: testUsername },
       },
     });
     assert.ok(loginAudit, "Login sukses harus tercatat di AuditLog");

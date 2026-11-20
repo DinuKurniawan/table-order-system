@@ -11,6 +11,7 @@ export type AppErrorCode =
   | "INVALID_TRANSITION"
   | "RATE_LIMITED"
   | "UPLOAD_INVALID"
+  | "PASSWORD_CHANGE_REQUIRED"
   | "INTERNAL";
 
 export class AppError extends Error {
@@ -26,7 +27,10 @@ export class AppError extends Error {
 }
 
 export class AuthError extends AppError {
-  constructor(code: "UNAUTHENTICATED" | "FORBIDDEN", message: string) {
+  constructor(
+    code: "UNAUTHENTICATED" | "FORBIDDEN" | "PASSWORD_CHANGE_REQUIRED",
+    message: string
+  ) {
     super(code, message, code === "UNAUTHENTICATED" ? 401 : 403);
     this.name = "AuthError";
   }

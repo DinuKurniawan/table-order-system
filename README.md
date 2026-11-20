@@ -196,12 +196,12 @@ Contoh nilai di bawah adalah nilai palsu. Jangan menyimpan kredensial asli di re
 | `PUSHER_CLUSTER` | Wajib | Cluster Pusher | `ap1` |
 | `NEXT_PUBLIC_PUSHER_KEY` | Wajib | Key Pusher untuk browser | `contoh-pusher-key` |
 | `NEXT_PUBLIC_PUSHER_CLUSTER` | Wajib | Cluster Pusher untuk browser | `ap1` |
-| `SEED_ADMIN_USERNAME` | Opsional | Username Super Admin saat seeder dijalankan (default `admin`) | `admin_kafe` |
-| `SEED_ADMIN_PASSWORD` | Opsional | Password Super Admin saat seeder dijalankan (default `Admin123456!`) | `kata-sandi-kuat-anda` |
+| `SEED_ADMIN_USERNAME` | Wajib saat seed | Username Super Admin; tidak ada default | `admin_kafe` |
+| `SEED_ADMIN_PASSWORD` | Wajib saat seed | Password Super Admin minimal 12 karakter; tidak ada default | hasil `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"` |
 | `R2_FORCE_PATH_STYLE` | Opsional | `true` untuk S3-compatible lokal (S3Mock/CI) yang memakai path-style URL; kosong untuk R2 | `true` |
 | `DISABLE_REALTIME` | Opsional | `true` untuk mematikan Pusher (dipakai E2E/CI) | `true` |
 
-Semua variabel di atas tercantum di `.env.example`. `SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` hanya dipakai saat akun Super Admin dibuat pertama kali.
+Semua variabel di atas tercantum di `.env.example`. `SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` wajib diisi sebelum menjalankan seeder; seeder berhenti bila salah satu kosong.
 
 ### Cron kedaluwarsa pesanan
 
@@ -214,19 +214,29 @@ interval per menit gunakan paket Pro, atau panggil endpoint yang sama dari penja
 
 ## Akun Awal (seed)
 
-1. Tambahkan ke `.env`:
+Seeder tidak lagi memiliki kredensial default. Isi dua variabel berikut di `.env` sebelum menjalankan seed:
 
-   ```env
-   SEED_ADMIN_USERNAME="admin_kafe"
-   SEED_ADMIN_PASSWORD="kata-sandi-kuat-anda"
-   ```
+```env
+SEED_ADMIN_USERNAME="admin_kafe"
+SEED_ADMIN_PASSWORD="<password-acak-minimal-12-karakter>"
+```
 
-2. Jalankan `npm run db:seed`.
-3. Login di `/login` dengan kredensial tersebut. Super Admin diarahkan ke `/admin`, kasir ke `/cashier`.
+Buat password acak:
 
-Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data. Perlu diperhatikan, `prisma/seed.ts` hanya memakai `SEED_ADMIN_PASSWORD` saat akun Super Admin **dibuat pertama kali**; bila akun sudah ada, password lama tidak diubah.
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
+```
 
-> Ganti kata sandi bawaan seeder sebelum dipakai di lingkungan nyata. Jangan menuliskan kata sandi asli di README atau repositori.
+Lalu:
+
+1. Jalankan `npm run db:seed`.
+2. Login di `/login`. Akun Super Admin hasil seed wajib mengganti password di `/change-password`
+   sebelum dapat membuka `/admin` atau endpoint lain.
+3. Setelah password diganti, semua sesi lama otomatis tidak berlaku; login ulang dengan password baru.
+
+Seeder bersifat idempoten: menjalankannya ulang tidak menggandakan data dan tidak mengubah password
+akun yang sudah ada. Password contoh (`Admin123456!`, `password`, `change-me`, dan sejenisnya) ditolak.
+Jangan menuliskan kata sandi asli di README atau repositori.
 
 ---
 

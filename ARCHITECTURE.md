@@ -314,7 +314,7 @@ Catatan platform: `sharp` memakai binary native; pastikan target deploy didukung
 
 ## 9. Penanganan Error
 
-- Kelas `AppError(code, httpStatus, message, details?)` dengan kode stabil: `VALIDATION_ERROR`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `ALREADY_PROCESSED`, `STOCK_INSUFFICIENT`, `ORDER_EXPIRED`, `INVALID_TRANSITION`, `RATE_LIMITED`, `UPLOAD_INVALID`.
+- Kelas `AppError(code, httpStatus, message, details?)` dengan kode stabil: `VALIDATION_ERROR`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `ALREADY_PROCESSED`, `STOCK_INSUFFICIENT`, `ORDER_EXPIRED`, `INVALID_TRANSITION`, `RATE_LIMITED`, `UPLOAD_INVALID`, `PASSWORD_CHANGE_REQUIRED`.
 - Format respons seragam: `{ error: { code, message, fields? } }`; respons sukses `{ data }`.
 - Error tak terduga: dicatat (Sentry) dengan `requestId`, respons generik `INTERNAL`.
 - Klien memetakan kode ke pesan Indonesia yang ramah (lihat DESIGN-SYSTEM bagian copy).

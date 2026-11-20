@@ -11,6 +11,7 @@ export interface SessionPayload {
   sub: string;
   role: Role;
   tokenVersion: number;
+  mustChangePassword?: boolean;
 }
 
 function getJwtSecret(): Uint8Array {
@@ -25,6 +26,7 @@ export async function signSessionToken(payload: SessionPayload): Promise<string>
   return new SignJWT({
     role: payload.role,
     tokenVersion: payload.tokenVersion,
+    mustChangePassword: payload.mustChangePassword === true,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)
@@ -79,6 +81,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       sub: payload.sub,
       role: payload.role as Role,
       tokenVersion: payload.tokenVersion,
+      mustChangePassword: payload.mustChangePassword === true,
     };
   } catch {
     return null;

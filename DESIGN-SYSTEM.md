@@ -341,6 +341,7 @@ Nada: ramah, singkat, sopan, Bahasa Indonesia baku sehari-hari ("Anda"/tanpa kat
 | `INVALID_TRANSITION` | Status pesanan tidak dapat diubah ke tahap ini. |
 | `RATE_LIMITED` | Terlalu banyak percobaan. Coba lagi sebentar lagi. |
 | `UPLOAD_INVALID` | Berkas harus berupa gambar (JPG, PNG, WEBP) maksimal 10 MB. |
+| `PASSWORD_CHANGE_REQUIRED` | Ganti password Anda terlebih dahulu sebelum melanjutkan. |
 | `INTERNAL` | Terjadi kesalahan. Silakan coba lagi. |
 
 **Contoh label:** tombol "Pesan & Bayar", "Kirim Bukti Pembayaran", "Unggah Ulang", "Setuju — Terima Pesanan", "Tolak Pembayaran", "Cetak Pesanan", "Tambah Produk", "Barang Masuk". Status customer: "Menunggu verifikasi kasir…", "Pesanan Anda diterima! Sedang disiapkan.", "Pembayaran ditolak: [alasan]. Silakan unggah ulang bukti yang benar."

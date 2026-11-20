@@ -6,3 +6,18 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Password saat ini wajib diisi"),
+    newPassword: z
+      .string()
+      .min(12, "Password baru minimal 12 karakter")
+      .max(128, "Password baru maksimal 128 karakter"),
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: "Password baru tidak boleh sama dengan password lama",
+    path: ["newPassword"],
+  });
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
