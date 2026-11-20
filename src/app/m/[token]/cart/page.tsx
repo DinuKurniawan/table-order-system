@@ -3,12 +3,13 @@
 import { apiErrorMessage } from "@/lib/api-error";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/admin/section-card";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { parseStoredCart, type CartItems } from "@/lib/cart";
 
 export default function CartPage() {
@@ -208,6 +209,18 @@ function CartContent() {
   return (
     <SectionCard title="Ringkasan Keranjang">
       <div className="p-4">
+        <div className="mb-4">
+          <Button
+            asChild
+            variant="outline"
+            className="h-10 gap-1.5 rounded-xl px-3"
+          >
+            <Link href={`/m/${token}`}>
+              <ArrowLeft className="size-4" />
+              Kembali ke Menu
+            </Link>
+          </Button>
+        </div>
         {/* Form ubah qty dan catatan */}
         <div className="space-y-4">
           <div>
