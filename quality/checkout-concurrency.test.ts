@@ -18,6 +18,7 @@ function payload(tableToken: string, productId: string): RequestInit {
     },
     body: JSON.stringify({
       tableToken,
+      customerName: "Quality Test",
       items: [{ productId, quantity: 1 }],
     }),
   };

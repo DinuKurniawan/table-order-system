@@ -251,6 +251,19 @@ export async function approvePayment(
       );
     }
     if (!order.payments[0]) {
+      // Kasir lain bisa menyetujui di antara dua query di atas. Cek ulang
+      // status agar balapan tetap dilaporkan sebagai ALREADY_PROCESSED.
+      const current = await tx.order.findUnique({
+        where: { id: order.id },
+        select: { status: true },
+      });
+      if (current?.status !== "AWAITING_VERIFICATION") {
+        throw new AppError(
+          "ALREADY_PROCESSED",
+          "Pesanan sudah diproses kasir lain",
+          409
+        );
+      }
       throw new AppError(
         "CONFLICT",
         "Tidak ada bukti pembayaran yang menunggu verifikasi",
