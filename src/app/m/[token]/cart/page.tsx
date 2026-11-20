@@ -3,6 +3,7 @@
 import { apiErrorMessage } from "@/lib/api-error";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,7 +208,21 @@ function CartContent() {
   }
 
   return (
-    <SectionCard title="Ringkasan Keranjang">
+    <SectionCard
+      title={
+        <span className="flex items-center gap-3">
+          <Image
+            src="/logo-selaras.svg"
+            alt=""
+            width={48}
+            height={48}
+            unoptimized
+            className="size-12 shrink-0"
+          />
+          Ringkasan Keranjang
+        </span>
+      }
+    >
       <div className="p-4">
         <div className="mb-4">
           <Button
