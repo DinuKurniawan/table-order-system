@@ -301,3 +301,28 @@ Hasil kunci:
 - `npm audit` (penuh): 2 critical (`vitest`, `tinypool`), 11 moderate, 0 high runtime.
 - `.env` ter-track: hanya `.env.example` dan `.env.test`.
 - Tidak ditemukan secret asli di riwayat git.
+
+---
+
+## 7. Status Perbaikan
+
+Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 117/117 lulus, `build` lulus, `npm audit --omit=dev` → **7 kerentanan (3 high, 4 moderate)** — berbeda dari laporan awal; high berasal dari rantai `prisma` → `@prisma/config` → `effect` (ReDoS).
+
+| ID | Tingkat | Status | Commit |
+|---|---|---|---|
+| SEC-01 | Tinggi | Belum | — |
+| SEC-02 | Sedang | Belum | — |
+| SEC-03 | Sedang | Belum | — |
+| SEC-04 | Sedang | Belum | — |
+| SEC-05 | Sedang | Belum | — |
+| SEC-06 | Rendah | Belum | — |
+| SEC-07 | Rendah | Belum | — |
+| SEC-08 | Rendah | Belum | — |
+| SEC-09 | Rendah | Belum | — |
+| SEC-10 | Rendah | Belum | — |
+| SEC-11 | Rendah | Belum | — |
+| SEC-12 | Rendah | Belum | — |
+| SEC-13 | Rendah | Belum | — |
+| SEC-14 | Informasi | Belum | — |
+| SEC-15 | Informasi | Belum | — |
+| SEC-16 | Informasi | Belum | — |
