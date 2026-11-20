@@ -56,7 +56,9 @@ test("customer pesan, kasir setujui, cetak, status realtime", async ({
     await receipt.waitForLoadState("domcontentloaded");
     expect(receipt.url()).toContain("/print");
     await expect(receipt.locator("body")).toContainText(code);
-    await expect(cashier.getByText("Pembayaran disetujui")).toBeVisible();
+    await expect(
+      cashier.getByRole("main").getByText("Pembayaran disetujui", { exact: true })
+    ).toBeVisible();
 
     // Pusher harus mengubah halaman customer tanpa refresh.
     if (!realtimeEnabled) await customer.reload();
@@ -100,7 +102,9 @@ test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
     await cashier
       .getByRole("button", { name: "Tolak Pembayaran" })
       .click();
-    await expect(cashier.getByText("Pembayaran ditolak")).toBeVisible();
+    await expect(
+      cashier.getByRole("main").getByText("Pembayaran ditolak", { exact: true })
+    ).toBeVisible();
     if (!realtimeEnabled) await customer.reload();
 
     await expect(
@@ -114,7 +118,9 @@ test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
 
     await openCashierOrder(cashier, code);
     await cashier.getByRole("button", { name: "Setuju", exact: true }).click();
-    await expect(cashier.getByText("Pembayaran disetujui")).toBeVisible();
+    await expect(
+      cashier.getByRole("main").getByText("Pembayaran disetujui", { exact: true })
+    ).toBeVisible();
     if (!realtimeEnabled) await customer.reload();
     await expect(customer.getByText("Pembayaran terverifikasi")).toBeVisible({
       timeout: 25_000,
