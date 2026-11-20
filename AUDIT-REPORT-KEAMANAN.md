@@ -327,13 +327,13 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-15 | Informasi | Selesai | `7978acd` |
 | SEC-16 | Informasi | Selesai | `facb8a1` |
 
-Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 171/171 lulus, `test:unit` 10/10 lulus, `build` lulus, `npm audit` 0 kerentanan.
+Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 176/176 lulus, `test:unit` 10/10 lulus, `build` lulus, `npm audit` 0 kerentanan.
 
 ---
 
 ## 8. Re-Audit (2026-11-20, read-only)
 
-Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan menembak server produksi lokal (`npm run build` + `npm start`). Baseline tes: **171/171** (`npm run test`), **10/10** (`npm run test:unit`), `typecheck`/`lint`/`build` lulus, `npm audit` dan `npm audit --omit=dev --audit-level=high` = **0 kerentanan**.
+Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan menembak server produksi lokal (`npm run build` + `npm start`). Baseline tes: **176/176** (`npm run test`), **10/10** (`npm run test:unit`), `typecheck`/`lint`/`build` lulus, `npm audit` dan `npm audit --omit=dev --audit-level=high` = **0 kerentanan**.
 
 | ID | Status re-audit | Bukti / catatan |
 |---|---|---|
@@ -351,18 +351,18 @@ Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan men
 | SEC-12 | Terverifikasi | `vitest` 5.1.1, `shadcn` devDependency, override `effect`/`minimatch`; audit penuh 0. |
 | SEC-13 | Terverifikasi | `TRUSTED_PROXY` wajib eksplisit di production; fallback `unknown:<fingerprint>`; health melaporkan `unknownIpRequests`. |
 | SEC-14 | Terverifikasi | `__Host-session_token` di production (Secure, Path=/, tanpa Domain, httpOnly, Lax); dev/test nama lama; logout stateless. |
-| SEC-15 | Terverifikasi dengan catatan | `readJson` streaming 256 KB / checkout 64 KB; 413 `PAYLOAD_TOO_LARGE` termasuk saat Content-Length dipalsukan. Upload multipart masih memakai batas Content-Length (lihat N-01). |
+| SEC-15 | Terverifikasi | `readJson` streaming 256 KB / checkout 64 KB; 413 `PAYLOAD_TOO_LARGE` termasuk saat Content-Length dipalsukan. Multipart juga streaming (`readFormData`, 12 MB) — N-01 selesai. |
 | SEC-16 | Terverifikasi | Header `Cache-Control` diperiksa via `curl` pada admin, cashier, orders, auth, pusher auth, upload, menu; tes memindai seluruh route handler kelompok sensitif. |
 
 ### Temuan baru (re-audit)
 
 | ID | Tingkat | Temuan | Rekomendasi |
 |---|---|---|---|
-| N-01 | Rendah | Tiga route multipart (`/api/upload/image`, `/api/admin/finance/attachment`, `/api/public/orders/[code]/payment`) memeriksa `Content-Length` lalu memanggil `req.formData()`; header palsu dapat membuat body besar dibuffer sebelum validasi ukuran file. | Batasi byte saat stream multipart atau set batas body di reverse proxy; saat ini dampak dibatasi rate limit + validasi 10 MB setelah buffer. |
+| N-01 | ~~Rendah~~ **Selesai** | Tiga route multipart (`/api/upload/image`, `/api/admin/finance/attachment`, `/api/public/orders/[code]/payment`) kini memakai `readFormData` yang menghitung byte saat stream dan menolak `413` sebelum `formData()` membuffer body; tes `tests/multipart-limit.test.ts` mencakup Content-Length palsu. | — |
 | N-02 | Informasi | CSP masih Report-Only default (SEC-04). | Aktifkan `CSP_ENFORCE=true` setelah shell PPR bisa membawa nonce atau prerender dimatikan. |
 | N-03 | Informasi | Pesanan lama/demo masih menyimpan `accessToken` plaintext; fallback kompatibilitas masih aktif. | Jalankan `scripts/backfill-access-token-hash.ts` di produksi lalu eksekusi migrasi contract. |
 | N-04 | Informasi | `/api/health` tidak mengirim `Cache-Control`. | Tambahkan `no-store` bila endpoint diekspos publik. |
 | N-05 | Informasi | Fallback IP berbasis User-Agent/Accept-Language dapat dirotasi penyerang bila `TRUSTED_PROXY` salah konfigurasi. | Produksi wajib konfigurasi eksplisit (sudah ditegakkan); pantau `unknownIpRequests` di health. |
 
 **Kesimpulan:** seluruh SEC-01…SEC-16 terverifikasi; tidak ada regresi pada auth, orders, realtime, proxy, maupun env.
-Sisa risiko bersifat terdokumentasi (CSP Report-Only, backfill/contract SEC-09, batas multipart, health cache).
+Sisa risiko bersifat terdokumentasi (CSP Report-Only, backfill/contract SEC-09, health cache, fallback IP).

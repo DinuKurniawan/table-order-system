@@ -76,8 +76,9 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
 - **SEC-15 (2026-11-20).** `readJson` membatasi body JSON secara streaming
   (default 256 KB, checkout publik 64 KB). Content-Length yang lebih besar ditolak lebih awal,
   tetapi penghitung byte saat stream tetap menegakkan batas bila header dipalsukan; pelanggaran
-  menghasilkan `413 PAYLOAD_TOO_LARGE`. Upload multipart memakai jalur terpisah dengan batas
-  12 MB (validasi ukuran file 10 MB di `src/lib/image.ts`).
+  menghasilkan `413 PAYLOAD_TOO_LARGE`. Upload multipart juga memakai penghitung byte streaming
+  (`readFormData`, 12 MB) sehingga Content-Length palsu tidak bisa memicu buffer besar; validasi
+  ukuran file 10 MB tetap di `src/lib/image.ts`.
 
 - **SEC-16 (2026-11-20).** Aturan `Cache-Control` terpusat di `next.config.ts`:
   `private, no-store` untuk `/api/admin/*`, `/api/cashier/*`, `/api/public/orders/*`,
