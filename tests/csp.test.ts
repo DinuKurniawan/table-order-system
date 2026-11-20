@@ -70,11 +70,14 @@ test("SEC-04: CSP ditegakkan dengan origin R2 spesifik", async (t) => {
     assert.ok(!scriptSrc.includes("'nonce-"));
     assert.ok(!scriptSrc.includes("'strict-dynamic'"));
 
-    assert.ok(!csp.includes("*"), "CSP tidak boleh memuat wildcard");
     assert.ok(!csp.includes("*.r2.cloudflarestorage.com"));
     assert.ok(
       csp.includes("https://abc123.r2.cloudflarestorage.com"),
       "host R2 akun harus eksplisit"
+    );
+    assert.ok(
+      csp.includes("https://*.abc123.r2.cloudflarestorage.com"),
+      "subdomain bucket R2 (presigned URL) harus diizinkan"
     );
     assert.ok(csp.includes("https://cdn.example.com"));
     assert.ok(csp.includes("wss://ws-ap1.pusher.com"));

@@ -42,12 +42,18 @@ function buildCsp(reportOnly: boolean): string {
     : [];
   const r2Public = originOf(process.env.R2_PUBLIC_BASE_URL);
   const r2AccountId = process.env.R2_ACCOUNT_ID?.trim();
-  const r2Account = r2AccountId
-    ? originOf(r2AccountId) ??
-      (r2AccountId.includes(".")
-        ? `https://${r2AccountId}`
-        : `https://${r2AccountId}.r2.cloudflarestorage.com`)
-    : null;
+  const r2Storage = r2AccountId
+    ? (() => {
+        const explicit = originOf(r2AccountId);
+        if (explicit) return [explicit];
+        const host = r2AccountId.includes(".")
+          ? r2AccountId
+          : `${r2AccountId}.r2.cloudflarestorage.com`;
+        // Presigned URL memakai host per-bucket: <bucket>.<akun>.r2...
+        // Wildcard dibatasi ke akun ini; *.r2.cloudflarestorage.com global tetap dilarang.
+        return [`https://${host}`, `https://*.${host}`];
+      })()
+    : [];
 
   const img = [
     "'self'",
@@ -55,13 +61,13 @@ function buildCsp(reportOnly: boolean): string {
     "blob:",
     ...(r2Public ? [r2Public] : []),
     // Bukti bayar/lampiran privat dibuka lewat presigned URL di <img>.
-    ...(r2Account ? [r2Account] : []),
+    ...r2Storage,
   ];
   const connect = [
     "'self'",
     ...pusher,
     // Direct upload: browser PUT ke endpoint S3 R2 via presigned URL.
-    ...(r2Account ? [r2Account] : []),
+    ...r2Storage,
     ...(isDev ? ["ws://localhost:*", "http://localhost:*"] : []),
   ];
 
