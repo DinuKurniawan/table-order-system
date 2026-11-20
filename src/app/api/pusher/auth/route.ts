@@ -12,6 +12,7 @@ import { accessTokenMatches } from "@/lib/order-token";
 import { logger } from "@/lib/logger";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 import { getClientIp } from "@/lib/client-ip";
+import { findActiveTableByToken } from "@/server/services/tables";
 
 interface AuthBody {
   socket_id?: string;
@@ -99,11 +100,8 @@ export async function POST(req: NextRequest) {
       }
     } else if (channelName.startsWith(CHANNELS.tablePrefix)) {
       const token = channelName.slice(CHANNELS.tablePrefix.length);
-      const table = await prisma.table.findUnique({
-        where: { token },
-        select: { isActive: true },
-      });
-      allowed = Boolean(table?.isActive);
+      // Validasi meja di-cache 60 detik (tag `tables`); lihat tables.ts.
+      allowed = Boolean(await findActiveTableByToken(token));
     }
 
     if (!allowed) {

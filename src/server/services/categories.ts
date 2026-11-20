@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { CategoryType, DrinkSubtype } from "@prisma/client";
@@ -93,6 +94,7 @@ export async function createCategory(
     },
   });
 
+  revalidateTag("menu", { expire: 0 });
   return toDTO(created);
 }
 
@@ -131,6 +133,7 @@ export async function updateCategory(
     },
   });
 
+  revalidateTag("menu", { expire: 0 });
   return toDTO(updated);
 }
 
@@ -163,6 +166,8 @@ export async function deleteCategory(id: string, userId: string): Promise<void> 
       meta: { name: category.name, type: category.type },
     },
   });
+
+  revalidateTag("menu", { expire: 0 });
 }
 
 /**

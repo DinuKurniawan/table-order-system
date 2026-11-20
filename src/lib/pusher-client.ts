@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Pusher from "pusher-js";
+import type Pusher from "pusher-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { REALTIME_EVENTS } from "@/lib/realtime-events";
 import type { RealTimeEvent } from "@/lib/realtime-events";
@@ -16,6 +16,7 @@ export type { RealTimeEvent };
 type ConnectionStatus = "connected" | "connecting" | "unavailable";
 
 let pusherClient: Pusher | null = null;
+let pusherPromise: Promise<Pusher | null> | null = null;
 const channelRefs = new Map<string, number>();
 
 function retainChannel(client: Pusher, channelName: string) {
@@ -38,20 +39,44 @@ export function getPusherClient(): Pusher | null {
   return pusherClient;
 }
 
-export function initPusherClient(): Pusher | null {
-  if (typeof window === "undefined") return null;
+/**
+ * Muat pusher-js setelah paint/idle agar chunk realtime tidak berebut
+ * bandwidth dengan gambar LCP di kunjungan pertama.
+ */
+export function initPusherClient(): Promise<Pusher | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
 
   const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-  if (!key) return null;
+  if (!key) return Promise.resolve(null);
 
-  if (!pusherClient) {
-    pusherClient = new Pusher(key, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "ap1",
-      authEndpoint: "/api/pusher/auth",
+  if (!pusherPromise) {
+    pusherPromise = new Promise((resolve) => {
+      const load = () => {
+        import("pusher-js")
+          .then(({ default: PusherClient }) => {
+            if (!pusherClient) {
+              pusherClient = new PusherClient(key, {
+                cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "ap1",
+                authEndpoint: "/api/pusher/auth",
+              });
+            }
+            resolve(pusherClient);
+          })
+          .catch(() => {
+            pusherPromise = null;
+            resolve(null);
+          });
+      };
+
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(load, { timeout: 2000 });
+      } else {
+        window.setTimeout(load, 1);
+      }
     });
   }
 
-  return pusherClient;
+  return pusherPromise;
 }
 
 export function usePusherChannel(channelName: string): {
@@ -65,20 +90,33 @@ export function usePusherChannel(channelName: string): {
     useState<ConnectionStatus>("connecting");
 
   useEffect(() => {
-    const client = initPusherClient();
-    if (!client) return;
+    let cancelled = false;
+    let channel: import("pusher-js").Channel | null = null;
+    let onSubscribed: (() => void) | null = null;
+    let onFailed: (() => void) | null = null;
 
-    const channel = retainChannel(client, channelName);
-    const onSubscribed = () => setConnectionStatus("connected");
-    const onFailed = () => setConnectionStatus("unavailable");
+    void initPusherClient().then((client) => {
+      if (!client) {
+        setConnectionStatus("unavailable");
+        return;
+      }
+      if (cancelled) return;
 
-    channel.bind("pusher:subscription_succeeded", onSubscribed);
-    channel.bind("pusher:subscription_error", onFailed);
+      channel = retainChannel(client, channelName);
+      onSubscribed = () => setConnectionStatus("connected");
+      onFailed = () => setConnectionStatus("unavailable");
+
+      channel.bind("pusher:subscription_succeeded", onSubscribed);
+      channel.bind("pusher:subscription_error", onFailed);
+    });
 
     return () => {
-      channel.unbind("pusher:subscription_succeeded", onSubscribed);
-      channel.unbind("pusher:subscription_error", onFailed);
-      releaseChannel(client, channelName);
+      cancelled = true;
+      if (!channel) return;
+      if (onSubscribed) channel.unbind("pusher:subscription_succeeded", onSubscribed);
+      if (onFailed) channel.unbind("pusher:subscription_error", onFailed);
+      const client = getPusherClient();
+      if (client) releaseChannel(client, channelName);
     };
   }, [channelName]);
 
@@ -105,21 +143,30 @@ export function useRealtimeEvent(
   });
 
   useEffect(() => {
-    const client = initPusherClient();
-    if (!client) return;
+    let cancelled = false;
+    let channel: import("pusher-js").Channel | null = null;
+    let listener: ((payload: unknown) => void) | null = null;
 
-    const channel = retainChannel(client, channelName);
-    const listener = (payload: unknown) => {
-      handlerRef.current(payload);
-      if (event === REALTIME_EVENTS.userDeactivated) {
-        deactivatedRef.current?.();
-      }
-    };
+    void initPusherClient().then((client) => {
+      if (!client || cancelled) return;
 
-    channel.bind(event, listener);
+      channel = retainChannel(client, channelName);
+      listener = (payload: unknown) => {
+        handlerRef.current(payload);
+        if (event === REALTIME_EVENTS.userDeactivated) {
+          deactivatedRef.current?.();
+        }
+      };
+
+      channel.bind(event, listener);
+    });
+
     return () => {
-      channel.unbind(event, listener);
-      releaseChannel(client, channelName);
+      cancelled = true;
+      if (!channel) return;
+      if (listener) channel.unbind(event, listener);
+      const client = getPusherClient();
+      if (client) releaseChannel(client, channelName);
     };
   }, [channelName, event]);
 

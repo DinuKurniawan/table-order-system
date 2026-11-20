@@ -19,9 +19,8 @@ function datasourceUrl(): string | undefined {
   if (!raw) return undefined;
   try {
     const url = new URL(raw);
-    if (pooled && !url.searchParams.has("pgbouncer")) {
-      url.searchParams.set("pgbouncer", "true");
-    }
+    // Prisma Postgres pooler sudah PgBouncer >= 1.21. Flag pgbouncer=true
+    // membuat tiap query +120ms (diukur) dan tidak lagi diperlukan.
     if (!url.searchParams.has("connection_limit")) {
       url.searchParams.set("connection_limit", "5");
     }

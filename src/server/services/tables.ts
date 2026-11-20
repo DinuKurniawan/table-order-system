@@ -1,5 +1,6 @@
 import "server-only";
 import { nanoid } from "nanoid";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { Prisma } from "@prisma/client";
@@ -49,26 +50,35 @@ export async function listTables(): Promise<TableDTO[]> {
 }
 
 /** Token meja aktif pertama, dipakai root agar langsung membuka menu. */
-export async function findFirstActiveTableToken(): Promise<string | null> {
-  const table = await prisma.table.findFirst({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: { token: true },
-  });
-  return table?.token ?? null;
-}
+export const findFirstActiveTableToken = unstable_cache(
+  async (): Promise<string | null> => {
+    const table = await prisma.table.findFirst({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { token: true },
+    });
+    return table?.token ?? null;
+  },
+  ["first-active-table-token"],
+  { revalidate: 60, tags: ["tables"] }
+);
 
 /**
  * Meja untuk halaman publik: hanya meja aktif dengan token yang cocok.
  * Mengembalikan null bila token tidak dikenal atau meja dinonaktifkan.
+ * Cache 60 detik: perubahan status meja berlaku maksimal 1 menit.
  */
-export async function findActiveTableByToken(
-  token: string
-): Promise<{ name: string; area: string | null } | null> {
-  const table = await prisma.table.findUnique({ where: { token } });
-  if (!table || !table.isActive) return null;
-  return { name: table.name, area: table.area };
-}
+export const findActiveTableByToken = unstable_cache(
+  async (
+    token: string
+  ): Promise<{ name: string; area: string | null } | null> => {
+    const table = await prisma.table.findUnique({ where: { token } });
+    if (!table || !table.isActive) return null;
+    return { name: table.name, area: table.area };
+  },
+  ["active-table-by-token"],
+  { revalidate: 60, tags: ["tables"] }
+);
 
 async function assertUniqueName(name: string, ignoreId?: string): Promise<void> {
   const existing = await prisma.table.findFirst({
@@ -104,6 +114,7 @@ export async function createTable(input: TableInput, userId: string): Promise<Ta
     },
   });
 
+  revalidateTag("tables", { expire: 0 });
   return toDTO(created);
 }
 
@@ -145,6 +156,7 @@ export async function updateTable(
     },
   });
 
+  revalidateTag("tables", { expire: 0 });
   return toDTO(updated);
 }
 
@@ -177,6 +189,8 @@ export async function deleteTable(id: string, userId: string): Promise<void> {
       meta: { name: table.name },
     },
   });
+
+  revalidateTag("tables", { expire: 0 });
 }
 
 /**
@@ -206,6 +220,7 @@ export async function regenerateTableToken(id: string, userId: string): Promise<
       },
     });
 
+    revalidateTag("tables", { expire: 0 });
     return toDTO(updated);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

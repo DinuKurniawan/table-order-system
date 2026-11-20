@@ -200,6 +200,7 @@ export function MenuClient({
                   >
                     <Link
                       href={`/m/${token}/item/${menu.id}`}
+                      prefetch={false}
                       className="flex h-full flex-col"
                     >
                     <div className="relative h-44 w-full bg-surface-muted">
@@ -210,8 +211,9 @@ export function MenuClient({
                           fill
                           sizes="(max-width: 640px) 100vw, 320px"
                           className="object-cover"
-                          priority={index < 2}
-                          loading={index < 2 ? undefined : "lazy"}
+                          preload={index === 0}
+                          fetchPriority={index < 2 ? "high" : "auto"}
+                          loading={index < 2 ? "eager" : "lazy"}
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">

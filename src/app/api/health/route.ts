@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -33,6 +34,13 @@ async function checkPrivateBucket(): Promise<"pass" | "fail" | "skipped"> {
   }
 }
 
+/** Probe R2 keluar jarang berubah; cache 30 detik agar health check murah. */
+const checkPrivateBucketCached = unstable_cache(
+  checkPrivateBucket,
+  ["health-private-bucket"],
+  { revalidate: 30 }
+);
+
 export async function GET() {
   const checks: Record<string, "pass" | "fail" | "skipped"> = {};
 
@@ -43,7 +51,7 @@ export async function GET() {
     checks.database = "fail";
   }
 
-  checks.privateBucket = await checkPrivateBucket();
+  checks.privateBucket = await checkPrivateBucketCached();
 
   const warnings: string[] = [];
   if (env.NODE_ENV === "production" && env.TRUSTED_PROXY === "none") {

@@ -14,8 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed:demo": "npx tsx prisma/seed-demo.ts",
-    "bench:dashboard": "tsx --import dotenv/config scripts/benchmark-dashboard.ts",
-    "audit:stock-drift": "tsx --import dotenv/config scripts/audit-stock-drift.ts",
+    "bench:dashboard": "tsx --conditions=react-server --import dotenv/config scripts/benchmark-dashboard.ts",
+    "audit:stock-drift": "tsx --conditions=react-server --import dotenv/config scripts/audit-stock-drift.ts",
     "lighthouse:menu": "node scripts/lighthouse-menu.mjs",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"

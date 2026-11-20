@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -48,38 +49,60 @@ function toPublicProduct({
 /**
  * Katalog publik untuk satu meja aktif. Dipakai route API dan render awal
  * halaman menu agar LCP tidak menunggu fetch client.
+ *
+ * Katalog di-cache 15 detik (tag `menu`) lalu difilter di memori. Jumlah
+ * produk kafe kecil; bila katalog membesar, kembalikan filter ke query DB.
  */
+const getCachedPublicProducts = unstable_cache(
+  async (): Promise<PublicMenuProduct[]> => {
+    const products = await prisma.product.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: publicProductSelect,
+      orderBy: { name: "asc" },
+    });
+    return products.map(toPublicProduct);
+  },
+  ["public-menu-products"],
+  { revalidate: 15, tags: ["menu"] }
+);
+
+function filterPublicMenu(
+  products: PublicMenuProduct[],
+  input: { search?: string; category?: string }
+): PublicMenuProduct[] {
+  const term = input.search?.trim().slice(0, 80).toLowerCase();
+  const category = input.category;
+
+  return products.filter((product) => {
+    if (term && !product.name.toLowerCase().includes(term)) return false;
+    if (category === "makanan" || category === "food") {
+      return product.category?.type === "FOOD";
+    }
+    if (category === "kopi" || category === "coffee") {
+      return (
+        product.category?.type === "DRINK" &&
+        product.category.subtype === "COFFEE"
+      );
+    }
+    if (category === "non-kopi" || category === "non-coffee") {
+      return (
+        product.category?.type === "DRINK" &&
+        product.category.subtype === "NON_COFFEE"
+      );
+    }
+    return true;
+  });
+}
+
 export async function getPublicMenu(input: {
   token: string;
   search?: string;
   category?: string;
 }): Promise<PublicMenuProduct[]> {
-  const where: Prisma.ProductWhereInput = { deletedAt: null, isActive: true };
-
-  if (input.search) {
-    where.name = {
-      contains: input.search.slice(0, 80),
-      mode: "insensitive",
-    };
-  }
-
-  const category = input.category;
-  if (category === "makanan" || category === "food") {
-    where.category = { type: "FOOD" };
-  } else if (category === "kopi" || category === "coffee") {
-    where.category = { type: "DRINK", subtype: "COFFEE" };
-  } else if (category === "non-kopi" || category === "non-coffee") {
-    where.category = { type: "DRINK", subtype: "NON_COFFEE" };
-  }
-
   // Validasi meja dan katalog berjalan paralel; token tidak valid tetap 404.
   const [table, products] = await Promise.all([
     input.token ? findActiveTableByToken(input.token) : Promise.resolve(null),
-    prisma.product.findMany({
-      where,
-      select: publicProductSelect,
-      orderBy: { name: "asc" },
-    }),
+    getCachedPublicProducts(),
   ]);
 
   if (!table) {
@@ -90,7 +113,7 @@ export async function getPublicMenu(input: {
     );
   }
 
-  return products.map(toPublicProduct);
+  return filterPublicMenu(products, input);
 }
 
 /** Detail satu produk publik; tetap divalidasi terhadap meja aktif. */

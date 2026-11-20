@@ -235,7 +235,10 @@ export async function proxy(req: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      // Aset statis tidak perlu CSP/sesi; lewati agar proxy tidak memproses
+      // setiap gambar/ikon/font.
+      source:
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpe?g|gif|webp|avif|ico|txt|xml|woff2?|ttf|otf)$).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
