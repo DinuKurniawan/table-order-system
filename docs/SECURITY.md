@@ -54,7 +54,11 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   `GET /api/health` melaporkan `unknownIpRequests` + peringatan. Set platform dengan benar:
   Vercel `vercel`, Cloudflare `cloudflare`, reverse proxy sendiri = jumlah hop.
 
-- **SEC-12 (2026-11-20).** `npm audit` kini melaporkan 0 kerentanan (runtime dan dev).
-  Override menaikkan `effect` (bawaan `@prisma/config`) ke 3.22.5 dan `minimatch`
-  (bawaan `@ts-morph/common`) ke 11.0.9; `vitest` naik ke 5.1.1 dan `@types/node` ke 26.
-  Jalankan `npm audit --audit-level=high` di CI agar regresi tertangkap.
+- **SEC-12 (2026-11-20).** `npm audit` dan `npm audit --omit=dev` sama-sama melaporkan
+  0 kerentanan. `vitest` 5.1.1 (menambal tinypool), `@types/node` 26, `shadcn` dipindah ke
+  devDependencies (CLI saja; tidak ada impor runtime), dan override `effect` 3.22.5 +
+  `minimatch` 11.0.9 untuk rantai bawaan Prisma/ts-morph. CI memblokir high runtime lewat
+  `npm audit --omit=dev --audit-level=high`; job terjadwal mingguan menjalankan audit penuh
+  (informatif, `continue-on-error`). **Tinjau ulang: 2027-02-20** — atau lebih cepat bila
+  advisory baru menyentuh rantai Prisma/Next. Bila sisa moderate dev-only muncul kembali,
+  terima hanya untuk rantai tooling yang tidak dieksekusi di produksi dan catat di sini.
