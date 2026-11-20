@@ -54,14 +54,6 @@ export async function getPublicMenu(input: {
   search?: string;
   category?: string;
 }): Promise<PublicMenuProduct[]> {
-  if (!input.token || !(await findActiveTableByToken(input.token))) {
-    throw new AppError(
-      "NOT_FOUND",
-      "Meja tidak aktif atau tidak ditemukan",
-      404
-    );
-  }
-
   const where: Prisma.ProductWhereInput = { deletedAt: null, isActive: true };
 
   if (input.search) {
@@ -80,11 +72,23 @@ export async function getPublicMenu(input: {
     where.category = { type: "DRINK", subtype: "NON_COFFEE" };
   }
 
-  const products = await prisma.product.findMany({
-    where,
-    select: publicProductSelect,
-    orderBy: { name: "asc" },
-  });
+  // Validasi meja dan katalog berjalan paralel; token tidak valid tetap 404.
+  const [table, products] = await Promise.all([
+    input.token ? findActiveTableByToken(input.token) : Promise.resolve(null),
+    prisma.product.findMany({
+      where,
+      select: publicProductSelect,
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  if (!table) {
+    throw new AppError(
+      "NOT_FOUND",
+      "Meja tidak aktif atau tidak ditemukan",
+      404
+    );
+  }
 
   return products.map(toPublicProduct);
 }
@@ -94,18 +98,21 @@ export async function getPublicProduct(input: {
   token: string;
   productId: string;
 }): Promise<PublicMenuProduct> {
-  if (!input.token || !(await findActiveTableByToken(input.token))) {
+  const [table, product] = await Promise.all([
+    input.token ? findActiveTableByToken(input.token) : Promise.resolve(null),
+    prisma.product.findFirst({
+      where: { id: input.productId, deletedAt: null, isActive: true },
+      select: publicProductSelect,
+    }),
+  ]);
+
+  if (!table) {
     throw new AppError(
       "NOT_FOUND",
       "Meja tidak aktif atau tidak ditemukan",
       404
     );
   }
-
-  const product = await prisma.product.findFirst({
-    where: { id: input.productId, deletedAt: null, isActive: true },
-    select: publicProductSelect,
-  });
 
   if (!product) {
     throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);

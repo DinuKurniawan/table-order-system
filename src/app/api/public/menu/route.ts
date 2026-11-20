@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
-import { getClientIp } from "@/lib/client-ip";
 import { apiErrorResponse } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { getPublicMenu } from "@/server/services/menu";
 
 export async function GET(request: Request) {
   try {
-    const ipLimit = await consumeRateLimit(`menu:${getClientIp(request)}`, 120, 60);
-    if (ipLimit.limited) return tooManyRequests(ipLimit);
-
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") || "";
     const search = searchParams.get("search") || "";

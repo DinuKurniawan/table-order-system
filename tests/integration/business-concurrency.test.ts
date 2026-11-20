@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { PrismaClient, CategoryType } from "@prisma/client";
 import { POST } from "../../src/app/api/public/orders/route";
-import { reserveStock } from "../../src/server/services/stock";
+import { reserveStockBatch } from "../../src/server/services/stock";
 import { cancelAcceptedOrder } from "../../src/server/services/finance";
 
 const prisma = new PrismaClient();
@@ -225,10 +225,10 @@ test("[K-07] StockMovement ORDER_RESERVE harus tertaut ke orderId", async (t) =>
   });
 
   await prisma.$transaction((tx) =>
-    reserveStock(
+    reserveStockBatch(
       tx,
-      { productId: product.id, name: product.name, quantity: 2, trackStock: true },
-      order.code
+      [{ productId: product.id, name: product.name, quantity: 2, trackStock: true }],
+      { id: order.id, code: order.code }
     )
   );
 

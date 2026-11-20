@@ -9,8 +9,9 @@ const globalForPrisma = globalThis as unknown as {
  * Serverless membuka pool per instance, sedangkan Prisma Postgres (direct,
  * db.prisma.io) membatasi 45 koneksi per role. Pakai URL pooled bila tersedia
  * (PgBouncer di pooled.db.prisma.io) agar banyak instance berbagi sedikit
- * koneksi server. Satu koneksi per instance cukup dan query antre lewat
- * pool_timeout. Nilai tetap bisa ditimpa dari parameter URL.
+ * koneksi server. Lima koneksi per instance cukup untuk query paralel
+ * (dashboard/cashier) tanpa antre satu per satu; PgBouncer yang membatasi
+ * koneksi server. Nilai tetap bisa ditimpa dari parameter URL.
  */
 function datasourceUrl(): string | undefined {
   const pooled = process.env.DATABASE_URL_POOLED;
@@ -22,10 +23,10 @@ function datasourceUrl(): string | undefined {
       url.searchParams.set("pgbouncer", "true");
     }
     if (!url.searchParams.has("connection_limit")) {
-      url.searchParams.set("connection_limit", "1");
+      url.searchParams.set("connection_limit", "5");
     }
     if (!url.searchParams.has("pool_timeout")) {
-      url.searchParams.set("pool_timeout", "30");
+      url.searchParams.set("pool_timeout", "10");
     }
     return url.toString();
   } catch {
@@ -37,9 +38,10 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasourceUrl: datasourceUrl(),
-    // Satu koneksi membuat transaksi bisa mengantre; beri waktu tunggu lebih
-    // panjang daripada default 2 detik agar tidak gagal P2024 saat ramai.
-    transactionOptions: { maxWait: 15000 },
+    // Beri waktu tunggu koneksi lebih panjang dari default 2 detik agar tidak
+    // gagal P2024 saat ramai, dan timeout transaksi eksplisit 15 detik karena
+    // checkout multi-item bisa melewati default 5 detik di region jauh.
+    transactionOptions: { maxWait: 15000, timeout: 15000 },
     log:
       process.env.NODE_ENV === "development"
         ? ["error", "warn"]

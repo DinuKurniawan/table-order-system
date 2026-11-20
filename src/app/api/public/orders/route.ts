@@ -14,7 +14,7 @@ import { getClientIp } from "@/lib/client-ip";
 import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
-import { reserveStock } from "@/server/services/stock";
+import { reserveStockBatch } from "@/server/services/stock";
 import { cupSizeSchema, parseSizePrices, priceForSize } from "@/lib/size-pricing";
 import type { CupSize } from "@/lib/size-pricing";
 import {
@@ -265,39 +265,36 @@ export async function POST(req: Request) {
             },
           });
 
-          for (const item of items) {
-            const product = productMap.get(item.productId);
-            if (!product) {
-              throw new AppError("VALIDATION_ERROR", "Produk tidak ditemukan", 400);
-            }
-
-            // Produk non-tracked tidak mereservasi stok dan tidak menulis movement (K-02).
-            const reserved = await reserveStock(
-              tx,
-              {
+          const reservations = await reserveStockBatch(
+            tx,
+            items.map((item) => {
+              const product = productMap.get(item.productId)!;
+              return {
                 productId: item.productId,
                 name: product.name,
                 quantity: item.quantity,
                 trackStock: product.trackStock,
-              },
-              orderCode
-            );
-            if (!reserved) continue;
+              };
+            }),
+            { id: order.id, code: orderCode }
+          );
 
+          for (const reserved of reservations) {
+            const product = productMap.get(reserved.productId)!;
             const newStock = reserved.newStock;
 
             after(() => {
               emitToChannel(
                 CHANNELS.table(tableToken),
                 REALTIME_EVENTS.stockChanged,
-                tableStockPayload(item.productId, newStock)
+                tableStockPayload(reserved.productId, newStock)
               );
             });
 
             if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
               after(() => {
                 emitToChannel(CHANNELS.admin, REALTIME_EVENTS.stockLow, {
-                  productId: item.productId,
+                  productId: reserved.productId,
                   newStock,
                   orderCode,
                 });

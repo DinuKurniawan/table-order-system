@@ -44,7 +44,14 @@ export function MenuClient({
 }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  // Ketikan tidak boleh memicu satu request per karakter.
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   const [cart] = useCart(token);
 
@@ -54,15 +61,13 @@ export function MenuClient({
   }, [token]);
 
   const menuQuery = useQuery({
-    queryKey: ["menu", token, searchQuery, categoryFilter],
+    queryKey: ["menu", token, debouncedSearch, categoryFilter],
     queryFn: async () => {
       const params = new URLSearchParams({ token });
-      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (debouncedSearch) params.set("search", debouncedSearch);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
 
-      const res = await fetch(`/api/public/menu?${params.toString()}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/public/menu?${params.toString()}`);
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(apiErrorMessage(json, "Gagal memuat menu"));
@@ -70,8 +75,10 @@ export function MenuClient({
       return (await res.json()) as { products: MenuProduct[] };
     },
     staleTime: 60 * 1000,
+    // Jangan kosongkan daftar saat query baru sedang dimuat.
+    placeholderData: (previous) => previous,
     initialData:
-      searchQuery === "" && categoryFilter === "all" && initialProducts
+      debouncedSearch === "" && categoryFilter === "all" && initialProducts
         ? { products: initialProducts }
         : undefined,
   });

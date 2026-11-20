@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useCart, useCartHydrated, hydrateCart } from "@/lib/cart-store";
 import { formatRupiah } from "@/lib/utils";
 import type { CupSize, IceLevel, SugarLevel, Temperature } from "@/lib/cart";
-import { priceForSize, type SizePrices } from "@/lib/size-pricing";
+import { priceForSize, type SizePrices } from "@/lib/price";
 
 interface ItemProduct {
   id: string;

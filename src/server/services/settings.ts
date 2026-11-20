@@ -47,9 +47,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
 };
 
 /**
+ * Cache singkat per instance serverless. Pembacaan settings terjadi di setiap
+ * checkout dan polling status pesanan; 15 detik cukup untuk memangkas query
+ * tanpa membuat perubahan admin terasa lama. Instance lain tetap membaca DB
+ * sendiri (TTL pendek), dan update settings di instance ini langsung membuang
+ * cache.
+ */
+const SETTINGS_TTL_MS = 15_000;
+let settingsCache: { value: AppSettings; expiresAt: number } | null = null;
+
+/**
  * Service untuk membaca dan memperbarui pengaturan aplikasi secara bertipe aman.
  */
 export async function getSettings(): Promise<AppSettings> {
+  if (settingsCache && settingsCache.expiresAt > Date.now()) {
+    return settingsCache.value;
+  }
+
   const settingsRows = await prisma.setting.findMany();
   const rawObj: Record<string, unknown> = { ...DEFAULT_SETTINGS };
 
@@ -58,11 +72,9 @@ export async function getSettings(): Promise<AppSettings> {
   }
 
   const result = appSettingsSchema.safeParse(rawObj);
-  if (!result.success) {
-    return DEFAULT_SETTINGS;
-  }
-
-  return result.data;
+  const settings = result.success ? result.data : DEFAULT_SETTINGS;
+  settingsCache = { value: settings, expiresAt: Date.now() + SETTINGS_TTL_MS };
+  return settings;
 }
 
 /**
@@ -154,6 +166,7 @@ export async function updateSettings(
     });
   });
 
+  settingsCache = null;
   return merged;
 }
 
@@ -173,5 +186,6 @@ export async function setSetting<K extends keyof AppSettings>(
     create: { key, value: validated as unknown as object },
   });
 
+  settingsCache = null;
   return validated as AppSettings[K];
 }

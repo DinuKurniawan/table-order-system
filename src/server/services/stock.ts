@@ -140,58 +140,74 @@ export interface StockChange {
   newStock: number;
 }
 
+export interface StockReservationItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  trackStock: boolean;
+}
+
 /**
- * Reservasi stok atomik untuk satu item checkout. Produk non-tracked tidak
- * menyentuh stok maupun StockMovement (K-02). Untuk produk tracked, UPDATE
- * bersyarat menjamin stok tidak pernah negatif.
+ * Reservasi stok atomik untuk satu order. Kuantitas dijumlahkan per produk
+ * lebih dulu agar satu produk tidak di-UPDATE berkali-kali untuk baris varian
+ * berbeda, lalu semua StockMovement ditulis dalam satu INSERT. Untuk produk
+ * tracked, UPDATE bersyarat menjamin stok tidak pernah negatif (K-02).
  */
-export async function reserveStock(
+export async function reserveStockBatch(
   tx: Prisma.TransactionClient,
-  item: { productId: string; name: string; quantity: number; trackStock: boolean },
-  orderCode: string
-): Promise<StockChange | null> {
-  if (!item.trackStock) return null;
-
-  const rows = await tx.$queryRaw<Array<{ stock: number }>>`
-    UPDATE "Product"
-    SET stock = stock - ${item.quantity}, "updatedAt" = NOW()
-    WHERE id = ${item.productId}
-      AND "trackStock" = true
-      AND "isActive" = true
-      AND "deletedAt" IS NULL
-      AND stock >= ${item.quantity}
-    RETURNING stock
-  `;
-
-  if (rows.length === 0) {
-    throw new AppError(
-      "STOCK_INSUFFICIENT",
-      `Stok tidak cukup untuk produk ${item.name}`,
-      409
-    );
+  items: StockReservationItem[],
+  order: { id: string; code: string }
+): Promise<StockChange[]> {
+  const required = new Map<string, { name: string; quantity: number }>();
+  for (const item of items) {
+    if (!item.trackStock) continue;
+    const current = required.get(item.productId);
+    required.set(item.productId, {
+      name: item.name,
+      quantity: (current?.quantity ?? 0) + item.quantity,
+    });
   }
 
-  const newStock = rows[0].stock;
+  const changes: StockChange[] = [];
+  for (const [productId, item] of required) {
+    const rows = await tx.$queryRaw<Array<{ stock: number }>>`
+      UPDATE "Product"
+      SET stock = stock - ${item.quantity}, "updatedAt" = NOW()
+      WHERE id = ${productId}
+        AND "trackStock" = true
+        AND "isActive" = true
+        AND "deletedAt" IS NULL
+        AND stock >= ${item.quantity}
+      RETURNING stock
+    `;
 
-  // K-07: tautkan reservasi ke order agar releaseStock dapat menghitung sisa
-  // yang benar-benar pernah direservasi (K-03).
-  const order = await tx.order.findUnique({
-    where: { code: orderCode },
-    select: { id: true },
-  });
+    if (rows.length === 0) {
+      throw new AppError(
+        "STOCK_INSUFFICIENT",
+        `Stok tidak cukup untuk produk ${item.name}`,
+        409
+      );
+    }
 
-  await tx.stockMovement.create({
-    data: {
-      productId: item.productId,
-      type: "ORDER_RESERVE",
-      quantity: item.quantity,
-      balance: newStock,
-      orderId: order?.id ?? null,
-      note: `Pesanan order ${orderCode}`,
-    },
-  });
+    changes.push({ productId, newStock: rows[0].stock });
+  }
 
-  return { productId: item.productId, newStock };
+  if (changes.length > 0) {
+    // K-07: tautkan reservasi ke order agar releaseStock dapat menghitung sisa
+    // yang benar-benar pernah direservasi (K-03).
+    await tx.stockMovement.createMany({
+      data: changes.map((change) => ({
+        productId: change.productId,
+        type: "ORDER_RESERVE" as const,
+        quantity: required.get(change.productId)!.quantity,
+        balance: change.newStock,
+        orderId: order.id,
+        note: `Pesanan order ${order.code}`,
+      })),
+    });
+  }
+
+  return changes;
 }
 
 /**
@@ -234,6 +250,7 @@ export async function releaseStock(
   });
 
   const changes: StockChange[] = [];
+  const movements: Prisma.StockMovementCreateManyInput[] = [];
 
   for (const { productId } of itemProducts) {
     const quantity = outstanding.get(productId) ?? 0;
@@ -248,18 +265,20 @@ export async function releaseStock(
     `;
     if (rows.length === 0) continue;
 
-    await tx.stockMovement.create({
-      data: {
-        productId,
-        type: "ORDER_RELEASE",
-        quantity,
-        balance: rows[0].stock,
-        orderId,
-        note: `Stok dikembalikan untuk ${code}`,
-      },
+    movements.push({
+      productId,
+      type: "ORDER_RELEASE",
+      quantity,
+      balance: rows[0].stock,
+      orderId,
+      note: `Stok dikembalikan untuk ${code}`,
     });
 
     changes.push({ productId, newStock: rows[0].stock });
+  }
+
+  if (movements.length > 0) {
+    await tx.stockMovement.createMany({ data: movements });
   }
 
   return changes;
