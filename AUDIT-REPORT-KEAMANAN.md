@@ -313,16 +313,16 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-01 | Tinggi | Selesai | `152ab8f` |
 | SEC-02 | Sedang | Selesai | `0845730` |
 | SEC-03 | Sedang | Selesai | `624f976` |
-| SEC-04 | Sedang | Belum | — |
+| SEC-04 | Sedang | Selesai (Report-Only default) | `76f282b` |
 | SEC-05 | Sedang | Selesai | `b81f513` |
-| SEC-06 | Rendah | Belum | — |
+| SEC-06 | Rendah | Selesai | `a5f7e88` |
 | SEC-07 | Rendah | Selesai | `e8ab300` |
 | SEC-08 | Rendah | Selesai | `7a9142e` |
-| SEC-09 | Rendah | Belum | — |
-| SEC-10 | Rendah | Belum | — |
-| SEC-11 | Rendah | Belum | — |
+| SEC-09 | Rendah | Selesai (contract pending) | `8dd6d10` |
+| SEC-10 | Rendah | Selesai | `67972d0` |
+| SEC-11 | Rendah | Selesai | `25003b8` |
 | SEC-12 | Rendah | Belum | — |
-| SEC-13 | Rendah | Belum | — |
+| SEC-13 | Rendah | Selesai | `f314a02` |
 | SEC-14 | Informasi | Belum | — |
 | SEC-15 | Informasi | Belum | — |
 | SEC-16 | Informasi | Belum | — |
