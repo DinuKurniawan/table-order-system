@@ -53,3 +53,8 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   `unknown:<hash(user-agent + accept-language)>` alih-alih satu bucket global, dan
   `GET /api/health` melaporkan `unknownIpRequests` + peringatan. Set platform dengan benar:
   Vercel `vercel`, Cloudflare `cloudflare`, reverse proxy sendiri = jumlah hop.
+
+- **SEC-12 (2026-11-20).** `npm audit` kini melaporkan 0 kerentanan (runtime dan dev).
+  Override menaikkan `effect` (bawaan `@prisma/config`) ke 3.22.5 dan `minimatch`
+  (bawaan `@ts-morph/common`) ke 11.0.9; `vitest` naik ke 5.1.1 dan `@types/node` ke 26.
+  Jalankan `npm audit --audit-level=high` di CI agar regresi tertangkap.
