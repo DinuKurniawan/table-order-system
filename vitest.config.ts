@@ -5,7 +5,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(() => {
   return {
     resolve: {
-      alias: { "@": path.resolve(__dirname, "src") },
+      alias: {
+        "@": path.resolve(__dirname, "src"),
+        // Tes berjalan di Node biasa; penanda server-only hanya relevan di bundler.
+        "server-only": path.resolve(__dirname, "node_modules/server-only/empty.js"),
+      },
     },
     test: {
       include: ["quality/**/*.test.ts"],
