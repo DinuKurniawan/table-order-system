@@ -62,7 +62,10 @@ type OrderWithAccess = Prisma.OrderGetPayload<{
   };
 }>;
 
-async function loadOrderWithAccess(code: string, token: string): Promise<OrderWithAccess> {
+async function loadOrderWithAccess(
+  code: string,
+  token: string | null | undefined
+): Promise<OrderWithAccess> {
   const order = await prisma.order.findUnique({
     where: { code },
     include: {
@@ -73,7 +76,7 @@ async function loadOrderWithAccess(code: string, token: string): Promise<OrderWi
   });
 
   // SEC-06: kode tidak ada dan token salah/kosong tidak dibedakan.
-  if (!order || !accessTokenMatches(token, order)) {
+  if (!token || !order || !accessTokenMatches(token, order)) {
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
   }
 

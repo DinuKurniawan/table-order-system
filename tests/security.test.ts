@@ -194,13 +194,17 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
 
       const order = await prisma.order.findFirst({
         where: { idempotencyKey: { startsWith: `security-replay-${stamp}` } },
-        select: { code: true, accessToken: true },
+        select: { code: true },
       });
       assert.ok(order);
 
       const { submitPaymentProof } = await import("../src/server/services/orders");
+      const { deriveOrderAccessToken } = await import("../src/lib/order-token");
+      const accessToken = deriveOrderAccessToken(
+        `security-replay-${stamp}-aaaaaaaa`
+      );
       await assert.rejects(
-        () => submitPaymentProof(order.code, order.accessToken!, php),
+        () => submitPaymentProof(order.code, accessToken, php),
         (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
       );
 
@@ -293,7 +297,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       assert.ok(!("lowStockThreshold" in sample), "lowStockThreshold tidak perlu diekspos");
     });
 
-    await t.test("8. Header keamanan & CSP terpasang", async () => {
+    await t.test("8. Header keamanan terpasang", async () => {
       const nextConfig = (await import("../next.config")).default;
       const rules = await nextConfig.headers?.();
       assert.ok(rules && rules.length > 0, "Harus ada aturan header");
@@ -301,10 +305,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       const headers = new Map(
         rules[0].headers.map((header) => [header.key, header.value])
       );
-      const csp = headers.get("Content-Security-Policy") ?? "";
-      assert.ok(csp.includes("default-src 'self'"));
-      assert.ok(csp.includes("frame-ancestors 'none'"));
-      assert.ok(csp.includes("*.pusher.com"));
+      // SEC-04: CSP dibuat per permintaan di src/proxy.ts (tests/csp.test.ts).
       assert.equal(headers.get("X-Content-Type-Options"), "nosniff");
       assert.equal(headers.get("X-Frame-Options"), "DENY");
       assert.ok(headers.get("Permissions-Policy")?.includes("camera=()"));
