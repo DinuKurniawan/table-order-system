@@ -40,10 +40,13 @@ test("[K-01] kode pesanan bentrok tidak boleh menghasilkan HTTP 500", async (t) 
   const originalRandomBytes = crypto.randomBytes;
   let calls = 0;
   const fakeRandomBytes = ((size: number) => {
-    if (size === 2) {
+    if (size === 8) {
       calls += 1;
-      // Dua checkout berturut-turut memakai 2 byte acak yang sama.
-      return Buffer.from([0xde, 0xad]);
+      // Checkout kedua memakai byte yang sama dengan yang pertama sehingga
+      // kode pesanan bentrok; percobaan ulang memakai byte berbeda.
+      return calls === 2
+        ? Buffer.from([1, 2, 3, 4, 5, 6, 7, 8])
+        : Buffer.from([9, 10, 11, 12, 13, 14, 15, 16]);
     }
     return originalRandomBytes(size);
   }) as typeof crypto.randomBytes;
