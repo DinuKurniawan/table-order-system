@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/admin/section-card";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react";
-import { parseStoredCart, type CartItems } from "@/lib/cart";
+import { Minus, Plus, Trash2, ArrowLeft, Coffee } from "lucide-react";
+import { hydrateCart, useCart, useCartHydrated } from "@/lib/cart-store";
+import type { CartItem, IceLevel, SugarLevel } from "@/lib/cart";
 
 export default function CartPage() {
   return (
@@ -32,24 +33,15 @@ function CartContent() {
   const router = useRouter();
 
   // ============================================================
-  // Cart state persisted to localStorage
+  // Cart state: sesi tab; refresh di halaman ini TIDAK mereset item.
+  // Reset hanya terjadi saat halaman menu dimuat ulang.
   // ============================================================
-  const CART_KEY = `cart-${token || "default"}`;
-
-  const [items, setItems] = useState<CartItems>({});
-  const [cartReady, setCartReady] = useState(false);
+  const [items, setItems] = useCart(token);
+  const cartHydrated = useCartHydrated(token);
 
   useEffect(() => {
-    try {
-      const data = window.localStorage.getItem(CART_KEY);
-      // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setItems(parseStoredCart(data));
-    } catch {
-      setItems({});
-    }
-    setCartReady(true);
-  }, [CART_KEY]);
+    hydrateCart(token);
+  }, [token]);
 
   // ============================================================
   // Fetch order summary - items from cart
@@ -69,7 +61,6 @@ function CartContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [nameError, setNameError] = useState("");
-  const [sugarLevel, setSugarLevel] = useState<"REGULER" | "NO_SUGAR">("REGULER");
   const [generalNote, setGeneralNote] = useState("");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
@@ -92,18 +83,6 @@ function CartContent() {
   }, [cartSignature]);
 
   // ============================================================
-  // Simpan keranjang ke localStorage
-  // ============================================================
-  useEffect(() => {
-    if (!cartReady) return;
-    try {
-      localStorage.setItem(CART_KEY, JSON.stringify({ items }));
-    } catch {
-      // Kuota/privacy mode: keranjang tetap jalan di memori.
-    }
-  }, [items, cartReady, CART_KEY]);
-
-  // ============================================================
   // Submit order (POST /api/public/orders)
   // ============================================================
   const handleSubmit = async () => {
@@ -115,22 +94,22 @@ function CartContent() {
     setNameError("");
     setIsSaving(true);
 
-    const itemsForOrder = itemEntries.map(
-      (item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        note: item.note,
-      })
-    );
+    const itemsForOrder = itemEntries.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      note:
+        item.drink === true
+          ? [
+              `Gula: ${item.sugar === "NO_SUGAR" ? "No Sugar" : "Reguler"}`,
+              `Es: ${item.ice === "SEDIKIT" ? "Sedikit" : "Reguler"}`,
+              item.note,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : item.note,
+    }));
 
-    // Gula disimpan di kolom `note` (sudah tercetak di dapur/kasir).
-    // ponytail: field terstruktur baru jika perlu laporan per level gula.
-    const note = [
-      `Gula: ${sugarLevel === "NO_SUGAR" ? "No Sugar" : "Reguler"}`,
-      generalNote.trim(),
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    const note = generalNote.trim();
 
     try {
       const res = await fetch("/api/public/orders", {
@@ -176,6 +155,17 @@ function CartContent() {
     setOpenItemId(null);
   };
 
+  const setItemOption = (
+    productId: string,
+    patch: Partial<Pick<CartItem, "sugar" | "ice">>
+  ) => {
+    setItems((prev) => {
+      const item = prev[productId];
+      if (!item) return prev;
+      return { ...prev, [productId]: { ...item, ...patch } };
+    });
+  };
+
   useEffect(() => {
     if (!pendingDelete) return;
     const onKey = (event: KeyboardEvent) => {
@@ -189,6 +179,14 @@ function CartContent() {
       document.body.style.overflow = previousOverflow;
     };
   }, [pendingDelete]);
+
+  if (!cartHydrated) {
+    return (
+      <div className="min-h-screen p-8 text-center text-text-muted">
+        Memuat keranjang...
+      </div>
+    );
+  }
 
   if (totalItems === 0) {
     return (
@@ -272,26 +270,6 @@ function CartContent() {
 
           <div>
             <label
-              htmlFor="sugar-level"
-              className="mb-2 block text-sm font-medium"
-            >
-              Gula
-            </label>
-            <select
-              id="sugar-level"
-              value={sugarLevel}
-              onChange={(e) =>
-                setSugarLevel(e.target.value as "REGULER" | "NO_SUGAR")
-              }
-              className="h-11 w-full rounded-xl border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-            >
-              <option value="REGULER">Reguler</option>
-              <option value="NO_SUGAR">No Sugar</option>
-            </select>
-          </div>
-
-          <div>
-            <label
               htmlFor="general-note"
               className="mb-2 block text-sm font-medium"
             >
@@ -331,7 +309,7 @@ function CartContent() {
                   <Trash2 className="size-5" />
                 </button>
                 <div
-                  className="relative flex touch-pan-y select-none items-center justify-between gap-3 border-border bg-surface p-3 transition-transform duration-200 ease-out"
+                  className="relative flex touch-pan-y select-none flex-col gap-2 border-border bg-surface p-3 transition-transform duration-200 ease-out"
                   style={{
                     transform: isOpen ? "translateX(-4rem)" : "translateX(0)",
                   }}
@@ -366,45 +344,112 @@ function CartContent() {
                     swipeRef.current = null;
                   }}
                 >
-                  <span className="font-medium">{label}</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      aria-label={`Kurangi ${label}`}
-                      onClick={() => setItems((prev) => {
-                        const newItems = { ...prev };
-                        if (newItems[item.productId].quantity > 1) {
-                          newItems[item.productId].quantity -= 1;
-                        }
-                        return newItems;
-                      })}
-                      disabled={item.quantity <= 1}
-                      className="size-11 rounded-xl"
-                    >
-                      <Minus className="size-4" />
-                    </Button>
-                    <span className="w-7 text-center text-sm font-medium tabular-nums">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      aria-label={`Tambah ${label}`}
-                      onClick={() => setItems((prev) => {
-                        const newItems = { ...prev };
-                        newItems[item.productId] = {
-                          ...newItems[item.productId],
-                          quantity: newItems[item.productId].quantity + 1,
-                        };
-                        return newItems;
-                      })}
-                      className="size-11 rounded-xl"
-                    >
-                      <Plus className="size-4" />
-                    </Button>
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {item.productImage ? (
+                        <Image
+                          src={item.productImage}
+                          alt=""
+                          width={40}
+                          height={40}
+                          className="size-10 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-muted">
+                          <Coffee aria-hidden="true" className="size-5 text-text-muted/60" />
+                        </div>
+                      )}
+                      <span className="min-w-0 truncate font-medium">{label}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Kurangi ${label}`}
+                        onClick={() => setItems((prev) => {
+                          const newItems = { ...prev };
+                          if (newItems[item.productId].quantity > 1) {
+                            newItems[item.productId].quantity -= 1;
+                          }
+                          return newItems;
+                        })}
+                        disabled={item.quantity <= 1}
+                        className="size-11 rounded-xl"
+                      >
+                        <Minus className="size-4" />
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium tabular-nums">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        aria-label={`Tambah ${label}`}
+                        onClick={() => setItems((prev) => {
+                          const newItems = { ...prev };
+                          newItems[item.productId] = {
+                            ...newItems[item.productId],
+                            quantity: newItems[item.productId].quantity + 1,
+                          };
+                          return newItems;
+                        })}
+                        className="size-11 rounded-xl"
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
                   </div>
+
+                  {item.drink === true && (
+                    <div
+                      onPointerDown={(event) => event.stopPropagation()}
+                      className="grid w-full grid-cols-2 gap-2 border-t border-border pt-2"
+                    >
+                      <div>
+                        <label
+                          htmlFor={`sugar-${item.productId}`}
+                          className="text-xs font-medium text-text-muted"
+                        >
+                          Gula
+                        </label>
+                        <select
+                          id={`sugar-${item.productId}`}
+                          value={item.sugar ?? "REGULER"}
+                          onChange={(event) =>
+                            setItemOption(item.productId, {
+                              sugar: event.target.value as SugarLevel,
+                            })
+                          }
+                          className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                        >
+                          <option value="REGULER">Reguler</option>
+                          <option value="NO_SUGAR">No Sugar</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={`ice-${item.productId}`}
+                          className="text-xs font-medium text-text-muted"
+                        >
+                          Es batu
+                        </label>
+                        <select
+                          id={`ice-${item.productId}`}
+                          value={item.ice ?? "REGULER"}
+                          onChange={(event) =>
+                            setItemOption(item.productId, {
+                              ice: event.target.value as IceLevel,
+                            })
+                          }
+                          className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                        >
+                          <option value="REGULER">Reguler</option>
+                          <option value="SEDIKIT">Sedikit</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

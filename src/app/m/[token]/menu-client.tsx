@@ -14,7 +14,7 @@ import { useRealtimeEvent } from "@/lib/pusher-client";
 import { SectionCard } from "@/components/admin/section-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRupiah } from "@/lib/utils";
-import { parseStoredCart, type CartItems } from "@/lib/cart";
+import { resetCartOnMenu, useCart } from "@/lib/cart-store";
 
 interface MenuProduct {
   id: string;
@@ -45,22 +45,13 @@ export function MenuClient({
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const cartKey = `cart-${token}`;
 
-  const [cart, setCart] = useState<CartItems>({});
-  const [cartReady, setCartReady] = useState(false);
+  const [cart, setCart] = useCart(token);
 
+  // Muat pertama kali di halaman menu = mulai keranjang baru.
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(cartKey);
-      // localStorage hanya tersedia setelah mount; init sinkron memicu hydration mismatch.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCart(parseStoredCart(saved));
-    } catch {
-      setCart({});
-    }
-    setCartReady(true);
-  }, [cartKey]);
+    resetCartOnMenu(token);
+  }, [token]);
 
   const menuQuery = useQuery({
     queryKey: ["menu", token, searchQuery, categoryFilter],
@@ -89,15 +80,6 @@ export function MenuClient({
     queryClient.invalidateQueries({ queryKey: ["menu", token] });
   });
 
-  useEffect(() => {
-    if (!cartReady) return;
-    try {
-      window.localStorage.setItem(cartKey, JSON.stringify({ items: cart }));
-    } catch {
-      // Kuota/privacy mode: keranjang tetap jalan di memori.
-    }
-  }, [cart, cartKey, cartReady]);
-
   const menus = menuQuery.data?.products ?? [];
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -112,9 +94,14 @@ export function MenuClient({
       if (quantity <= 0) {
         delete next[menu.id];
       } else {
+        const existing = current[menu.id];
         next[menu.id] = {
           productId: menu.id,
           name: menu.name,
+          productImage: menu.thumbUrl ?? menu.imageUrl ?? undefined,
+          drink: menu.category?.type === "DRINK",
+          sugar: existing?.sugar ?? "REGULER",
+          ice: existing?.ice ?? "REGULER",
           price: menu.price,
           quantity,
         };
