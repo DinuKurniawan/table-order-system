@@ -4,7 +4,8 @@ import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
-import { deleteObject } from "@/lib/r2";
+import { deleteObject, headObject } from "@/lib/r2";
+import { isUploadedKey } from "@/lib/upload-key";
 import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { accessTokenMatches } from "@/lib/order-token";
@@ -15,7 +16,10 @@ import {
   listPaymentMethods,
   type PaymentMethodDTO,
 } from "@/server/services/payment-methods";
-import { processAndStore } from "@/server/services/upload";
+import {
+  createImageUploadUrls,
+  MAX_UPLOAD_BYTES,
+} from "@/server/services/upload";
 
 
 
@@ -169,16 +173,7 @@ export interface UploadProofResult {
   status: OrderStatus;
 }
 
-/**
- * Unggah bukti pembayaran customer.
- * Aturan: status harus AWAITING_PAYMENT / PAYMENT_REJECTED, belum kedaluwarsa,
- * dan jumlah percobaan belum melewati maksUploadUlang.
- */
-export async function submitPaymentProof(
-  code: string,
-  token: string,
-  file: Buffer
-): Promise<UploadProofResult> {
+async function assertProofUploadAllowed(code: string, token: string) {
   const order = await loadOrderWithAccess(code, token);
   const settings = await getSettings();
   const maxAttempts = settings.maksUploadUlang;
@@ -208,12 +203,66 @@ export async function submitPaymentProof(
     );
   }
 
-  const stored = await processAndStore({
-    file,
+  return { order, maxAttempts };
+}
+
+/**
+ * Membuat presigned URL bukti pembayaran. Browser mengunggah langsung ke R2.
+ */
+export async function createPaymentProofUpload(
+  code: string,
+  token: string,
+  input: { contentType: string; size: number }
+) {
+  const { order } = await assertProofUploadAllowed(code, token);
+
+  return createImageUploadUrls({
     preset: "proof",
     bucket: "private",
-    prefix: `proofs/${code}`,
+    prefix: `proofs/${order.code}`,
+    contentType: input.contentType,
+    size: input.size,
   });
+}
+
+/**
+ * Menyimpan bukti pembayaran customer yang sudah diunggah langsung ke R2.
+ * Objek diverifikasi keberadaan, tipe, dan ukurannya sebelum dicatat.
+ */
+export async function submitPaymentProof(
+  code: string,
+  token: string,
+  proofKey: string
+): Promise<UploadProofResult> {
+  const { order, maxAttempts } = await assertProofUploadAllowed(code, token);
+
+  const prefix = `proofs/${order.code}`;
+  if (!isUploadedKey(proofKey, prefix, "main")) {
+    throw new AppError("VALIDATION_ERROR", "Key bukti pembayaran tidak valid", 400);
+  }
+
+  const object = await headObject(env.R2_BUCKET_PRIVATE, proofKey);
+  if (!object || object.contentLength <= 0) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Bukti pembayaran belum diunggah ke penyimpanan",
+      400
+    );
+  }
+  if (
+    object.contentLength > MAX_UPLOAD_BYTES ||
+    !["image/webp", "image/jpeg"].includes(object.contentType)
+  ) {
+    throw new AppError("VALIDATION_ERROR", "Berkas bukti pembayaran tidak valid", 400);
+  }
+
+  const used = await prisma.payment.findFirst({
+    where: { proofKey },
+    select: { id: true },
+  });
+  if (used) {
+    throw new AppError("CONFLICT", "Bukti pembayaran ini sudah digunakan", 409);
+  }
 
   try {
     const result = await runInTransaction(async (tx, after) => {
@@ -255,7 +304,7 @@ export async function submitPaymentProof(
         data: {
           orderId: current.id,
           attempt,
-          proofKey: stored.key,
+          proofKey,
           status: "PENDING",
         },
       });
@@ -307,7 +356,7 @@ export async function submitPaymentProof(
   } catch (err) {
     // Jangan tinggalkan bukti bayar yatim di bucket privat.
     try {
-      await deleteObject(env.R2_BUCKET_PRIVATE, stored.key);
+      await deleteObject(env.R2_BUCKET_PRIVATE, proofKey);
     } catch {
       // abaikan kegagalan pembersihan
     }

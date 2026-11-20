@@ -127,7 +127,7 @@ test("Pelacakan Pesanan: guard status, batas unggah, cron idempoten", async (t) 
     });
 
     await assert.rejects(
-      () => submitPaymentProof(code, token, Buffer.from("bukan-gambar")),
+      () => submitPaymentProof(code, token, "bukan-gambar"),
       (err: unknown) => err instanceof AppError && err.code === "CONFLICT"
     );
 
@@ -151,7 +151,7 @@ test("Pelacakan Pesanan: guard status, batas unggah, cron idempoten", async (t) 
     });
 
     await assert.rejects(
-      () => submitPaymentProof(code, token, Buffer.from("bukan-gambar")),
+      () => submitPaymentProof(code, token, "bukan-gambar"),
       (err: unknown) =>
         err instanceof AppError &&
         err.code === "CONFLICT" &&

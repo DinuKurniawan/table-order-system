@@ -1,4 +1,11 @@
 import { z } from "zod";
+import { isUploadedKey } from "@/lib/upload-key";
+
+const qrisImageKey = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => isUploadedKey(value, "qris"), "Key gambar QRIS tidak valid");
 
 const base = {
   label: z.string().trim().min(1, "Label wajib diisi").max(80),
@@ -14,7 +21,7 @@ export const paymentMethodInputSchema = z.discriminatedUnion("kind", [
   z.object({
     ...base,
     kind: z.literal("QRIS"),
-    imageKey: z.string().trim().min(1).nullish(),
+    imageKey: qrisImageKey.nullish(),
     accountName: z.string().trim().max(80).nullish(),
   }),
   z.object({
@@ -36,7 +43,7 @@ export const paymentMethodUpdateSchema = z
   .object({
     label: z.string().trim().min(1).max(80).optional(),
     isActive: z.boolean().optional(),
-    imageKey: z.string().trim().min(1).nullable().optional(),
+    imageKey: qrisImageKey.nullable().optional(),
     accountNo: z.string().trim().min(4).max(30).optional(),
     accountName: z.string().trim().min(1).max(80).optional(),
   })

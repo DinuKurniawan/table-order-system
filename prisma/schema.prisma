@@ -87,7 +87,7 @@ model Product {
   name              String
   description       String?
   price             Int             // rupiah, tanpa desimal
-  imageKey          String?         // key R2 (AVIF)
+  imageKey          String?         // key R2 (WebP/JPEG dari browser)
   thumbKey          String?
   categoryId        String
   category          Category        @relation(fields: [categoryId], references: [id])
@@ -211,7 +211,7 @@ model PaymentMethod {
   label       String
   accountNo   String?
   accountName String?
-  imageKey    String? // gambar QRIS (AVIF)
+  imageKey    String? // gambar QRIS (WebP/JPEG dari browser)
   isActive    Boolean @default(true)
   sortOrder   Int     @default(0)
 }

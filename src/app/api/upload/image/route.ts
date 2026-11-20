@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { processAndStore } from "@/server/services/upload";
+import { createImageUploadUrls } from "@/server/services/upload";
 import { ImagePresetKey } from "@/lib/image";
 import { logger } from "@/lib/logger";
-import { handleApiError, readFormData } from "@/lib/api";
+import { handleApiError, readJson } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
-
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 const ALLOWED_ADMIN_PRESETS: ImagePresetKey[] = [
   "product",
@@ -15,28 +14,32 @@ const ALLOWED_ADMIN_PRESETS: ImagePresetKey[] = [
   "attachment",
 ];
 
+const presignSchema = z.object({
+  preset: z.enum(["product", "qris", "attachment"]).default("product"),
+  contentType: z.string().min(1),
+  size: z.number().int().positive(),
+  thumb: z
+    .object({
+      contentType: z.string().min(1),
+      size: z.number().int().positive(),
+    })
+    .optional(),
+});
+
+/**
+ * POST /api/upload/image
+ * Membuat presigned URL untuk unggah langsung browser ke R2. Body JSON:
+ * `{ preset, contentType, size, thumb? }`. Server tidak menerima byte gambar.
+ */
 export async function POST(req: NextRequest) {
   try {
-    // 1. Otorisasi: hanya Super Admin yang diizinkan mengunggah via rute ini
     const user = await requireRole(["SUPER_ADMIN"]);
 
     const limiter = await consumeRateLimit(`upload:${user.id}`, 30, 60);
     if (limiter.limited) return tooManyRequests(limiter);
 
-    // 2. Baca multipart/form-data (N-01: batas byte ditegakkan saat stream).
-    const formData = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
-    const file = formData.get("file");
-    const presetParam = formData.get("preset");
-
-    if (!file || !(file instanceof File)) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "Berkas gambar ('file') wajib dilampirkan",
-        400
-      );
-    }
-
-    const preset = (presetParam as ImagePresetKey) || "product";
+    const input = presignSchema.parse(await readJson(req));
+    const preset = input.preset as ImagePresetKey;
 
     if (!ALLOWED_ADMIN_PRESETS.includes(preset)) {
       throw new AppError(
@@ -46,22 +49,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Konversi file ke Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // 4. Proses dan simpan ke Cloudflare R2
-    const result = await processAndStore({
-      file: buffer,
+    const result = await createImageUploadUrls({
       preset,
       bucket: "public",
+      contentType: input.contentType,
+      size: input.size,
+      thumb: preset === "product" ? input.thumb : undefined,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Gambar berhasil diproses dan disimpan ke format AVIF",
-      data: result,
-    });
+    return NextResponse.json({ data: result });
   } catch (err) {
     if (!(err instanceof AppError)) {
       logger.error("API Upload Image Error", err);

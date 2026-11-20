@@ -1,5 +1,18 @@
 import { z } from "zod";
 import { CategoryType, DrinkSubtype } from "@prisma/client";
+import { isUploadedKey } from "@/lib/upload-key";
+
+function productImageKey(kind: "main" | "thumb") {
+  return z
+    .string()
+    .trim()
+    .min(1)
+    .refine(
+      (value) => isUploadedKey(value, "products", kind),
+      "Key gambar produk tidak valid"
+    )
+    .nullish();
+}
 
 /**
  * Kategori bertipe DRINK wajib memiliki subtype COFFEE / NON_COFFEE,
@@ -42,8 +55,8 @@ const productFields = {
     .min(0, "Harga tidak boleh negatif")
     .max(1_000_000_000, "Harga terlalu besar"),
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
-  imageKey: z.string().trim().min(1).nullish(),
-  thumbKey: z.string().trim().min(1).nullish(),
+  imageKey: productImageKey("main"),
+  thumbKey: productImageKey("thumb"),
   isActive: z.boolean(),
   trackStock: z.boolean(),
   lowStockThreshold: z.number().int().min(0),

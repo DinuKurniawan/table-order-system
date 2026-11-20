@@ -1,20 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { processAndStore } from "@/server/services/upload";
+import { createImageUploadUrls, UPLOAD_URL_EXPIRES_SEC } from "@/server/services/upload";
 import { env } from "@/lib/env";
 import { getSignedReadUrl } from "@/lib/r2";
 import { logger } from "@/lib/logger";
-import { handleApiError, readFormData } from "@/lib/api";
+import { handleApiError, readJson } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const PRIVATE_ATTACHMENT_PREFIX = "attachments/finance/";
 
+const presignSchema = z.object({
+  contentType: z.string().min(1),
+  size: z.number().int().positive(),
+});
+
 /**
- * Unggah lampiran transaksi keuangan: dikonversi AVIF dan disimpan di bucket
- * privat. Client mengirim multipart `file`, menerima `key` untuk disimpan pada
- * transaksi.
+ * Unggah lampiran transaksi keuangan secara langsung ke bucket privat R2.
+ * Client mengirim JSON `{ contentType, size }`, menerima `key` + `uploadUrl`,
+ * lalu PUT berkas ke R2 tanpa melewati Next.js.
  */
 export async function POST(req: Request) {
   try {
@@ -23,22 +28,23 @@ export async function POST(req: Request) {
     const limiter = await consumeRateLimit(`upload:${user.id}`, 30, 60);
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const form = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
-    const file = form.get("file");
-    if (!file || !(file instanceof File)) {
-      throw new AppError("VALIDATION_ERROR", "Berkas lampiran wajib diunggah", 400);
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await processAndStore({
-      file: buffer,
+    const input = presignSchema.parse(await readJson(req));
+    const result = await createImageUploadUrls({
       preset: "attachment",
       bucket: "private",
       prefix: "attachments/finance",
+      contentType: input.contentType,
+      size: input.size,
     });
 
     return NextResponse.json({
-      data: { key: result.key, size: result.size, format: result.format },
+      data: {
+        key: result.key,
+        uploadUrl: result.uploads[0].uploadUrl,
+        size: result.size,
+        format: result.format,
+        expiresIn: UPLOAD_URL_EXPIRES_SEC,
+      },
     });
   } catch (err) {
     if (!(err instanceof AppError)) {

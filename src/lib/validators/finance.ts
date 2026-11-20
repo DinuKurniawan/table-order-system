@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isUploadedKey } from "@/lib/upload-key";
 
 export const EXPENSE_CATEGORIES = [
   "Bahan Baku",
@@ -42,7 +43,7 @@ export const financeTransactionCreateSchema = z.object({
     .trim()
     .max(300)
     .refine(
-      (value) => value === "" || value.startsWith("attachments/finance/"),
+      (value) => value === "" || isUploadedKey(value, "attachments/finance"),
       "Key lampiran tidak valid"
     )
     .optional(),

@@ -60,6 +60,8 @@ function buildCsp(reportOnly: boolean): string {
   const connect = [
     "'self'",
     ...pusher,
+    // Direct upload: browser PUT ke endpoint S3 R2 via presigned URL.
+    ...(r2Account ? [r2Account] : []),
     ...(isDev ? ["ws://localhost:*", "http://localhost:*"] : []),
   ];
 

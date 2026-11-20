@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { handleApiError, readFormData } from "@/lib/api";
+import { z } from "zod";
+import { handleApiError, readJson } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { getOrderAccessToken } from "@/lib/order-access";
 import { submitPaymentProof } from "@/server/services/orders";
@@ -9,12 +10,13 @@ import {
 } from "@/lib/rate-limiter";
 import { getClientIp } from "@/lib/client-ip";
 
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const confirmSchema = z.object({
+  key: z.string().min(1).max(300),
+});
 
 /**
  * POST /api/public/orders/[code]/payment
- * Unggah bukti pembayaran (multipart). File dikonversi ke AVIF dan disimpan
- * di bucket privat R2 melalui service upload.
+ * Mencatat bukti pembayaran yang sudah diunggah langsung ke R2.
  */
 export async function POST(
   req: NextRequest,
@@ -34,15 +36,8 @@ export async function POST(
     );
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const form = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
-
-    const file = form.get("file");
-    if (!(file instanceof File) || file.size === 0) {
-      throw new AppError("VALIDATION_ERROR", "Berkas bukti pembayaran wajib diunggah", 400);
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await submitPaymentProof(code, token, buffer);
+    const { key } = confirmSchema.parse(await readJson(req));
+    const result = await submitPaymentProof(code, token, key);
 
     return NextResponse.json(result);
   } catch (err) {

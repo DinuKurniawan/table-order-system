@@ -204,7 +204,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
         `security-replay-${stamp}-aaaaaaaa`
       );
       await assert.rejects(
-        () => submitPaymentProof(order.code, accessToken, php),
+        () => submitPaymentProof(order.code, accessToken, "bukan-kunci-valid"),
         (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
       );
 

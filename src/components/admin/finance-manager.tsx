@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn, formatRupiah, formatWIB } from "@/lib/utils";
+import { prepareImageUpload, putToPresignedUrl } from "@/lib/client-image";
 import { useRealtimeEvent } from "@/lib/pusher-client";
 import {
   EXPENSE_CATEGORIES,
@@ -664,14 +665,18 @@ function TransactionDialog({
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
+      const prepared = await prepareImageUpload(file, "attachment");
       const res = await fetch("/api/admin/finance/attachment", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: prepared.blob.type,
+          size: prepared.blob.size,
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(apiErrorMessage(json, "Gagal mengunggah lampiran"));
+      await putToPresignedUrl(json.data.uploadUrl as string, prepared.blob);
       setAttachKey(json.data.key as string);
       setFileName(file.name);
       toast.success("Lampiran diunggah");

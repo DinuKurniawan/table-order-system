@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/lib/env";
@@ -83,4 +84,43 @@ export async function getSignedReadUrl(
   });
 
   return getSignedUrl(r2Client, command, { expiresIn: expiresSec });
+}
+
+/**
+ * Menghasilkan presigned URL untuk unggah langsung dari browser ke R2 (PUT).
+ * Content-Type ikut ditandatangani sehingga browser wajib mengirim nilai sama.
+ */
+export async function getSignedPutUrl(
+  bucket: string,
+  key: string,
+  contentType: string,
+  expiresSec: number = 300
+): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  return getSignedUrl(r2Client, command, { expiresIn: expiresSec });
+}
+
+/**
+ * Membaca metadata objek. Mengembalikan null bila objek tidak ada.
+ */
+export async function headObject(
+  bucket: string,
+  key: string
+): Promise<{ contentLength: number; contentType: string } | null> {
+  try {
+    const result = await r2Client.send(
+      new HeadObjectCommand({ Bucket: bucket, Key: key })
+    );
+    return {
+      contentLength: result.ContentLength ?? 0,
+      contentType: result.ContentType ?? "",
+    };
+  } catch {
+    return null;
+  }
 }

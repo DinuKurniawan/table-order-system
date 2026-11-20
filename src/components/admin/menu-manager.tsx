@@ -359,7 +359,7 @@ export function MenuManager() {
                           <div className="flex items-center gap-3">
                             <div className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-surface-muted border border-border">
                               {thumb ? (
-                                /* eslint-disable-next-line @next/next/no-img-element -- aset AVIF sudah dioptimalkan di server */
+                                /* eslint-disable-next-line @next/next/no-img-element -- aset gambar sudah dikompres di browser */
                                 <img
                                   src={thumb}
                                   alt={product.name}

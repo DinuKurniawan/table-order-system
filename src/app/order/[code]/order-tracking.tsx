@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatRupiah } from "@/lib/utils";
+import { prepareImageUpload, putToPresignedUrl } from "@/lib/client-image";
 import { usePusherChannel, useRealtimeEvent } from "@/lib/pusher-client";
 import type { CustomerOrderDTO } from "@/server/services/orders";
 
@@ -107,12 +108,31 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
     if (!file) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const prepared = await prepareImageUpload(file, "proof");
+
+      const presignRes = await fetch(
+        `/api/public/orders/${code}/payment/presign`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: prepared.blob.type,
+            size: prepared.blob.size,
+          }),
+        }
+      );
+      const presignJson = await presignRes.json();
+      if (!presignRes.ok) {
+        toast.error(apiErrorMessage(presignJson, "Gagal menyiapkan unggahan"));
+        return;
+      }
+
+      await putToPresignedUrl(presignJson.data.uploadUrl as string, prepared.blob);
 
       const res = await fetch(`/api/public/orders/${code}/payment`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: presignJson.data.key }),
       });
       const json = await res.json();
 
@@ -462,8 +482,6 @@ const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/heic",
-  "image/heif",
 ];
 
 function ProofUploader({
@@ -487,9 +505,9 @@ function ProofUploader({
     setError(null);
     if (!file) return;
 
-    const extensionOk = /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
+    const extensionOk = /\.(jpe?g|png|webp)$/i.test(file.name);
     if (!ALLOWED_TYPES.includes(file.type) && !extensionOk) {
-      setError("Format harus JPG, PNG, WEBP, atau HEIC.");
+      setError("Format harus JPG, PNG, atau WEBP.");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -514,7 +532,7 @@ function ProofUploader({
       <input
         ref={inputRef}
         type="file"
-        accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif"
+        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
         className="hidden"
         disabled={disabled}
         onChange={(event) => handleFile(event.target.files?.[0])}
@@ -552,7 +570,7 @@ function ProofUploader({
             Unggah bukti pembayaran
           </span>
           <span className="text-xs text-text-muted">
-            JPG, PNG, WEBP, atau HEIC · Maks. 10 MB
+            JPG, PNG, atau WEBP · Maks. 10 MB
           </span>
         </button>
       )}

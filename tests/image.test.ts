@@ -184,7 +184,8 @@ test("Image Validation & AVIF Processing Suite", async (t) => {
     // Akses tanpa sesi Super Admin wajib ditolak dengan 401
     const unauthReq = new NextRequest("http://localhost:3000/api/upload/image", {
       method: "POST",
-      body: new FormData(),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preset: "product", contentType: "image/webp", size: 1024 }),
     });
 
     const res = await uploadHandler(unauthReq);

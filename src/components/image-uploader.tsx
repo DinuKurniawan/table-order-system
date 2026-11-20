@@ -6,69 +6,15 @@ import { UploadCloud, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { prepareImageUpload, putToPresignedUrl } from "@/lib/client-image";
 
-/**
- * Catatan Arsitektur Batas Payload Vercel / Serverless:
- * Rute serverless hosting seperti Vercel membatasi ukuran request body maksimal ~4.5 MB.
- * Jika file pengguna berukuran > 4 MB, fungsi `compressOnClientIfNeeded` di bawah
- * mengecilkan dimensi/kualitas via HTML5 Canvas sebelum dikirim ke API Next.js.
- */
-async function compressOnClientIfNeeded(file: File, maxSizeBytes: number = 4 * 1024 * 1024): Promise<Blob> {
-  if (file.size <= maxSizeBytes) {
-    return file;
-  }
-
-  return new Promise((resolve, reject) => {
-    const img = document.createElement("img");
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-
-      // Batasi dimensi maksimum canvas ke 2560px
-      const maxDim = 2560;
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob && blob.size < file.size) {
-            resolve(blob);
-          } else {
-            resolve(file);
-          }
-        },
-        "image/jpeg",
-        0.85
-      );
-    };
-
-    reader.readAsDataURL(file);
-  });
+interface PresignResponse {
+  data: {
+    key: string;
+    url: string;
+    thumbKey?: string;
+    uploads: Array<{ kind: "main" | "thumb"; key: string; uploadUrl: string }>;
+  };
 }
 
 export interface ImageUploaderProps {
@@ -118,37 +64,48 @@ export function ImageUploader({
     setIsUploading(true);
 
     try {
-      let uploadBlob: Blob = file;
+      setUploadProgress("Mengoptimasi gambar...");
+      const prepared = await prepareImageUpload(file, preset);
 
-      // Jika file > 4MB, kompres via canvas untuk mematuhi batas body serverless
-      if (file.size > 4 * 1024 * 1024) {
-        setUploadProgress("Mengoptimasi ukuran file...");
-        uploadBlob = await compressOnClientIfNeeded(file);
+      setUploadProgress("Menyiapkan tautan unggah...");
+      const body: Record<string, unknown> = {
+        preset,
+        contentType: prepared.blob.type,
+        size: prepared.blob.size,
+      };
+      if (prepared.thumb) {
+        body.thumb = {
+          contentType: prepared.thumb.type,
+          size: prepared.thumb.size,
+        };
       }
-
-      setUploadProgress("Mengonversi ke AVIF & mengunggah ke Cloudflare R2...");
-
-      const formData = new FormData();
-      formData.append("file", uploadBlob, file.name);
-      formData.append("preset", preset);
 
       const res = await fetch("/api/upload/image", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const json = await res.json();
+      const json = (await res.json()) as PresignResponse & {
+        error?: { message?: string };
+      };
 
       if (!res.ok) {
-        throw new Error(apiErrorMessage(json, "Gagal mengunggah gambar"));
+        throw new Error(apiErrorMessage(json, "Gagal menyiapkan unggahan gambar"));
       }
 
-      const uploadedUrl = json.data.url;
-      const uploadedKey = json.data.key;
-      const uploadedThumbKey = json.data.thumbKey;
+      setUploadProgress("Mengunggah ke Cloudflare R2...");
+      const main = json.data.uploads.find((upload) => upload.kind === "main");
+      const thumb = json.data.uploads.find((upload) => upload.kind === "thumb");
+      if (!main) throw new Error("Tautan unggah tidak tersedia");
+
+      await putToPresignedUrl(main.uploadUrl, prepared.blob);
+      if (thumb && prepared.thumb) {
+        await putToPresignedUrl(thumb.uploadUrl, prepared.thumb);
+      }
 
       setLocalPreview(null);
-      onChange(uploadedUrl, uploadedKey, uploadedThumbKey);
+      onChange(json.data.url, json.data.key, json.data.thumbKey);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat mengunggah";
       setErrorMessage(msg);
@@ -285,7 +242,7 @@ export function ImageUploader({
                 className="bg-primary-50 text-primary-800 border-primary-200/50 text-[10px] font-medium gap-1 py-0.5"
               >
                 <Sparkles className="size-3 text-primary-600" />
-                Dikonversi ke AVIF otomatis
+                Dioptimalkan otomatis (WebP)
               </Badge>
             </div>
           </div>
