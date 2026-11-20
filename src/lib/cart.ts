@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { cupSizeSchema } from "@/lib/size-pricing";
+
+export { cupSizeSchema };
+export type { CupSize } from "@/lib/size-pricing";
 
 /**
  * Bentuk keranjang yang boleh dibaca dari localStorage (audit R-04).
@@ -8,7 +12,6 @@ import { z } from "zod";
 export const sugarLevelSchema = z.enum(["NO_SUGAR", "SEDIKIT", "REGULER"]);
 export const iceLevelSchema = z.enum(["SEDIKIT", "REGULER"]);
 export const temperatureSchema = z.enum(["ICE", "HOT"]);
-export const cupSizeSchema = z.enum(["REGULER", "LARGE", "JUMBO"]);
 
 export const cartItemSchema = z.object({
   productId: z.string().min(1),
@@ -32,7 +35,6 @@ export type CartItems = z.infer<typeof cartItemsSchema>;
 export type SugarLevel = z.infer<typeof sugarLevelSchema>;
 export type IceLevel = z.infer<typeof iceLevelSchema>;
 export type Temperature = z.infer<typeof temperatureSchema>;
-export type CupSize = z.infer<typeof cupSizeSchema>;
 
 /** Parse isi localStorage; data rusak/tidak valid dianggap keranjang kosong. */
 export function parseStoredCart(raw: string | null): CartItems {

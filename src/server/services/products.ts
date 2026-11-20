@@ -18,12 +18,14 @@ import {
   productCreateSchema,
   productUpdateSchema,
 } from "@/lib/validators/product";
+import { parseSizePrices, type SizePrices } from "@/lib/size-pricing";
 
 export interface ProductDTO {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  sizePrices: SizePrices | null;
   imageKey: string | null;
   thumbKey: string | null;
   imageUrl: string | null;
@@ -61,6 +63,7 @@ function toDTO(product: ProductWithCategory): ProductDTO {
     name: product.name,
     description: product.description,
     price: product.price,
+    sizePrices: parseSizePrices(product.sizePrices),
     imageKey: product.imageKey,
     thumbKey: product.thumbKey,
     imageUrl: product.imageKey ? getPublicUrl(product.imageKey) : null,
@@ -165,6 +168,9 @@ export async function createProduct(
         name: data.name,
         description: data.description ?? null,
         price: data.price,
+        sizePrices: data.sizePrices
+          ? (data.sizePrices as Prisma.InputJsonValue)
+          : Prisma.DbNull,
         categoryId: data.categoryId,
         imageKey: data.imageKey ?? null,
         thumbKey: data.thumbKey ?? null,
@@ -243,6 +249,13 @@ export async function updateProduct(
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.description !== undefined ? { description: data.description ?? null } : {}),
         ...(data.price !== undefined ? { price: data.price } : {}),
+        ...(data.sizePrices !== undefined
+          ? {
+              sizePrices: data.sizePrices
+                ? (data.sizePrices as Prisma.InputJsonValue)
+                : Prisma.DbNull,
+            }
+          : {}),
         ...(data.categoryId !== undefined ? { categoryId: data.categoryId } : {}),
         ...(data.imageKey !== undefined ? { imageKey: data.imageKey ?? null } : {}),
         ...(data.thumbKey !== undefined ? { thumbKey: data.thumbKey ?? null } : {}),

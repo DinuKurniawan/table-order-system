@@ -4,12 +4,14 @@ import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { getPublicUrl } from "@/lib/r2";
 import { findActiveTableByToken } from "@/server/services/tables";
+import { parseSizePrices, type SizePrices } from "@/lib/size-pricing";
 
 export interface PublicMenuProduct {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  sizePrices: SizePrices | null;
   stock: number;
   trackStock: boolean;
   imageUrl: string | null;
@@ -22,6 +24,7 @@ const publicProductSelect = {
   name: true,
   description: true,
   price: true,
+  sizePrices: true,
   imageKey: true,
   thumbKey: true,
   stock: true,
@@ -36,6 +39,7 @@ function toPublicProduct({
 }: Prisma.ProductGetPayload<{ select: typeof publicProductSelect }>): PublicMenuProduct {
   return {
     ...product,
+    sizePrices: parseSizePrices(product.sizePrices),
     imageUrl: imageKey ? getPublicUrl(imageKey) : null,
     thumbUrl: thumbKey ? getPublicUrl(thumbKey) : null,
   };

@@ -15,6 +15,8 @@ import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import { reserveStock } from "@/server/services/stock";
+import { cupSizeSchema, parseSizePrices, priceForSize } from "@/lib/size-pricing";
+import type { CupSize } from "@/lib/size-pricing";
 import {
   deriveOrderAccessToken,
   generateOrderCode,
@@ -49,6 +51,7 @@ const orderSchema = z
             .min(1, "Minimal 1")
             .max(100, "Maksimal 100 per item"),
           note: z.string().trim().max(200, "Catatan item maksimal 200 karakter").optional(),
+          size: cupSizeSchema.optional(),
         })
       )
       .min(1, "Pesanan minimal berisi 1 item")
@@ -71,6 +74,13 @@ const orderSchema = z
 interface CreatedOrder {
   code: string;
   accessToken: string;
+}
+
+function unitPriceFor(
+  product: { price: number; sizePrices: Prisma.JsonValue | null },
+  size: CupSize | undefined
+): number {
+  return priceForSize(product.price, parseSizePrices(product.sizePrices), size);
 }
 
 function orderResponse(order: CreatedOrder, status: number, maxAgeSeconds: number) {
@@ -187,7 +197,7 @@ export async function POST(req: Request) {
 
     const subtotal = items.reduce((sum, item) => {
       const product = productMap.get(item.productId);
-      return sum + (product?.price ?? 0) * item.quantity;
+      return sum + (product ? unitPriceFor(product, item.size) : 0) * item.quantity;
     }, 0);
     const total = subtotal;
 
@@ -237,7 +247,13 @@ export async function POST(req: Request) {
                   quantity: item.quantity,
                   note: item.note || null,
                   nameSnapshot: productMap.get(item.productId)?.name ?? "",
-                  priceSnapshot: productMap.get(item.productId)?.price ?? 0,
+                  priceSnapshot: unitPriceFor(
+                    productMap.get(item.productId) ?? {
+                      price: 0,
+                      sizePrices: null,
+                    },
+                    item.size
+                  ),
                 })),
               },
             },

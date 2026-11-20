@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CategoryType, DrinkSubtype } from "@prisma/client";
 import { isUploadedKey } from "@/lib/upload-key";
+import { sizePricesSchema } from "@/lib/size-pricing";
 
 function productImageKey(kind: "main" | "thumb") {
   return z
@@ -57,6 +58,7 @@ const productFields = {
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
   imageKey: productImageKey("main"),
   thumbKey: productImageKey("thumb"),
+  sizePrices: sizePricesSchema.nullish(),
   isActive: z.boolean(),
   trackStock: z.boolean(),
   lowStockThreshold: z.number().int().min(0),
@@ -97,6 +99,8 @@ export const productFormSchema = z.object({
   categoryId: z.string().min(1, "Kategori wajib dipilih"),
   imageKey: z.string().nullable().optional(),
   thumbKey: z.string().nullable().optional(),
+  priceLarge: z.number().int().min(0).optional(),
+  priceJumbo: z.number().int().min(0).optional(),
   isActive: z.boolean(),
   trackStock: z.boolean(),
   stock: z

@@ -17,12 +17,14 @@ import { Button } from "@/components/ui/button";
 import { useCart, useCartHydrated, hydrateCart } from "@/lib/cart-store";
 import { formatRupiah } from "@/lib/utils";
 import type { CupSize, IceLevel, SugarLevel, Temperature } from "@/lib/cart";
+import { priceForSize, type SizePrices } from "@/lib/size-pricing";
 
 interface ItemProduct {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  sizePrices: SizePrices | null;
   stock: number;
   trackStock: boolean;
   imageUrl: string | null;
@@ -59,6 +61,7 @@ export function ItemDetailClient({
   const [ice, setIce] = useState<IceLevel>("REGULER");
   const [temperature, setTemperature] = useState<Temperature>("ICE");
   const [cupSize, setCupSize] = useState<CupSize>("REGULER");
+  const unitPrice = priceForSize(product.price, product.sizePrices, cupSize);
 
   const addToCart = () => {
     const addQty = Math.min(qty, remaining);
@@ -67,9 +70,13 @@ export function ItemDetailClient({
       return;
     }
 
+    // Varian size/suhu dipisah agar tiap baris memakai harga sendiri.
+    const cartKey = isDrink
+      ? `${product.id}:${cupSize}:${temperature}`
+      : product.id;
     setCart((prev) => ({
       ...prev,
-      [product.id]: {
+      [cartKey]: {
         productId: product.id,
         name: product.name,
         productImage: product.thumbUrl ?? product.imageUrl ?? undefined,
@@ -78,8 +85,8 @@ export function ItemDetailClient({
         ice: isDrink && temperature === "ICE" ? ice : undefined,
         temperature: isDrink ? temperature : undefined,
         size: isDrink ? cupSize : undefined,
-        price: product.price,
-        quantity: (prev[product.id]?.quantity ?? 0) + addQty,
+        price: unitPrice,
+        quantity: (prev[cartKey]?.quantity ?? 0) + addQty,
       },
     }));
     toast.success(`${addQty} × ${product.name} ditambahkan`);
@@ -145,7 +152,7 @@ export function ItemDetailClient({
             </div>
 
             <p className="text-lg font-bold text-primary-800">
-              {formatRupiah(product.price)}
+              {formatRupiah(unitPrice)}
             </p>
 
             {isDrink && (
@@ -316,7 +323,7 @@ export function ItemDetailClient({
         >
           {soldOut
             ? "Habis"
-            : `Tambah ke Keranjang · ${formatRupiah(product.price * qty)}`}
+            : `Tambah ke Keranjang · ${formatRupiah(unitPrice * qty)}`}
         </Button>
       </div>
     </div>

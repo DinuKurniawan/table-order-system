@@ -65,6 +65,7 @@ interface ProductDTO {
   name: string;
   description: string | null;
   price: number;
+  sizePrices: { LARGE?: number; JUMBO?: number } | null;
   imageKey: string | null;
   thumbKey: string | null;
   imageUrl: string | null;
@@ -522,6 +523,8 @@ function ProductDialog({
       name: product?.name ?? "",
       description: product?.description ?? "",
       price: product?.price ?? 0,
+      priceLarge: product?.sizePrices?.LARGE,
+      priceJumbo: product?.sizePrices?.JUMBO,
       categoryId: product?.category.id ?? "",
       imageKey: product?.imageKey ?? null,
       thumbKey: product?.thumbKey ?? null,
@@ -535,10 +538,15 @@ function ProductDialog({
   const saveMutation = useMutation({
     mutationFn: (values: ProductFormValues) => {
       // Stok hanya lewat modul stok; jangan pernah dikirim saat edit produk (K-01).
-      const { stock, ...withoutStock } = values;
+      const { stock, priceLarge, priceJumbo, ...withoutStock } = values;
+      const sizePrices = {
+        ...(priceLarge !== undefined ? { LARGE: priceLarge } : {}),
+        ...(priceJumbo !== undefined ? { JUMBO: priceJumbo } : {}),
+      };
       const payload = {
         ...withoutStock,
         ...(isEdit ? {} : { stock }),
+        sizePrices: Object.keys(sizePrices).length > 0 ? sizePrices : null,
         description: values.description || null,
         imageKey: values.imageKey || null,
         thumbKey: values.thumbKey || null,
@@ -559,6 +567,7 @@ function ProductDialog({
   const trackStock = useWatch({ control: form.control, name: "trackStock" });
   const categoryId = useWatch({ control: form.control, name: "categoryId" });
   const isActive = useWatch({ control: form.control, name: "isActive" });
+  const selectedCategory = categories.find((c) => c.id === categoryId);
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
@@ -648,6 +657,46 @@ function ProductDialog({
               )}
             </div>
           </div>
+
+          {selectedCategory?.type === "DRINK" && (
+            <div className="grid grid-cols-2 gap-3 rounded-xl border border-border p-3">
+              <div className="col-span-2 text-[11px] text-text-muted">
+                Harga per size cup. Kosongkan bila sama dengan harga Reguler.
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="product-price-large" className="text-xs font-semibold">
+                  Harga Large (Rp)
+                </Label>
+                <Input
+                  id="product-price-large"
+                  type="number"
+                  min={0}
+                  placeholder={String(product?.price ?? 0)}
+                  {...form.register("priceLarge", {
+                    setValueAs: (value) =>
+                      value === "" || value === null ? undefined : Number(value),
+                  })}
+                  className="rounded-xl h-10"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="product-price-jumbo" className="text-xs font-semibold">
+                  Harga Jumbo (Rp)
+                </Label>
+                <Input
+                  id="product-price-jumbo"
+                  type="number"
+                  min={0}
+                  placeholder={String(product?.price ?? 0)}
+                  {...form.register("priceJumbo", {
+                    setValueAs: (value) =>
+                      value === "" || value === null ? undefined : Number(value),
+                  })}
+                  className="rounded-xl h-10"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
             <Label htmlFor="product-track" className="text-xs font-semibold">

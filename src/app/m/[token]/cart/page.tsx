@@ -46,7 +46,10 @@ function CartContent() {
   // ============================================================
   // Fetch order summary - items from cart
   // ============================================================
-  const itemEntries = Object.values(items) || [];
+  const itemEntries = Object.entries(items).map(([key, item]) => ({
+    key,
+    ...item,
+  }));
 
   // Calculate totals from items directly
   const totalItems = itemEntries.reduce((sum, item) => sum + item.quantity, 0);
@@ -64,7 +67,7 @@ function CartContent() {
   const [generalNote, setGeneralNote] = useState("");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
-    productId: string;
+    key: string;
     name: string;
   } | null>(null);
   const swipeRef = useRef<{
@@ -97,6 +100,7 @@ function CartContent() {
     const itemsForOrder = itemEntries.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      size: item.drink === true ? item.size : undefined,
       note:
         item.drink === true
           ? [
@@ -163,10 +167,10 @@ function CartContent() {
   // ============================================================
   // Hapus item (konfirmasi overlay penuh)
   // ============================================================
-  const removeItem = (productId: string) => {
+  const removeItem = (key: string) => {
     setItems((prev) => {
       const next = { ...prev };
-      delete next[productId];
+      delete next[key];
       return next;
     });
     setPendingDelete(null);
@@ -174,13 +178,13 @@ function CartContent() {
   };
 
   const setItemOption = (
-    productId: string,
+    key: string,
     patch: Partial<Pick<CartItem, "sugar" | "ice">>
   ) => {
     setItems((prev) => {
-      const item = prev[productId];
+      const item = prev[key];
       if (!item) return prev;
-      return { ...prev, [productId]: { ...item, ...patch } };
+      return { ...prev, [key]: { ...item, ...patch } };
     });
   };
 
@@ -309,18 +313,18 @@ function CartContent() {
         <div className="mt-2 space-y-3">
           {itemEntries.map((item) => {
             const label = item.name ?? item.productName ?? "Produk";
-            const isOpen = openItemId === item.productId;
+            const isOpen = openItemId === item.key;
             return (
               <div
-                key={item.productId}
+                key={item.key}
                 className="relative overflow-hidden rounded border"
               >
                 <button
                   type="button"
                   aria-label={`Hapus ${label}`}
-                  onFocus={() => setOpenItemId(item.productId)}
+                  onFocus={() => setOpenItemId(item.key)}
                   onClick={() =>
-                    setPendingDelete({ productId: item.productId, name: label })
+                    setPendingDelete({ key: item.key, name: label })
                   }
                   className="absolute inset-y-0 right-0 flex w-16 items-center justify-center bg-destructive text-white transition-colors hover:bg-destructive/90"
                 >
@@ -333,7 +337,7 @@ function CartContent() {
                   }}
                   onPointerDown={(event) => {
                     swipeRef.current = {
-                      id: item.productId,
+                      id: item.key,
                       startX: event.clientX,
                       startY: event.clientY,
                       dx: 0,
@@ -341,7 +345,7 @@ function CartContent() {
                   }}
                   onPointerMove={(event) => {
                     const swipe = swipeRef.current;
-                    if (!swipe || swipe.id !== item.productId) return;
+                    if (!swipe || swipe.id !== item.key) return;
                     const dx = event.clientX - swipe.startX;
                     const dy = event.clientY - swipe.startY;
                     // Gerakan vertikal = scroll halaman, bukan geser item.
@@ -349,12 +353,12 @@ function CartContent() {
                   }}
                   onPointerUp={() => {
                     const swipe = swipeRef.current;
-                    if (!swipe || swipe.id !== item.productId) return;
+                    if (!swipe || swipe.id !== item.key) return;
                     swipeRef.current = null;
-                    if (swipe.dx <= -40) setOpenItemId(item.productId);
+                    if (swipe.dx <= -40) setOpenItemId(item.key);
                     else if (swipe.dx >= 40)
                       setOpenItemId((current) =>
-                        current === item.productId ? null : current
+                        current === item.key ? null : current
                       );
                     else if (isOpen) setOpenItemId(null);
                   }}
@@ -387,8 +391,8 @@ function CartContent() {
                         aria-label={`Kurangi ${label}`}
                         onClick={() => setItems((prev) => {
                           const newItems = { ...prev };
-                          if (newItems[item.productId].quantity > 1) {
-                            newItems[item.productId].quantity -= 1;
+                          if (newItems[item.key].quantity > 1) {
+                            newItems[item.key].quantity -= 1;
                           }
                           return newItems;
                         })}
@@ -406,9 +410,9 @@ function CartContent() {
                         aria-label={`Tambah ${label}`}
                         onClick={() => setItems((prev) => {
                           const newItems = { ...prev };
-                          newItems[item.productId] = {
-                            ...newItems[item.productId],
-                            quantity: newItems[item.productId].quantity + 1,
+                          newItems[item.key] = {
+                            ...newItems[item.key],
+                            quantity: newItems[item.key].quantity + 1,
                           };
                           return newItems;
                         })}
@@ -430,16 +434,16 @@ function CartContent() {
                     >
                       <div>
                         <label
-                          htmlFor={`sugar-${item.productId}`}
+                          htmlFor={`sugar-${item.key}`}
                           className="text-xs font-medium text-text-muted"
                         >
                           Gula
                         </label>
                         <select
-                          id={`sugar-${item.productId}`}
+                          id={`sugar-${item.key}`}
                           value={item.sugar ?? "REGULER"}
                           onChange={(event) =>
-                            setItemOption(item.productId, {
+                            setItemOption(item.key, {
                               sugar: event.target.value as SugarLevel,
                             })
                           }
@@ -453,16 +457,16 @@ function CartContent() {
                       {item.temperature !== "HOT" && (
                         <div>
                           <label
-                            htmlFor={`ice-${item.productId}`}
+                            htmlFor={`ice-${item.key}`}
                             className="text-xs font-medium text-text-muted"
                           >
                             Es batu
                           </label>
                           <select
-                            id={`ice-${item.productId}`}
+                            id={`ice-${item.key}`}
                             value={item.ice ?? "REGULER"}
                             onChange={(event) =>
-                              setItemOption(item.productId, {
+                              setItemOption(item.key, {
                                 ice: event.target.value as IceLevel,
                               })
                             }
@@ -542,7 +546,7 @@ function CartContent() {
               </Button>
               <Button
                 type="button"
-                onClick={() => removeItem(pendingDelete.productId)}
+                onClick={() => removeItem(pendingDelete.key)}
                 className="h-11 flex-1 rounded-xl bg-destructive text-white hover:bg-destructive/90"
               >
                 Hapus
