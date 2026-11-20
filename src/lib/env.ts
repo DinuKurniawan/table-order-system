@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { evaluateSecretPolicy } from "@/lib/secret-policy";
 
 const serverEnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL wajib diisi"),
@@ -13,8 +14,7 @@ const serverEnvSchema = z.object({
     )
     .default("none"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET wajib minimal 32 karakter"),
-  CRON_SECRET: z.string().min(8, "CRON_SECRET wajib minimal 8 karakter"),
-  R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID wajib diisi"),
+  CRON_SECRET: z.string().min(8, "CRON_SECRET wajib minimal 8 karakter"),  R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID wajib diisi"),
   R2_ACCESS_KEY_ID: z.string().min(1, "R2_ACCESS_KEY_ID wajib diisi"),
   R2_SECRET_ACCESS_KEY: z.string().min(1, "R2_SECRET_ACCESS_KEY wajib diisi"),
   R2_BUCKET_PUBLIC: z.string().min(1, "R2_BUCKET_PUBLIC wajib diisi"),
@@ -51,6 +51,24 @@ function validateEnv(): Env {
     const errorMessage = `\n❌ Konfigurasi Environment Variables Gagal:\n${formattedErrors}\n\nSilakan periksa file .env Anda atau salin dari .env.example.\n`;
     
     // Log clearly to console
+    console.error(errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  // SEC-02/SEC-07: nilai contoh dan secret lemah ditolak di production,
+  // hanya diperingatkan di development/test.
+  const policy = evaluateSecretPolicy(parsed.data);
+  if (policy.warnings.length > 0) {
+    console.warn(
+      `⚠️ Peringatan secret (non-production):\n${policy.warnings
+        .map((message) => `  - ${message}`)
+        .join("\n")}`
+    );
+  }
+  if (policy.errors.length > 0) {
+    const errorMessage = `\n❌ Konfigurasi secret tidak aman:\n${policy.errors
+      .map((message) => `  - ${message}`)
+      .join("\n")}\n`;
     console.error(errorMessage);
     throw new Error(errorMessage);
   }

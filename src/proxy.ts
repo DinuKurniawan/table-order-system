@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { isAllowedOrigin } from "@/lib/request-origin";
+import { requireSessionSecret } from "@/lib/secret-policy";
 
 const SESSION_COOKIE_NAME = "session_token";
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -52,10 +53,7 @@ export async function proxy(req: NextRequest) {
 
   if (token) {
     try {
-      const secret = new TextEncoder().encode(
-        process.env.SESSION_SECRET ||
-          "development-secret-must-be-at-least-32-chars-long!"
-      );
+      const secret = requireSessionSecret();
       const { payload } = await jwtVerify(token, secret);
       if (payload.sub && payload.role && typeof payload.tokenVersion === "number") {
         session = {

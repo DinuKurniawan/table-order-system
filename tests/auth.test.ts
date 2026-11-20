@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hashPassword, verifyPassword, authenticateSession, authorizeRole } from "../src/lib/auth";
 import { verifySessionToken } from "../src/lib/session";
+import { env } from "../src/lib/env";
 import { prisma } from "../src/lib/db";
 import { Role } from "@prisma/client";
 import { SignJWT } from "jose";
@@ -53,9 +54,7 @@ test("Auth & RBAC Test Suite", async (t) => {
   });
 
   await t.test("2. Verifikasi Token JWT Sesi (jose)", async () => {
-    const secret = new TextEncoder().encode(
-      process.env.SESSION_SECRET || "development-secret-must-be-at-least-32-chars-long!"
-    );
+    const secret = new TextEncoder().encode(env.SESSION_SECRET);
 
     const validToken = await new SignJWT({
       role: testUser.role,

@@ -182,8 +182,8 @@ Contoh nilai di bawah adalah nilai palsu. Jangan menyimpan kredensial asli di re
 | `DATABASE_URL` | Wajib | Connection string PostgreSQL untuk aplikasi | `postgresql://user:password@localhost:5432/coffeeshop?schema=public` |
 | `DIRECT_URL` | Wajib untuk Prisma CLI | Connection string langsung (tanpa pooler) untuk migrasi | `postgresql://user:password@localhost:5432/coffeeshop?schema=public` |
 | `APP_BASE_URL` | Opsional (default `http://localhost:3000`) | Base URL aplikasi untuk tautan QR | `http://localhost:3000` |
-| `SESSION_SECRET` | Wajib | Kunci penandatangan JWT, minimal 32 karakter | `contoh-secret-acak-minimal-32-karakter` |
-| `CRON_SECRET` | Wajib | Rahasia untuk endpoint terjadwal, minimal 8 karakter | `contoh-cron-secret-123` |
+| `SESSION_SECRET` | Wajib | Kunci penandatangan JWT, minimal 32 karakter acak; nilai contoh ditolak di production | `<hasil-generate>` |
+| `CRON_SECRET` | Wajib | Rahasia endpoint terjadwal, minimal 32 karakter acak | `<hasil-generate>` |
 | `R2_ACCOUNT_ID` | Wajib | Account ID R2, boleh ID saja atau URL endpoint penuh | `https://abcd1234.r2.cloudflarestorage.com` |
 | `R2_ACCESS_KEY_ID` | Wajib | Access key R2 | `contoh-access-key` |
 | `R2_SECRET_ACCESS_KEY` | Wajib | Secret key R2 | `contoh-secret-key` |
@@ -202,6 +202,14 @@ Contoh nilai di bawah adalah nilai palsu. Jangan menyimpan kredensial asli di re
 | `DISABLE_REALTIME` | Opsional | `true` untuk mematikan Pusher (dipakai E2E/CI) | `true` |
 
 Semua variabel di atas tercantum di `.env.example`. `SEED_ADMIN_USERNAME` dan `SEED_ADMIN_PASSWORD` wajib diisi sebelum menjalankan seeder; seeder berhenti bila salah satu kosong.
+
+Buat `SESSION_SECRET` dan `CRON_SECRET` dengan perintah yang sama, lalu isi nilai berbeda untuk masing-masing:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+Aplikasi menolak start di production bila memakai nilai contoh dari `.env.example` atau secret yang lemah.
 
 ### Cron kedaluwarsa pesanan
 
