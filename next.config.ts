@@ -45,6 +45,7 @@ const sensitiveApiSources = [
   "/api/public/orders/:path*",
   "/api/auth/:path*",
   "/api/pusher/auth",
+  "/api/upload/:path*",
 ];
 
 const nextConfig: NextConfig = {

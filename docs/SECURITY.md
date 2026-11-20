@@ -81,7 +81,7 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
 
 - **SEC-16 (2026-11-20).** Aturan `Cache-Control` terpusat di `next.config.ts`:
   `private, no-store` untuk `/api/admin/*`, `/api/cashier/*`, `/api/public/orders/*`,
-  `/api/auth/*`, dan `/api/pusher/auth`. `/api/public/menu` memakai `no-store` karena
-  stok/ketersediaan berubah realtime; caching pendek akan menampilkan menu basi. Tes
+  `/api/auth/*`, `/api/upload/*`, dan `/api/pusher/auth`. `/api/public/menu` memakai `no-store`
+  karena stok/ketersediaan berubah realtime; caching pendek akan menampilkan menu basi. Tes
   `tests/cache-control.test.ts` memindai route handler pada kelompok tersebut agar route baru
   tidak lolos tanpa header.

@@ -50,6 +50,7 @@ test("SEC-16: Cache-Control no-store pada route sensitif", async () => {
     "/api/public/orders/:path*",
     "/api/auth/:path*",
     "/api/pusher/auth",
+    "/api/upload/:path*",
   ]) {
     assert.equal(
       cacheControl(source),
@@ -66,6 +67,7 @@ test("SEC-16: Cache-Control no-store pada route sensitif", async () => {
     "src/app/api/public/orders",
     "src/app/api/auth",
     "src/app/api/pusher",
+    "src/app/api/upload",
   ];
   const sensitiveSources = new Set(
     rules
