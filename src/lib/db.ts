@@ -6,17 +6,21 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /**
- * Serverless membuka pool per instance, sedangkan Prisma Postgres membatasi
- * 45 koneksi per role. Tanpa batas, beberapa instance paralel menghabiskan
- * kuota dan semua request gagal "too many connections". Satu koneksi per
- * instance cukup; query antre sebentar lewat pool_timeout.
- * Nilai tetap bisa ditimpa dari parameter URL bila perlu.
+ * Serverless membuka pool per instance, sedangkan Prisma Postgres (direct,
+ * db.prisma.io) membatasi 45 koneksi per role. Pakai URL pooled bila tersedia
+ * (PgBouncer di pooled.db.prisma.io) agar banyak instance berbagi sedikit
+ * koneksi server. Satu koneksi per instance cukup dan query antre lewat
+ * pool_timeout. Nilai tetap bisa ditimpa dari parameter URL.
  */
 function datasourceUrl(): string | undefined {
-  const raw = process.env.DATABASE_URL;
-  if (!raw || process.env.NODE_ENV !== "production") return undefined;
+  const pooled = process.env.DATABASE_URL_POOLED;
+  const raw = pooled ?? process.env.DATABASE_URL;
+  if (!raw) return undefined;
   try {
     const url = new URL(raw);
+    if (pooled && !url.searchParams.has("pgbouncer")) {
+      url.searchParams.set("pgbouncer", "true");
+    }
     if (!url.searchParams.has("connection_limit")) {
       url.searchParams.set("connection_limit", "1");
     }
