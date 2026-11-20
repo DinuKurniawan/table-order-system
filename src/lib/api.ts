@@ -42,10 +42,67 @@ export function handleApiError(err: unknown): NextResponse {
 
 /**
  * Membaca body JSON dan menolak payload yang bukan objek.
+ *
+ * SEC-15: batas ukuran ditegakkan saat stream dibaca (bukan hanya dari
+ * Content-Length yang bisa dipalsukan). Default 256 KB; endpoint yang butuh
+ * lebih dapat mengirim `maxBytes` (mis. checkout publik 64 KB).
  */
-export async function readJson(req: Request): Promise<Record<string, unknown>> {
+export const DEFAULT_JSON_BODY_LIMIT_BYTES = 256 * 1024;
+
+export interface ReadJsonOptions {
+  maxBytes?: number;
+}
+
+function bodyTooLarge(): AppError {
+  return new AppError("PAYLOAD_TOO_LARGE", "Body request terlalu besar", 413);
+}
+
+export async function readJson(
+  req: Request,
+  options: ReadJsonOptions = {}
+): Promise<Record<string, unknown>> {
+  const limit = options.maxBytes ?? DEFAULT_JSON_BODY_LIMIT_BYTES;
+
   try {
-    const body = await req.json();
+    const declared = Number(req.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > limit) throw bodyTooLarge();
+    if (!req.body) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Body request bukan JSON yang valid",
+        400
+      );
+    }
+
+    const reader = req.body.getReader();
+    const decoder = new TextDecoder();
+    let received = 0;
+    let text = "";
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      received += value.byteLength;
+      if (received > limit) {
+        await reader.cancel().catch(() => {});
+        throw bodyTooLarge();
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Body request bukan JSON yang valid",
+        400
+      );
+    }
+
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       throw new AppError(
         "VALIDATION_ERROR",

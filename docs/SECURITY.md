@@ -72,3 +72,9 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   terputus. Risiko diterima: JWT yang dicuri tetap valid sampai `exp` (12 jam); mitigasi =
   nonaktifkan kasir/admin atau reset password (menaikkan `tokenVersion` dan memutus semua
   sesi), plus rotasi `SESSION_SECRET` bila perlu.
+
+- **SEC-15 (2026-11-20).** `readJson` membatasi body JSON secara streaming
+  (default 256 KB, checkout publik 64 KB). Content-Length yang lebih besar ditolak lebih awal,
+  tetapi penghitung byte saat stream tetap menegakkan batas bila header dipalsukan; pelanggaran
+  menghasilkan `413 PAYLOAD_TOO_LARGE`. Upload multipart memakai jalur terpisah dengan batas
+  12 MB (validasi ukuran file 10 MB di `src/lib/image.ts`).

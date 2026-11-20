@@ -89,11 +89,6 @@ function orderResponse(order: CreatedOrder, status: number, maxAgeSeconds: numbe
 export async function POST(req: Request) {
   let requestTableId: string | null = null;
   try {
-    const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-      throw new AppError("VALIDATION_ERROR", "Body request terlalu besar", 413);
-    }
-
     const ip = getClientIp(req);
     const ipLimit = await consumeRateLimit(`order:${ip}`, 20, 60);
     if (ipLimit.limited) return tooManyRequests(ipLimit);
@@ -110,7 +105,7 @@ export async function POST(req: Request) {
     }
     const idempotencyKey = keyCheck.data;
 
-    const body = await readJson(req);
+    const body = await readJson(req, { maxBytes: MAX_BODY_BYTES });
     const validation = orderSchema.safeParse(body);
     if (!validation.success) {
       return apiErrorResponse(
