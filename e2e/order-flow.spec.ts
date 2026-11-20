@@ -57,7 +57,7 @@ test("customer pesan, kasir setujui, cetak, status realtime", async ({
     expect(receipt.url()).toContain("/print");
     await expect(receipt.locator("body")).toContainText(code);
     await expect(
-      cashier.getByRole("main").getByText("Pembayaran disetujui", { exact: true })
+      cashier.getByRole("main").getByText("Diterima", { exact: true })
     ).toBeVisible();
 
     // Pusher harus mengubah halaman customer tanpa refresh.
@@ -119,7 +119,7 @@ test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
     await openCashierOrder(cashier, code);
     await cashier.getByRole("button", { name: "Setuju", exact: true }).click();
     await expect(
-      cashier.getByRole("main").getByText("Pembayaran disetujui", { exact: true })
+      cashier.getByRole("main").getByText("Diterima", { exact: true })
     ).toBeVisible();
     if (!realtimeEnabled) await customer.reload();
     await expect(customer.getByText("Pembayaran terverifikasi")).toBeVisible({
