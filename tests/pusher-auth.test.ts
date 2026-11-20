@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { PrismaClient, Role } from "@prisma/client";
 import { POST } from "../src/app/api/pusher/auth/route";
 import { signSessionToken } from "../src/lib/session";
+import { sessionCookieName } from "../src/lib/session-cookie";
 import { orderAccessCookieName } from "../src/lib/order-access";
 import { tableStockPayload } from "../src/lib/realtime-events";
 
@@ -150,14 +151,14 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
 
   await t.test("kasir aktif boleh private-cashier", async () => {
     const response = await POST(
-      authRequest("private-cashier", { session_token: activeToken })
+      authRequest("private-cashier", { [sessionCookieName()]: activeToken })
     );
     assert.equal(response.status, 200);
   });
 
   await t.test("kasir nonaktif ditolak 403", async () => {
     const response = await POST(
-      authRequest("private-cashier", { session_token: inactiveToken })
+      authRequest("private-cashier", { [sessionCookieName()]: inactiveToken })
     );
     assert.equal(response.status, 403);
     const body = (await response.json()) as {
@@ -169,19 +170,19 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
 
   await t.test("tokenVersion lama ditolak 403", async () => {
     const response = await POST(
-      authRequest("private-cashier", { session_token: staleToken })
+      authRequest("private-cashier", { [sessionCookieName()]: staleToken })
     );
     assert.equal(response.status, 403);
   });
 
   await t.test("role tidak cukup ditolak 403", async () => {
     assert.equal(
-      (await POST(authRequest("private-admin", { session_token: activeToken })))
+      (await POST(authRequest("private-admin", { [sessionCookieName()]: activeToken })))
         .status,
       403
     );
     assert.equal(
-      (await POST(authRequest("private-admin", { session_token: adminToken })))
+      (await POST(authRequest("private-admin", { [sessionCookieName()]: adminToken })))
         .status,
       200
     );
@@ -192,7 +193,7 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
       (
         await POST(
           authRequest(`private-user-${active.id}`, {
-            session_token: activeToken,
+            [sessionCookieName()]: activeToken,
           })
         )
       ).status,
@@ -202,7 +203,7 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
       (
         await POST(
           authRequest(`private-user-${admin.id}`, {
-            session_token: activeToken,
+            [sessionCookieName()]: activeToken,
           })
         )
       ).status,

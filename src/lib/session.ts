@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import { env } from "@/lib/env";
+import { sessionCookieName, SESSION_COOKIE_BASE_NAME } from "@/lib/session-cookie";
 import { Role } from "@prisma/client";
 
-export const SESSION_COOKIE_NAME = "session_token";
 export const SESSION_DURATION_SECONDS = 12 * 60 * 60; // 12 jam
 
 export interface SessionPayload {
@@ -44,6 +44,7 @@ export async function createSession(
   response?: NextResponse
 ): Promise<string> {
   const token = await signSessionToken(payload);
+  // SEC-14: tanpa Domain agar `__Host-` valid; Path=/ wajib.
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -53,10 +54,10 @@ export async function createSession(
   };
 
   if (response) {
-    response.cookies.set(SESSION_COOKIE_NAME, token, cookieOptions);
+    response.cookies.set(sessionCookieName(), token, cookieOptions);
   } else {
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, token, cookieOptions);
+    cookieStore.set(sessionCookieName(), token, cookieOptions);
   }
 
   return token;
@@ -95,7 +96,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 export async function getSessionToken(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
-    return cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
+    return cookieStore.get(sessionCookieName())?.value ?? null;
   } catch {
     return null;
   }
@@ -111,15 +112,26 @@ export async function getSessionPayload(): Promise<SessionPayload | null> {
 }
 
 /**
- * Menghapus cookie sesi saat logout
+ * Menghapus cookie sesi saat logout.
+ *
+ * SEC-14: logout tetap stateless (tidak menaikkan tokenVersion) agar sesi di
+ * perangkat lain tidak ikut terputus. Nama lama ikut dihapus untuk membersihkan
+ * cookie setelah deploy yang mengganti nama cookie.
  */
 export async function destroySession(response?: NextResponse): Promise<void> {
+  const names = [
+    sessionCookieName(),
+    ...(sessionCookieName() === SESSION_COOKIE_BASE_NAME
+      ? []
+      : [SESSION_COOKIE_BASE_NAME]),
+  ];
+
   if (response) {
-    response.cookies.delete(SESSION_COOKIE_NAME);
+    for (const name of names) response.cookies.delete(name);
   } else {
     try {
       const cookieStore = await cookies();
-      cookieStore.delete(SESSION_COOKIE_NAME);
+      for (const name of names) cookieStore.delete(name);
     } catch {
       // Abaikan jika di luar request scope
     }

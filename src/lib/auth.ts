@@ -5,9 +5,9 @@ import { prisma } from "@/lib/db";
 import {
   getSessionPayload,
   destroySession,
-  SESSION_COOKIE_NAME,
   verifySessionToken,
 } from "@/lib/session";
+import { sessionCookieName } from "@/lib/session-cookie";
 import { AuthError } from "@/lib/errors";
 import { Role, User } from "@prisma/client";
 
@@ -102,7 +102,7 @@ export function authorizeRole(
 export async function authenticateRequest(
   req: NextRequest
 ): Promise<SafeUser | null> {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value ?? null;
+  const token = req.cookies.get(sessionCookieName())?.value ?? null;
   const payload = token ? await verifySessionToken(token) : null;
   return authenticateSession(payload);
 }

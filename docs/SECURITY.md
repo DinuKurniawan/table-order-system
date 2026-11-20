@@ -62,3 +62,13 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   (informatif, `continue-on-error`). **Tinjau ulang: 2027-02-20** — atau lebih cepat bila
   advisory baru menyentuh rantai Prisma/Next. Bila sisa moderate dev-only muncul kembali,
   terima hanya untuk rantai tooling yang tidak dieksekusi di produksi dan catat di sini.
+
+- **SEC-14 (2026-11-20).** Cookie sesi production bernama `__Host-session_token` (Secure,
+  `Path=/`, tanpa Domain, httpOnly, `SameSite=Lax`); development/test memakai
+  `session_token` karena prefix `__Host-` mensyaratkan HTTPS. Nama cookie adalah satu
+  fungsi di `src/lib/session-cookie.ts` dan dipakai proxy, auth, serta tes. **Deploy yang
+  mengganti nama cookie akan me-logout semua pengguna** (cookie lama dihapus saat logout).
+  Logout tetap stateless: tidak menaikkan `tokenVersion` agar perangkat lain tidak
+  terputus. Risiko diterima: JWT yang dicuri tetap valid sampai `exp` (12 jam); mitigasi =
+  nonaktifkan kasir/admin atau reset password (menaikkan `tokenVersion` dan memutus semua
+  sesi), plus rotasi `SESSION_SECRET` bila perlu.

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { prisma } from "../src/lib/db";
 import { hashPassword, verifyPassword, authorizeRole, type SafeUser } from "../src/lib/auth";
+import { sessionCookieName } from "../src/lib/session-cookie";
 import { Role } from "@prisma/client";
 
 function runSeed(overrides: Record<string, string>) {
@@ -108,7 +109,7 @@ test("SEC-01: seed wajib kredensial eksplisit dan password changer", async (t) =
     assert.equal(firstJson.mustChangePassword, true);
     assert.equal(firstJson.redirectUrl, "/change-password");
 
-    const cookie = /session_token=([^;]+)/.exec(
+    const cookie = new RegExp(`${sessionCookieName()}=([^;]+)`).exec(
       first.headers.get("set-cookie") ?? ""
     )?.[1];
     assert.ok(cookie, "Login harus memasang cookie sesi");
@@ -120,7 +121,7 @@ test("SEC-01: seed wajib kredensial eksplisit dan password changer", async (t) =
           headers: {
             "content-type": "application/json",
             "x-forwarded-for": ip,
-            cookie: `session_token=${cookie}`,
+            cookie: `${sessionCookieName()}=${cookie}`,
           },
           body: JSON.stringify(body),
         })

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { isAllowedOrigin } from "@/lib/request-origin";
 import { requireSessionSecret } from "@/lib/secret-policy";
+import { sessionCookieName } from "@/lib/session-cookie";
 
-const SESSION_COOKIE_NAME = "session_token";
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
@@ -128,7 +128,7 @@ export async function proxy(req: NextRequest) {
     );
   }
 
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const token = req.cookies.get(sessionCookieName())?.value;
 
   let session: TokenPayload | null = null;
 
