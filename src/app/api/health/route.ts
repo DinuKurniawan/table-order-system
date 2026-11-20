@@ -22,7 +22,9 @@ async function checkPrivateBucket(): Promise<"pass" | "fail" | "skipped"> {
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
     });
-    return response.status === 403 || response.status === 404
+    // R2 menolak permintaan tanpa tanda tangan dengan 400/401/403/404
+    // (bukan selalu 403). Yang penting: bukan 2xx = tidak dapat dibaca publik.
+    return response.status >= 400 && response.status < 500
       ? "pass"
       : "fail";
   } catch {

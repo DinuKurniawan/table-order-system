@@ -42,7 +42,8 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
 
 - **SEC-10 (2026-11-20).** `R2_BUCKET_PRIVATE` wajib berbeda dari `R2_BUCKET_PUBLIC`.
   `GET /api/health` menguji objek probe tanpa tanda tangan ke endpoint storage privat;
-  status 403/404 = lulus, status lain = gagal, error jaringan = `skipped`.
+  status 4xx = lulus (R2 membalas 400 `InvalidArgument` untuk permintaan tanpa tanda tangan),
+  status 2xx/3xx = gagal, error jaringan = `skipped`.
   Bila CI/staging tidak punya akses keluar, jalankan manual:
   `curl -I https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com/<R2_BUCKET_PRIVATE>/probe`
   dan pastikan 403/404.
