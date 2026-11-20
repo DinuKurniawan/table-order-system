@@ -23,10 +23,17 @@ export function getOrderAccessToken(
 
 /**
  * Perbandingan string constant-time untuk token rahasia.
+ *
+ * Kedua nilai di-HMAC-SHA256 dengan kunci acak per proses, lalu digest
+ * berpanjang tetap dibandingkan. Tidak ada early-return: panjang asli tidak
+ * teramati dan waktu eksekusi tidak bergantung pada isi.
  */
+const COMPARE_KEY = crypto.randomBytes(32);
+
+function hmacDigest(value: string): Buffer {
+  return crypto.createHmac("sha256", COMPARE_KEY).update(value).digest();
+}
+
 export function timingSafeEqualString(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return crypto.timingSafeEqual(aBuf, bBuf);
+  return crypto.timingSafeEqual(hmacDigest(a), hmacDigest(b));
 }
