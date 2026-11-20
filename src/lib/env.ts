@@ -14,7 +14,8 @@ const serverEnvSchema = z.object({
     )
     .default("none"),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET wajib minimal 32 karakter"),
-  CRON_SECRET: z.string().min(8, "CRON_SECRET wajib minimal 8 karakter"),  R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID wajib diisi"),
+  CRON_SECRET: z.string().min(8, "CRON_SECRET wajib minimal 8 karakter"),
+  R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID wajib diisi"),
   R2_ACCESS_KEY_ID: z.string().min(1, "R2_ACCESS_KEY_ID wajib diisi"),
   R2_SECRET_ACCESS_KEY: z.string().min(1, "R2_SECRET_ACCESS_KEY wajib diisi"),
   R2_BUCKET_PUBLIC: z.string().min(1, "R2_BUCKET_PUBLIC wajib diisi"),
@@ -50,6 +51,16 @@ export type Env = z.infer<typeof mergedEnvSchema>;
 export function validateEnv(source: NodeJS.ProcessEnv = process.env): Env {
   if (source.SKIP_ENV_VALIDATION === "true" || source.SKIP_ENV_VALIDATION === "1") {
     return source as unknown as Env;
+  }
+
+  // SEC-13: jangan menebak topologi proxy di production. Nilai default "none"
+  // tetap ada untuk dev/test, tetapi production wajib menyatakannya eksplisit.
+  if (source.NODE_ENV === "production" && !source.TRUSTED_PROXY?.trim()) {
+    const errorMessage =
+      "\n❌ TRUSTED_PROXY wajib diisi eksplisit di production (vercel|cloudflare|none|<jumlah hop>).\n" +
+      "   Nilai default tidak dipakai agar IP klien tidak salah dipetakan.\n";
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
 
   const parsed = mergedEnvSchema.safeParse(source);

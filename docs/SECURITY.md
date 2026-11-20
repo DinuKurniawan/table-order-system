@@ -46,3 +46,10 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   Bila CI/staging tidak punya akses keluar, jalankan manual:
   `curl -I https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com/<R2_BUCKET_PRIVATE>/probe`
   dan pastikan 403/404.
+
+- **SEC-13 (2026-11-20).** `TRUSTED_PROXY` wajib diisi eksplisit saat `NODE_ENV=production`
+  (`vercel`/`cloudflare`/`none`/jumlah hop); startup gagal bila kosong agar IP klien tidak
+  salah dipetakan. Bila IP tetap tidak terdeteksi, `getClientIp` memakai bucket fallback
+  `unknown:<hash(user-agent + accept-language)>` alih-alih satu bucket global, dan
+  `GET /api/health` melaporkan `unknownIpRequests` + peringatan. Set platform dengan benar:
+  Vercel `vercel`, Cloudflare `cloudflare`, reverse proxy sendiri = jumlah hop.

@@ -50,7 +50,7 @@ test("T-07: IP klien hanya dari proxy tepercaya", async (t) => {
       "none"
     );
 
-    assert.equal(a, "unknown");
+    assert.match(a, /^unknown:[0-9a-f]{16}$/);
     assert.equal(a, b, "mode none tidak boleh membedakan bucket dari header klien");
   });
 
@@ -62,12 +62,9 @@ test("T-07: IP klien hanya dari proxy tepercaya", async (t) => {
   });
 
   await t.test("cloudflare: cf-connecting-ip hanya dengan cf-ray", () => {
-    assert.equal(
-      getClientIp(
-        request({ "cf-connecting-ip": "198.51.100.9" }),
-        "cloudflare"
-      ),
-      "unknown"
+    assert.match(
+      getClientIp(request({ "cf-connecting-ip": "198.51.100.9" }), "cloudflare"),
+      /^unknown:[0-9a-f]{16}$/
     );
     assert.equal(
       getClientIp(
@@ -91,17 +88,19 @@ test("T-07: IP klien hanya dari proxy tepercaya", async (t) => {
     );
   });
 
-  await t.test("format IP tidak valid jatuh ke fallback", () => {
-    assert.equal(
-      getClientIp(
-        request({ "x-forwarded-for": "1.1.1.1, bukan-ip" }),
-        "1"
-      ),
-      "unknown"
+  await t.test("format IP tidak valid jatuh ke fallback ber-fingerprint", () => {
+    assert.match(
+      getClientIp(request({ "x-forwarded-for": "1.1.1.1, bukan-ip" }), "1"),
+      /^unknown:[0-9a-f]{16}$/
     );
-    assert.equal(
+    assert.match(
       getClientIp(request({ "x-real-ip": "999.999.999.999" }), "vercel"),
-      "unknown"
+      /^unknown:[0-9a-f]{16}$/
+    );
+    assert.notEqual(
+      getClientIp(request({ "user-agent": "ua-a" }), "none"),
+      getClientIp(request({ "user-agent": "ua-b" }), "none"),
+      "fingerprint berbeda harus menghasilkan bucket berbeda"
     );
   });
 });

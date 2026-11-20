@@ -28,3 +28,29 @@ test("SEC-10: bucket privat dan publik tidak boleh sama", () => {
     console.error = originalError;
   }
 });
+
+test("SEC-13: TRUSTED_PROXY wajib eksplisit di production", () => {
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const base = baseEnv();
+    assert.throws(
+      () =>
+        validateEnv({
+          ...base,
+          NODE_ENV: "production",
+          TRUSTED_PROXY: "",
+        }),
+      /TRUSTED_PROXY wajib/
+    );
+
+    const explicitNone = validateEnv({
+      ...base,
+      NODE_ENV: "production",
+      TRUSTED_PROXY: "none",
+    });
+    assert.equal(explicitNone.TRUSTED_PROXY, "none");
+  } finally {
+    console.error = originalError;
+  }
+});

@@ -1,4 +1,5 @@
 import { isIP } from "node:net";
+import crypto from "node:crypto";
 import { env } from "@/lib/env";
 
 /**
@@ -14,7 +15,38 @@ import { env } from "@/lib/env";
  * Nilai fallback selalu kunci non-kosong agar tidak ada bucket tanpa nama.
  */
 
-const FALLBACK_IP = "unknown";
+const FALLBACK_PREFIX = "unknown:";
+
+let unknownIpRequests = 0;
+let warnedUnknownIp = false;
+
+/** Jumlah permintaan yang tidak bisa dipetakan ke IP (untuk health check). */
+export function getUnknownIpCount(): number {
+  return unknownIpRequests;
+}
+
+/**
+ * SEC-13: jangan menyatukan semua klien tanpa IP ke satu bucket global.
+ * Kunci fallback memakai hash User-Agent + Accept-Language agar bucket tetap
+ * terpisah, dan dicatat agar health check bisa memperingatkan miskonfigurasi.
+ */
+function fallbackKey(request: Request): string {
+  unknownIpRequests += 1;
+  if (!warnedUnknownIp) {
+    warnedUnknownIp = true;
+    console.warn(
+      "[client-ip] IP klien tidak terdeteksi; memakai bucket fallback berbasis fingerprint. Periksa TRUSTED_PROXY."
+    );
+  }
+  const ua = request.headers.get("user-agent") ?? "";
+  const lang = request.headers.get("accept-language") ?? "";
+  const fingerprint = crypto
+    .createHash("sha256")
+    .update(`${ua}\n${lang}`)
+    .digest("hex")
+    .slice(0, 16);
+  return `${FALLBACK_PREFIX}${fingerprint}`;
+}
 
 function asIp(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
@@ -48,23 +80,25 @@ export function getClientIp(
     return (
       firstValid(request.headers.get("x-vercel-forwarded-for")) ??
       asIp(request.headers.get("x-real-ip")) ??
-      FALLBACK_IP
+      fallbackKey(request)
     );
   }
 
   if (mode === "cloudflare") {
     // cf-ray menandakan request melewati Cloudflare; origin wajib menolak
     // koneksi langsung dari luar rentang IP Cloudflare.
-    if (!request.headers.get("cf-ray")) return FALLBACK_IP;
-    return asIp(request.headers.get("cf-connecting-ip")) ?? FALLBACK_IP;
+    if (!request.headers.get("cf-ray")) return fallbackKey(request);
+    return asIp(request.headers.get("cf-connecting-ip")) ?? fallbackKey(request);
   }
 
   if (mode === "none") {
     // Web Request tidak mengekspos socket; adapter Node tertentu menyediakan ip.
     const direct = (request as Request & { ip?: string }).ip;
-    return asIp(direct) ?? FALLBACK_IP;
+    return asIp(direct) ?? fallbackKey(request);
   }
 
   const hop = Number(mode);
-  return fromRight(request.headers.get("x-forwarded-for"), hop) ?? FALLBACK_IP;
+  return (
+    fromRight(request.headers.get("x-forwarded-for"), hop) ?? fallbackKey(request)
+  );
 }

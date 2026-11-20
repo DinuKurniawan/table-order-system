@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { getUnknownIpCount } from "@/lib/client-ip";
 
 /**
  * GET /api/health
@@ -43,18 +44,20 @@ export async function GET() {
   checks.privateBucket = await checkPrivateBucket();
 
   const warnings: string[] = [];
-  if (
-    env.NODE_ENV === "production" &&
-    env.TRUSTED_PROXY === "none"
-  ) {
+  if (env.NODE_ENV === "production" && env.TRUSTED_PROXY === "none") {
     warnings.push(
-      "TRUSTED_PROXY=none di production: semua klien berbagi bucket rate limit."
+      "TRUSTED_PROXY=none di production: IP klien diambil dari koneksi langsung; pastikan origin tidak di belakang proxy."
+    );
+  }
+  if (getUnknownIpCount() > 0) {
+    warnings.push(
+      `${getUnknownIpCount()} permintaan tanpa IP terdeteksi; memakai bucket fallback berbasis fingerprint. Periksa TRUSTED_PROXY.`
     );
   }
 
   const ok = checks.database === "pass" && checks.privateBucket !== "fail";
   return NextResponse.json(
-    { ok, checks, warnings },
+    { ok, checks, warnings, unknownIpRequests: getUnknownIpCount() },
     { status: ok ? 200 : 503 }
   );
 }
