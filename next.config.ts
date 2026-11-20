@@ -32,6 +32,21 @@ const securityHeaders = [
       ]),
 ];
 
+/**
+ * SEC-16: respons berisi data sesi/pesanan tidak boleh disimpan cache.
+ * Diterapkan terpusat di sini agar route baru di kelompok yang sama ikut
+ * terlindungi tanpa perlu ingat menambah header di handler.
+ */
+const noStoreHeaders = [{ key: "Cache-Control", value: "private, no-store" }];
+
+const sensitiveApiSources = [
+  "/api/admin/:path*",
+  "/api/cashier/:path*",
+  "/api/public/orders/:path*",
+  "/api/auth/:path*",
+  "/api/pusher/auth",
+];
+
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
@@ -58,6 +73,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      ...sensitiveApiSources.map((source) => ({
+        source,
+        headers: noStoreHeaders,
+      })),
+      // Menu publik berubah mengikuti stok realtime; jangan di-cache.
+      {
+        source: "/api/public/menu",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
       {
         source: "/:path*",
         headers: securityHeaders,
