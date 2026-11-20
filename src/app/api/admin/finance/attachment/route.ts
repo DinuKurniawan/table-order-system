@@ -5,7 +5,7 @@ import { processAndStore } from "@/server/services/upload";
 import { env } from "@/lib/env";
 import { getSignedReadUrl } from "@/lib/r2";
 import { logger } from "@/lib/logger";
-import { handleApiError } from "@/lib/api";
+import { handleApiError, readFormData } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -23,12 +23,7 @@ export async function POST(req: Request) {
     const limiter = await consumeRateLimit(`upload:${user.id}`, 30, 60);
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
-    }
-
-    const form = await req.formData();
+    const form = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
     const file = form.get("file");
     if (!file || !(file instanceof File)) {
       throw new AppError("VALIDATION_ERROR", "Berkas lampiran wajib diunggah", 400);

@@ -120,3 +120,80 @@ export async function readJson(
     );
   }
 }
+
+/** Batas default body multipart (unggah gambar/bukti bayar). */
+export const DEFAULT_MULTIPART_BODY_LIMIT_BYTES = 12 * 1024 * 1024;
+
+export interface ReadFormDataOptions {
+  maxBytes?: number;
+}
+
+/**
+ * N-01: membaca multipart/form-data dengan batas byte yang ditegakkan saat
+ * stream dibaca. `req.formData()` saja akan membuffer body lebih dulu sehingga
+ * Content-Length palsu bisa memicu pemakaian memori besar.
+ */
+export async function readFormData(
+  req: Request,
+  options: ReadFormDataOptions = {}
+): Promise<FormData> {
+  const limit = options.maxBytes ?? DEFAULT_MULTIPART_BODY_LIMIT_BYTES;
+
+  try {
+    const declared = Number(req.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > limit) throw bodyTooLarge();
+
+    const contentType = req.headers.get("content-type");
+    if (
+      !contentType ||
+      !contentType.toLowerCase().startsWith("multipart/form-data")
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Content-Type harus multipart/form-data",
+        400
+      );
+    }
+    if (!req.body) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Body request kosong",
+        400
+      );
+    }
+
+    const reader = req.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      received += value.byteLength;
+      if (received > limit) {
+        await reader.cancel().catch(() => {});
+        throw bodyTooLarge();
+      }
+      chunks.push(value);
+    }
+
+    const body = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    return await new Response(body, {
+      headers: { "content-type": contentType },
+    }).formData();
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Body multipart/form-data tidak valid",
+      400
+    );
+  }
+}

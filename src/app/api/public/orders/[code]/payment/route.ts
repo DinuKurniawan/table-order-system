@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { handleApiError } from "@/lib/api";
+import { handleApiError, readFormData } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { getOrderAccessToken } from "@/lib/order-access";
 import { submitPaymentProof } from "@/server/services/orders";
@@ -34,17 +34,7 @@ export async function POST(
     );
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
-    }
-
-    let form: FormData;
-    try {
-      form = await req.formData();
-    } catch {
-      throw new AppError("VALIDATION_ERROR", "Body harus berupa multipart/form-data", 400);
-    }
+    const form = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
 
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {

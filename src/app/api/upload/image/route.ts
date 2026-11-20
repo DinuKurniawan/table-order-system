@@ -4,7 +4,7 @@ import { AppError } from "@/lib/errors";
 import { processAndStore } from "@/server/services/upload";
 import { ImagePresetKey } from "@/lib/image";
 import { logger } from "@/lib/logger";
-import { handleApiError } from "@/lib/api";
+import { handleApiError, readFormData } from "@/lib/api";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -23,13 +23,8 @@ export async function POST(req: NextRequest) {
     const limiter = await consumeRateLimit(`upload:${user.id}`, 30, 60);
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
-      throw new AppError("VALIDATION_ERROR", "Ukuran unggahan terlalu besar", 413);
-    }
-
-    // 2. Baca multipart/form-data
-    const formData = await req.formData();
+    // 2. Baca multipart/form-data (N-01: batas byte ditegakkan saat stream).
+    const formData = await readFormData(req, { maxBytes: MAX_UPLOAD_BYTES });
     const file = formData.get("file");
     const presetParam = formData.get("preset");
 
