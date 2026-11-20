@@ -129,11 +129,19 @@ export function MenuClient({
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <Link
             href={`/m/${token}`}
-            className="text-base font-semibold text-text-strong"
+            className="flex min-w-0 items-center gap-2 text-base font-semibold text-text-strong"
           >
-            Kedai Kopi Selaras
+            <Image
+              src="/logo-selaras.svg"
+              alt=""
+              width={32}
+              height={32}
+              unoptimized
+              className="size-8 shrink-0"
+            />
+            <span className="truncate">Kedai Kopi Selaras</span>
           </Link>
-          <div className="relative w-40 sm:w-56">
+          <div className="relative w-36 sm:w-56">
             <Search
               aria-hidden="true"
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted"

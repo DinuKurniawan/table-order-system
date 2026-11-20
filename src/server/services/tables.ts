@@ -48,6 +48,16 @@ export async function listTables(): Promise<TableDTO[]> {
   return tables.map(toDTO);
 }
 
+/** Token meja aktif pertama, dipakai root agar langsung membuka menu. */
+export async function findFirstActiveTableToken(): Promise<string | null> {
+  const table = await prisma.table.findFirst({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { token: true },
+  });
+  return table?.token ?? null;
+}
+
 /**
  * Meja untuk halaman publik: hanya meja aktif dengan token yang cocok.
  * Mengembalikan null bila token tidak dikenal atau meja dinonaktifkan.
