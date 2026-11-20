@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { deleteObject } from "@/lib/r2";
 import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
-import { timingSafeEqualString } from "@/lib/order-access";
+import { accessTokenMatches } from "@/lib/order-token";
 import { getSettings } from "@/server/services/settings";
 import { CANCELLABLE_BY_CUSTOMER } from "@/server/domain/order-state";
 import { releaseStock, type StockChange } from "@/server/services/stock";
@@ -72,7 +72,7 @@ async function loadOrderWithAccess(code: string, token: string): Promise<OrderWi
   });
 
   // SEC-06: kode tidak ada dan token salah/kosong tidak dibedakan.
-  if (!order || !timingSafeEqualString(token, order.accessToken ?? "")) {
+  if (!order || !accessTokenMatches(token, order)) {
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
   }
 

@@ -215,7 +215,7 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
       (
         await POST(
           authRequest(`private-order-${orderA.code}`, {
-            [orderAccessCookieName(orderA.code)]: orderA.accessToken,
+            [orderAccessCookieName(orderA.code)]: orderA.accessToken!,
           })
         )
       ).status,
@@ -235,7 +235,7 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
       (
         await POST(
           authRequest(`private-order-${orderA.code}`, {
-            [orderAccessCookieName(orderA.code)]: orderB.accessToken,
+            [orderAccessCookieName(orderA.code)]: orderB.accessToken!,
           })
         )
       ).status,

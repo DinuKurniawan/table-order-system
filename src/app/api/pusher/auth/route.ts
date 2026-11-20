@@ -7,7 +7,8 @@ import { env } from "@/lib/env";
 import { prisma } from "@/lib/db";
 import { authenticateRequest } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/api";
-import { orderAccessCookieName, timingSafeEqualString } from "@/lib/order-access";
+import { orderAccessCookieName } from "@/lib/order-access";
+import { accessTokenMatches } from "@/lib/order-token";
 import { logger } from "@/lib/logger";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 import { getClientIp } from "@/lib/client-ip";
@@ -92,11 +93,9 @@ export async function POST(req: NextRequest) {
       if (token) {
         const order = await prisma.order.findUnique({
           where: { code },
-          select: { accessToken: true },
+          select: { accessToken: true, accessTokenHash: true },
         });
-        allowed = Boolean(
-          order && timingSafeEqualString(token, order.accessToken)
-        );
+        allowed = Boolean(order && accessTokenMatches(token, order));
       }
     } else if (channelName.startsWith(CHANNELS.tablePrefix)) {
       const token = channelName.slice(CHANNELS.tablePrefix.length);

@@ -17,3 +17,13 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   tercetak di QR dan dipakai berulang oleh pelanggan yang sah, sehingga expiry akan memutus alur
   normal. Mitigasi: rate limit per IP/user, pemeriksaan meja aktif setiap auth, dan payload event
   meja dibatasi ke `productId` + `available` (tanpa stok pasti, pesanan, atau data internal).
+- **SEC-09 (2026-11-20).** Token akses pesanan disimpan sebagai SHA-256 (`accessTokenHash`). Pesanan
+  lama memakai fallback plaintext sampai backfill selesai. Rencana contract (belum dieksekusi):
+  1. Deploy migrasi expand `20261120140000_order_access_token_hash`.
+  2. Jalankan `npx tsx scripts/backfill-access-token-hash.ts`; pastikan 0 kandidat tersisa.
+  3. Tunggu satu siklus deploy dengan kode fallback.
+  4. Pindahkan `prisma/migrations-pending/20261201000000_order_drop_access_token/migration.sql`
+     ke `prisma/migrations/`, hapus field `accessToken` dari `schema.prisma` dan cabang plaintext
+     di `accessTokenMatches()`, lalu `npx prisma migrate deploy`.
+  5. Token akses baru diturunkan dari `Idempotency-Key` + `SESSION_SECRET`; rotasi
+     `SESSION_SECRET` membuat replay idempotensi lama mengembalikan token yang tidak cocok.

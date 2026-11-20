@@ -1,0 +1,12 @@
+-- SEC-09 CONTRACT — JANGAN DIJALANKAN SEKARANG.
+--
+-- Prasyarat:
+--   1. Migrasi expand 20261120140000_order_access_token_hash sudah deploy.
+--   2. scripts/backfill-access-token-hash.ts sudah dijalankan dan melaporkan
+--      0 kandidat tersisa.
+--   3. Kode tanpa fallback plaintext sudah berjalan satu siklus deploy.
+--
+-- Setelah selesai, pindahkan file ini ke prisma/migrations/<timestamp>_order_drop_access_token/migration.sql
+-- lalu jalankan `npx prisma migrate deploy`. Perbarui juga schema.prisma:
+-- hapus field accessToken dan fallback plaintext di accessTokenMatches().
+ALTER TABLE "Order" DROP COLUMN "accessToken";

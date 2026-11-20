@@ -9,16 +9,19 @@ export function orderAccessCookieName(code: string): string {
 }
 
 /**
- * Membaca accessToken pesanan dari cookie httpOnly atau header alternatif.
+ * Membaca accessToken pesanan dari cookie httpOnly.
+ *
+ * Header `x-order-token` hanya untuk tes (SEC-09): tidak pernah diterima di
+ * production agar token tidak bisa dikirim lewat jalur tanpa cookie.
  */
 export function getOrderAccessToken(
   req: NextRequest,
   code: string
 ): string | null {
-  return (
-    req.cookies.get(orderAccessCookieName(code))?.value ??
-    req.headers.get("x-order-token")
-  );
+  const cookie = req.cookies.get(orderAccessCookieName(code))?.value;
+  if (cookie) return cookie;
+  if (process.env.NODE_ENV === "production") return null;
+  return req.headers.get("x-order-token");
 }
 
 /**

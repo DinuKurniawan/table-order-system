@@ -15,8 +15,11 @@ import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import { reserveStock } from "@/server/services/stock";
-import { generateOrderCode } from "@/lib/order-token";
-import crypto from "crypto";
+import {
+  deriveOrderAccessToken,
+  generateOrderCode,
+  hashAccessToken,
+} from "@/lib/order-token";
 
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -138,13 +141,20 @@ export async function POST(req: Request) {
     // 2. Idempotensi: kunci yang sama mengembalikan pesanan yang sama.
     const existing = await prisma.order.findUnique({
       where: { idempotencyKey },
-      select: { code: true, accessToken: true, tableId: true },
+      select: { code: true, tableId: true },
     });
     if (existing) {
       if (existing.tableId !== table.id) {
         throw new AppError("CONFLICT", "Idempotency-Key sudah dipakai", 409);
       }
-      return orderResponse(existing, 200, settings.timeoutBayarMenit * 60);
+      return orderResponse(
+        {
+          code: existing.code,
+          accessToken: deriveOrderAccessToken(idempotencyKey),
+        },
+        200,
+        settings.timeoutBayarMenit * 60
+      );
     }
 
     // 3. Ambil produk aktif dari DB; harga & stok tidak pernah dari client.
@@ -186,7 +196,8 @@ export async function POST(req: Request) {
     const timeoutMinutes = settings.timeoutBayarMenit;
     const expiresAt = new Date(now.getTime() + timeoutMinutes * 60000);
 
-    const accessToken = crypto.randomBytes(16).toString("hex");
+    const accessToken = deriveOrderAccessToken(idempotencyKey);
+    const accessTokenHash = hashAccessToken(accessToken);
 
     // SEC-06: kode acak base32; saat bentrok unik, ulangi dengan kode baru.
     const makeOrderCode = () => generateOrderCode(now);
@@ -210,7 +221,8 @@ export async function POST(req: Request) {
           const order = await tx.order.create({
             data: {
               code: orderCode,
-              accessToken,
+              accessToken: null,
+              accessTokenHash,
               idempotencyKey,
               tableId: table.id,
               customerName: customerName || null,
@@ -323,11 +335,18 @@ export async function POST(req: Request) {
       if (key) {
         const replay = await prisma.order.findUnique({
           where: { idempotencyKey: key },
-          select: { code: true, accessToken: true, tableId: true },
+          select: { code: true, tableId: true },
         });
         if (replay && replay.tableId === requestTableId) {
           const settings = await getSettings();
-          return orderResponse(replay, 200, settings.timeoutBayarMenit * 60);
+          return orderResponse(
+            {
+              code: replay.code,
+              accessToken: deriveOrderAccessToken(key),
+            },
+            200,
+            settings.timeoutBayarMenit * 60
+          );
         }
         if (replay) {
           return apiErrorResponse(
