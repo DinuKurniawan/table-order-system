@@ -54,7 +54,12 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/coffeeshop?schema=public
       APP_BASE_URL: http://localhost:3000
       SESSION_SECRET: ci-session-secret-at-least-32-characters-long
-      CRON_SECRET: ci-cron-secret
+      CRON_SECRET: ci-cron-secret-0123456789abcdefghijklmnop
+      # SEC-01: seed tidak punya kredensial default; CI memakai nilai khusus ini.
+      SEED_ADMIN_USERNAME: admin
+      SEED_ADMIN_PASSWORD: CiAdminPass-9f3a72
+      # SEC-13: production build/start wajib menyatakan topologi proxy.
+      TRUSTED_PROXY: none
       R2_ACCOUNT_ID: http://localhost:9090
       R2_ACCESS_KEY_ID: s3mock
       R2_SECRET_ACCESS_KEY: s3mock-secret
@@ -84,6 +89,12 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed
+
+      # E2E login sebagai admin seed. Gate wajib-ganti-sandi diuji di
+      # tests/seed-and-password-change.test.ts, jadi akun CI dibuka di sini.
+      - name: Siapkan admin E2E (lewati gate ganti sandi)
+        run: |
+          npx tsx --conditions=react-server -e 'import { PrismaClient } from "@prisma/client"; (async () => { const p = new PrismaClient(); await p.user.update({ where: { username: process.env.SEED_ADMIN_USERNAME }, data: { mustChangePassword: false } }); await p.$disconnect(); })();'
 
       - name: Wait for S3Mock
         run: |
