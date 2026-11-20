@@ -63,12 +63,13 @@ export async function createOrderViaUi(
   customerName = "Pelanggan E2E"
 ): Promise<string> {
   await page.goto(`/m/${catalog.tableToken}`);
-  const add = page.getByRole("button", {
-    name: `Tambah ${catalog.productName}`,
-    exact: true,
-  });
-  await expect(add).toBeVisible();
-  await add.click();
+  await page
+    .locator(`a[href="/m/${catalog.tableToken}/item/${catalog.productId}"]`)
+    .click();
+  await expect(
+    page.getByRole("heading", { name: catalog.productName })
+  ).toBeVisible();
+  await page.getByRole("button", { name: /^Tambah ke Keranjang/ }).click();
   await page.getByRole("link", { name: /^Keranjang/ }).click();
   await expect(page.getByRole("button", { name: "Pesan & Bayar" })).toBeVisible();
   await page.getByLabel("Nama Pelanggan").fill(customerName);

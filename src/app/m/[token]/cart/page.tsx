@@ -100,8 +100,26 @@ function CartContent() {
       note:
         item.drink === true
           ? [
-              `Gula: ${item.sugar === "NO_SUGAR" ? "No Sugar" : "Reguler"}`,
-              `Es: ${item.ice === "SEDIKIT" ? "Sedikit" : "Reguler"}`,
+              `Temperature: ${item.temperature === "HOT" ? "Hot" : "Ice"}`,
+              `Size: ${
+                item.size === "LARGE"
+                  ? "Large"
+                  : item.size === "JUMBO"
+                    ? "Jumbo"
+                    : "Reguler"
+              }`,
+              `Gula: ${
+                item.sugar === "NO_SUGAR"
+                  ? "No Sugar"
+                  : item.sugar === "SEDIKIT"
+                    ? "Sedikit"
+                    : "Reguler"
+              }`,
+              ...(item.temperature === "HOT"
+                ? []
+                : [
+                    `Es: ${item.ice === "SEDIKIT" ? "Sedikit" : "Reguler"}`,
+                  ]),
               item.note,
             ]
               .filter(Boolean)
@@ -404,7 +422,11 @@ function CartContent() {
                   {item.drink === true && (
                     <div
                       onPointerDown={(event) => event.stopPropagation()}
-                      className="grid w-full grid-cols-2 gap-2 border-t border-border pt-2"
+                      className={
+                        item.temperature === "HOT"
+                          ? "grid w-full grid-cols-1 gap-2 border-t border-border pt-2"
+                          : "grid w-full grid-cols-2 gap-2 border-t border-border pt-2"
+                      }
                     >
                       <div>
                         <label
@@ -424,30 +446,33 @@ function CartContent() {
                           className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         >
                           <option value="REGULER">Reguler</option>
+                          <option value="SEDIKIT">Sedikit</option>
                           <option value="NO_SUGAR">No Sugar</option>
                         </select>
                       </div>
-                      <div>
-                        <label
-                          htmlFor={`ice-${item.productId}`}
-                          className="text-xs font-medium text-text-muted"
-                        >
-                          Es batu
-                        </label>
-                        <select
-                          id={`ice-${item.productId}`}
-                          value={item.ice ?? "REGULER"}
-                          onChange={(event) =>
-                            setItemOption(item.productId, {
-                              ice: event.target.value as IceLevel,
-                            })
-                          }
-                          className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                        >
-                          <option value="REGULER">Reguler</option>
-                          <option value="SEDIKIT">Sedikit</option>
-                        </select>
-                      </div>
+                      {item.temperature !== "HOT" && (
+                        <div>
+                          <label
+                            htmlFor={`ice-${item.productId}`}
+                            className="text-xs font-medium text-text-muted"
+                          >
+                            Es batu
+                          </label>
+                          <select
+                            id={`ice-${item.productId}`}
+                            value={item.ice ?? "REGULER"}
+                            onChange={(event) =>
+                              setItemOption(item.productId, {
+                                ice: event.target.value as IceLevel,
+                              })
+                            }
+                            className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                          >
+                            <option value="REGULER">Reguler</option>
+                            <option value="SEDIKIT">Sedikit</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -17,6 +17,30 @@ export interface PublicMenuProduct {
   category: { name: string; type: string; subtype: string | null } | null;
 }
 
+const publicProductSelect = {
+  id: true,
+  name: true,
+  description: true,
+  price: true,
+  imageKey: true,
+  thumbKey: true,
+  stock: true,
+  trackStock: true,
+  category: { select: { name: true, type: true, subtype: true } },
+} satisfies Prisma.ProductSelect;
+
+function toPublicProduct({
+  imageKey,
+  thumbKey,
+  ...product
+}: Prisma.ProductGetPayload<{ select: typeof publicProductSelect }>): PublicMenuProduct {
+  return {
+    ...product,
+    imageUrl: imageKey ? getPublicUrl(imageKey) : null,
+    thumbUrl: thumbKey ? getPublicUrl(thumbKey) : null,
+  };
+}
+
 /**
  * Katalog publik untuk satu meja aktif. Dipakai route API dan render awal
  * halaman menu agar LCP tidak menunggu fetch client.
@@ -54,23 +78,34 @@ export async function getPublicMenu(input: {
 
   const products = await prisma.product.findMany({
     where,
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      imageKey: true,
-      thumbKey: true,
-      stock: true,
-      trackStock: true,
-      category: { select: { name: true, type: true, subtype: true } },
-    },
+    select: publicProductSelect,
     orderBy: { name: "asc" },
   });
 
-  return products.map(({ imageKey, thumbKey, ...product }) => ({
-    ...product,
-    imageUrl: imageKey ? getPublicUrl(imageKey) : null,
-    thumbUrl: thumbKey ? getPublicUrl(thumbKey) : null,
-  }));
+  return products.map(toPublicProduct);
+}
+
+/** Detail satu produk publik; tetap divalidasi terhadap meja aktif. */
+export async function getPublicProduct(input: {
+  token: string;
+  productId: string;
+}): Promise<PublicMenuProduct> {
+  if (!input.token || !(await findActiveTableByToken(input.token))) {
+    throw new AppError(
+      "NOT_FOUND",
+      "Meja tidak aktif atau tidak ditemukan",
+      404
+    );
+  }
+
+  const product = await prisma.product.findFirst({
+    where: { id: input.productId, deletedAt: null, isActive: true },
+    select: publicProductSelect,
+  });
+
+  if (!product) {
+    throw new AppError("NOT_FOUND", "Produk tidak ditemukan", 404);
+  }
+
+  return toPublicProduct(product);
 }

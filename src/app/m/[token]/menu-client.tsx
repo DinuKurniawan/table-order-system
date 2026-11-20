@@ -6,7 +6,7 @@ import { apiErrorMessage } from "@/lib/api-error";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Minus, Plus, ShoppingBag, Coffee } from "lucide-react";
+import { Search, ShoppingBag, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ export function MenuClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const [cart, setCart] = useCart(token);
+  const [cart] = useCart(token);
 
   // Muat pertama kali di halaman menu = mulai keranjang baru.
   useEffect(() => {
@@ -87,28 +87,6 @@ export function MenuClient({
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-
-  const setQuantity = (menu: MenuProduct, quantity: number) => {
-    setCart((current) => {
-      const next = { ...current };
-      if (quantity <= 0) {
-        delete next[menu.id];
-      } else {
-        const existing = current[menu.id];
-        next[menu.id] = {
-          productId: menu.id,
-          name: menu.name,
-          productImage: menu.thumbUrl ?? menu.imageUrl ?? undefined,
-          drink: menu.category?.type === "DRINK",
-          sugar: existing?.sugar ?? "REGULER",
-          ice: existing?.ice ?? "REGULER",
-          price: menu.price,
-          quantity,
-        };
-      }
-      return next;
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
@@ -205,15 +183,18 @@ export function MenuClient({
           <SectionCard title="Menu Kafe">
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {menus.map((menu, index) => {
-                const quantity = cart[menu.id]?.quantity ?? 0;
                 const soldOut = menu.trackStock && menu.stock <= 0;
                 const image = menu.thumbUrl ?? menu.imageUrl;
 
                 return (
                   <li
                     key={menu.id}
-                    className="flex flex-col overflow-hidden rounded-xl border border-border bg-card"
+                    className="overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary-300"
                   >
+                    <Link
+                      href={`/m/${token}/item/${menu.id}`}
+                      className="flex h-full flex-col"
+                    >
                     <div className="relative h-44 w-full bg-surface-muted">
                       {image ? (
                         <Image
@@ -243,51 +224,13 @@ export function MenuClient({
                         {menu.description || "-"}
                       </p>
 
-                      <div className="mt-auto flex items-center justify-between pt-3">
-                        <span className="text-base font-bold text-primary-800">
-                          {formatRupiah(menu.price)}
-                        </span>
-                        {soldOut ? (
-                          <span className="text-xs font-semibold text-destructive">
-                            Habis
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="size-11 rounded-xl"
-                              aria-label={`Kurangi ${menu.name}`}
-                              disabled={quantity === 0}
-                              onClick={() =>
-                                setQuantity(menu, Math.max(0, quantity - 1))
-                              }
-                            >
-                              <Minus className="size-4" />
-                            </Button>
-                            <span
-                              className="w-7 text-center text-sm font-semibold tabular-nums"
-                              aria-label={`Jumlah ${menu.name}: ${quantity}`}
-                            >
-                              {quantity}
-                            </span>
-                            <Button
-                              type="button"
-                              size="icon"
-                              className="size-11 rounded-xl"
-                              aria-label={`Tambah ${menu.name}`}
-                              disabled={
-                                menu.trackStock && quantity >= menu.stock
-                              }
-                              onClick={() => setQuantity(menu, quantity + 1)}
-                            >
-                              <Plus className="size-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      {soldOut && (
+                        <p className="mt-auto pt-3 text-right text-xs font-semibold text-destructive">
+                          Habis
+                        </p>
+                      )}
                     </div>
+                    </Link>
                   </li>
                 );
               })}
