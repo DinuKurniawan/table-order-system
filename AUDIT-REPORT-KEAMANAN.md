@@ -312,12 +312,12 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 |---|---|---|---|
 | SEC-01 | Tinggi | Selesai | `152ab8f` |
 | SEC-02 | Sedang | Selesai | `0845730` |
-| SEC-03 | Sedang | Belum | — |
+| SEC-03 | Sedang | Selesai | `624f976` |
 | SEC-04 | Sedang | Belum | — |
-| SEC-05 | Sedang | Belum | — |
+| SEC-05 | Sedang | Selesai | `b81f513` |
 | SEC-06 | Rendah | Belum | — |
 | SEC-07 | Rendah | Selesai | `e8ab300` |
-| SEC-08 | Rendah | Belum | — |
+| SEC-08 | Rendah | Selesai | `7a9142e` |
 | SEC-09 | Rendah | Belum | — |
 | SEC-10 | Rendah | Belum | — |
 | SEC-11 | Rendah | Belum | — |
@@ -327,4 +327,4 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-15 | Informasi | Belum | — |
 | SEC-16 | Informasi | Belum | — |
 
-Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 133/133 lulus, `test:unit` 10/10 lulus, `build` lulus.
+Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 145/145 lulus, `test:unit` 10/10 lulus, `build` lulus.
