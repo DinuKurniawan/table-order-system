@@ -51,6 +51,7 @@ test("SEC-06: kode pesanan kuat dan error akses seragam", async (t) => {
         },
         body: JSON.stringify({
           tableToken: table.token,
+          customerName: "Uji Kode",
           items: [{ productId: product.id, quantity: 1 }],
         }),
       })

@@ -55,6 +55,7 @@ test("SEC-06/SEC-09: kode kuat, error seragam, token tersimpan sebagai hash", as
         },
         body: JSON.stringify({
           tableToken: table.token,
+          customerName: "Uji Token",
           items: [{ productId: product.id, quantity: 1 }],
         }),
       })

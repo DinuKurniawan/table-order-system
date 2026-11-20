@@ -33,7 +33,11 @@ const idempotencyKeySchema = z
 const orderSchema = z
   .object({
     tableToken: z.string().trim().min(8, "Token meja tidak valid").max(120),
-    customerName: z.string().trim().max(80, "Nama maksimal 80 karakter").optional(),
+    customerName: z
+      .string()
+      .trim()
+      .min(1, "Nama pelanggan wajib diisi")
+      .max(80, "Nama maksimal 80 karakter"),
     note: z.string().trim().max(300, "Catatan maksimal 300 karakter").optional(),
     items: z
       .array(
@@ -220,7 +224,7 @@ export async function POST(req: Request) {
               accessTokenHash,
               idempotencyKey,
               tableId: table.id,
-              customerName: customerName || null,
+              customerName,
               note: note || null,
               status: "AWAITING_PAYMENT",
               expiresAt,

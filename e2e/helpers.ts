@@ -71,7 +71,7 @@ export async function createOrderViaUi(
   await add.click();
   await page.getByRole("link", { name: /^Keranjang/ }).click();
   await expect(page.getByRole("button", { name: "Pesan & Bayar" })).toBeVisible();
-  await page.getByLabel("Nama Pelanggan (opsional)").fill(customerName);
+  await page.getByLabel("Nama Pelanggan").fill(customerName);
   await page.getByRole("button", { name: "Pesan & Bayar" }).click();
   await page.waitForURL(/\/order\/ORD-/);
   const code = decodeURIComponent(page.url().split("/order/")[1]);

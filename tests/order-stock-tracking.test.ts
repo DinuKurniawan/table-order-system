@@ -49,7 +49,11 @@ test("K-02: produk non-tracked tidak mereservasi stok, tracked tetap atomik", as
         "x-forwarded-for": ip,
         "idempotency-key": id,
       },
-      body: JSON.stringify({ tableToken, items: [{ productId, quantity: 1 }] }),
+      body: JSON.stringify({
+        tableToken,
+        customerName: "Uji Stok",
+        items: [{ productId, quantity: 1 }],
+      }),
     });
   }
 

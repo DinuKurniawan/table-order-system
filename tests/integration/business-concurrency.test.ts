@@ -64,6 +64,7 @@ test("[K-01] kode pesanan bentrok tidak boleh menghasilkan HTTP 500", async (t) 
       },
       body: JSON.stringify({
         tableToken,
+        customerName: "Uji Concurrency",
         items: [{ productId: product.id, quantity: 1 }],
       }),
     });

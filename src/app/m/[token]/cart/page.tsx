@@ -66,6 +66,8 @@ function CartContent() {
   // ============================================================
   const [isSaving, setIsSaving] = useState(false);
   const [customerName, setCustomerName] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [sugarLevel, setSugarLevel] = useState<"REGULER" | "NO_SUGAR">("REGULER");
   const [generalNote, setGeneralNote] = useState("");
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const cartSignature = JSON.stringify(items);
@@ -92,6 +94,12 @@ function CartContent() {
   // Submit order (POST /api/public/orders)
   // ============================================================
   const handleSubmit = async () => {
+    const name = customerName.trim();
+    if (!name) {
+      setNameError("Nama pelanggan wajib diisi");
+      return;
+    }
+    setNameError("");
     setIsSaving(true);
 
     const itemsForOrder = itemEntries.map(
@@ -101,6 +109,15 @@ function CartContent() {
         note: item.note,
       })
     );
+
+    // Gula disimpan di kolom `note` (sudah tercetak di dapur/kasir).
+    // ponytail: field terstruktur baru jika perlu laporan per level gula.
+    const note = [
+      `Gula: ${sugarLevel === "NO_SUGAR" ? "No Sugar" : "Reguler"}`,
+      generalNote.trim(),
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     try {
       const res = await fetch("/api/public/orders", {
@@ -112,8 +129,8 @@ function CartContent() {
         },
         body: JSON.stringify({
           tableToken: token,
-          customerName: customerName || undefined,
-          note: generalNote || undefined,
+          customerName: name,
+          note,
           items: itemsForOrder,
         }),
       });
@@ -160,15 +177,51 @@ function CartContent() {
               htmlFor="customer-name"
               className="mb-2 block text-sm font-medium"
             >
-              Nama Pelanggan (opsional)
+              Nama Pelanggan <span className="text-destructive">*</span>
             </label>
             <Input
               id="customer-name"
               value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              onChange={(e) => {
+                setCustomerName(e.target.value);
+                if (nameError) setNameError("");
+              }}
               placeholder="Nama pelanggan"
+              required
+              maxLength={80}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? "customer-name-error" : undefined}
               className="h-11 w-full rounded-xl"
             />
+            {nameError && (
+              <p
+                id="customer-name-error"
+                role="alert"
+                className="mt-1 text-xs text-destructive"
+              >
+                {nameError}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="sugar-level"
+              className="mb-2 block text-sm font-medium"
+            >
+              Gula
+            </label>
+            <select
+              id="sugar-level"
+              value={sugarLevel}
+              onChange={(e) =>
+                setSugarLevel(e.target.value as "REGULER" | "NO_SUGAR")
+              }
+              className="h-11 w-full rounded-xl border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+            >
+              <option value="REGULER">Reguler</option>
+              <option value="NO_SUGAR">No Sugar</option>
+            </select>
           </div>
 
           <div>
@@ -183,7 +236,7 @@ function CartContent() {
               value={generalNote}
               onChange={(e) => setGeneralNote(e.target.value)}
               placeholder="Contoh: tambahan es sedikit"
-              maxLength={300}
+              maxLength={280}
               className="h-11 w-full rounded-xl"
             />
           </div>

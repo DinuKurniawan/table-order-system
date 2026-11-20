@@ -107,6 +107,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
           },
           body: JSON.stringify({
             tableToken: `palsu-${stamp}`,
+            customerName: "Uji Token Palsu",
             items: [{ productId: product.id, quantity: 1 }],
           }),
         })
