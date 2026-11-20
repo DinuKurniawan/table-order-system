@@ -44,14 +44,19 @@ function buildCsp(reportOnly: boolean): string {
   const r2AccountId = process.env.R2_ACCOUNT_ID?.trim();
   const r2Storage = r2AccountId
     ? (() => {
-        const explicit = originOf(r2AccountId);
-        if (explicit) return [explicit];
-        const host = r2AccountId.includes(".")
-          ? r2AccountId
-          : `${r2AccountId}.r2.cloudflarestorage.com`;
-        // Presigned URL memakai host per-bucket: <bucket>.<akun>.r2...
+        const origin =
+          originOf(r2AccountId) ??
+          `https://${
+            r2AccountId.includes(".")
+              ? r2AccountId
+              : `${r2AccountId}.r2.cloudflarestorage.com`
+          }`;
+        // Presigned URL R2 memakai host per-bucket: <bucket>.<akun>.r2...
         // Wildcard dibatasi ke akun ini; *.r2.cloudflarestorage.com global tetap dilarang.
-        return [`https://${host}`, `https://*.${host}`];
+        if (!new URL(origin).hostname.endsWith(".r2.cloudflarestorage.com")) {
+          return [origin]; // MinIO/path-style: host tunggal
+        }
+        return [origin, `https://*.${new URL(origin).hostname}`];
       })()
     : [];
 

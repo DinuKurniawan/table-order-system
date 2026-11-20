@@ -53,7 +53,7 @@ test("SEC-04: CSP ditegakkan dengan origin R2 spesifik", async (t) => {
 
   (process.env as Record<string, string>).NODE_ENV = "production";
   process.env.R2_PUBLIC_BASE_URL = "https://cdn.example.com/assets";
-  process.env.R2_ACCOUNT_ID = "abc123";
+  process.env.R2_ACCOUNT_ID = "https://abc123.r2.cloudflarestorage.com";
   process.env.NEXT_PUBLIC_PUSHER_CLUSTER = "ap1";
   delete process.env.CSP_REPORT_ONLY;
   delete process.env.CSP_ENFORCE;
