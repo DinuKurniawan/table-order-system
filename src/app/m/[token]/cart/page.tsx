@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/admin/section-card";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { parseStoredCart, type CartItems } from "@/lib/cart";
 
 export default function CartPage() {
@@ -69,6 +69,17 @@ function CartContent() {
   const [nameError, setNameError] = useState("");
   const [sugarLevel, setSugarLevel] = useState<"REGULER" | "NO_SUGAR">("REGULER");
   const [generalNote, setGeneralNote] = useState("");
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    productId: string;
+    name: string;
+  } | null>(null);
+  const swipeRef = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    dx: number;
+  } | null>(null);
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const cartSignature = JSON.stringify(items);
 
@@ -149,6 +160,33 @@ function CartContent() {
       setIsSaving(false);
     }
   };
+
+  // ============================================================
+  // Hapus item (konfirmasi overlay penuh)
+  // ============================================================
+  const removeItem = (productId: string) => {
+    setItems((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+    setPendingDelete(null);
+    setOpenItemId(null);
+  };
+
+  useEffect(() => {
+    if (!pendingDelete) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPendingDelete(null);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [pendingDelete]);
 
   if (totalItems === 0) {
     return (
@@ -242,53 +280,107 @@ function CartContent() {
           </div>
         </div>
 
-        {/* Daftar item keranjang */}
-        <div className="mt-6 space-y-3">
-          {itemEntries.map((item) => (
-            <div key={item.productId} className="flex items-center justify-between gap-3 rounded border p-3">
-              <span className="font-medium">
-                {item.name ?? item.productName}
-              </span>
-              <div className="flex items-center gap-1">
-                <Button
+        {/* Daftar item keranjang: geser ke kiri untuk tombol hapus */}
+        <p className="mt-6 text-xs text-text-muted">Geser item ke kiri untuk menghapus.</p>
+        <div className="mt-2 space-y-3">
+          {itemEntries.map((item) => {
+            const label = item.name ?? item.productName ?? "Produk";
+            const isOpen = openItemId === item.productId;
+            return (
+              <div
+                key={item.productId}
+                className="relative overflow-hidden rounded border"
+              >
+                <button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={`Kurangi ${item.name ?? item.productName}`}
-                  onClick={() => setItems((prev) => {
-                    const newItems = { ...prev };
-                    if (newItems[item.productId].quantity > 1) {
-                      newItems[item.productId].quantity -= 1;
-                    }
-                    return newItems;
-                  })}
-                  disabled={item.quantity <= 1}
-                  className="size-11 rounded-xl"
+                  aria-label={`Hapus ${label}`}
+                  onFocus={() => setOpenItemId(item.productId)}
+                  onClick={() =>
+                    setPendingDelete({ productId: item.productId, name: label })
+                  }
+                  className="absolute inset-y-0 right-0 flex w-16 items-center justify-center bg-destructive text-white transition-colors hover:bg-destructive/90"
                 >
-                  <Minus className="size-4" />
-                </Button>
-                <span className="w-7 text-center text-sm font-medium tabular-nums">
-                  {item.quantity}
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  aria-label={`Tambah ${item.name ?? item.productName}`}
-                  onClick={() => setItems((prev) => {
-                    const newItems = { ...prev };
-                    newItems[item.productId] = {
-                      ...newItems[item.productId],
-                      quantity: newItems[item.productId].quantity + 1,
+                  <Trash2 className="size-5" />
+                </button>
+                <div
+                  className="relative flex touch-pan-y select-none items-center justify-between gap-3 border-border bg-surface p-3 transition-transform duration-200 ease-out"
+                  style={{
+                    transform: isOpen ? "translateX(-4rem)" : "translateX(0)",
+                  }}
+                  onPointerDown={(event) => {
+                    swipeRef.current = {
+                      id: item.productId,
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      dx: 0,
                     };
-                    return newItems;
-                  })}
-                  className="size-11 rounded-xl"
+                  }}
+                  onPointerMove={(event) => {
+                    const swipe = swipeRef.current;
+                    if (!swipe || swipe.id !== item.productId) return;
+                    const dx = event.clientX - swipe.startX;
+                    const dy = event.clientY - swipe.startY;
+                    // Gerakan vertikal = scroll halaman, bukan geser item.
+                    swipe.dx = Math.abs(dy) > Math.abs(dx) ? 0 : dx;
+                  }}
+                  onPointerUp={() => {
+                    const swipe = swipeRef.current;
+                    if (!swipe || swipe.id !== item.productId) return;
+                    swipeRef.current = null;
+                    if (swipe.dx <= -40) setOpenItemId(item.productId);
+                    else if (swipe.dx >= 40)
+                      setOpenItemId((current) =>
+                        current === item.productId ? null : current
+                      );
+                    else if (isOpen) setOpenItemId(null);
+                  }}
+                  onPointerCancel={() => {
+                    swipeRef.current = null;
+                  }}
                 >
-                  <Plus className="size-4" />
-                </Button>
+                  <span className="font-medium">{label}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={`Kurangi ${label}`}
+                      onClick={() => setItems((prev) => {
+                        const newItems = { ...prev };
+                        if (newItems[item.productId].quantity > 1) {
+                          newItems[item.productId].quantity -= 1;
+                        }
+                        return newItems;
+                      })}
+                      disabled={item.quantity <= 1}
+                      className="size-11 rounded-xl"
+                    >
+                      <Minus className="size-4" />
+                    </Button>
+                    <span className="w-7 text-center text-sm font-medium tabular-nums">
+                      {item.quantity}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      aria-label={`Tambah ${label}`}
+                      onClick={() => setItems((prev) => {
+                        const newItems = { ...prev };
+                        newItems[item.productId] = {
+                          ...newItems[item.productId],
+                          quantity: newItems[item.productId].quantity + 1,
+                        };
+                        return newItems;
+                      })}
+                      className="size-11 rounded-xl"
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Ringkasan harga */}
@@ -313,6 +405,54 @@ function CartContent() {
           Pesan & Bayar
         </Button>
       </div>
+
+      {/* Overlay konfirmasi hapus, penuh satu halaman */}
+      {pendingDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-item-title"
+          onClick={() => setPendingDelete(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-2xl"
+          >
+            <h2
+              id="delete-item-title"
+              className="text-lg font-bold text-text-strong"
+            >
+              Hapus produk?
+            </h2>
+            <p className="mt-2 text-sm text-text-muted">
+              Yakin hapus produk{" "}
+              <span className="font-semibold text-text-strong">
+                &quot;{pendingDelete.name}&quot;
+              </span>
+              ?
+            </p>
+            <div className="mt-6 flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                autoFocus
+                onClick={() => setPendingDelete(null)}
+                className="h-11 flex-1 rounded-xl"
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={() => removeItem(pendingDelete.productId)}
+                className="h-11 flex-1 rounded-xl bg-destructive text-white hover:bg-destructive/90"
+              >
+                Hapus
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </SectionCard>
   );
 }
