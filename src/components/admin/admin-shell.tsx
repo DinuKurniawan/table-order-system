@@ -9,8 +9,6 @@ import {
   ChevronDown,
   LayoutDashboard,
   LogOut,
-  Mail,
-  Bell,
   Menu,
   QrCode,
   Search,
@@ -43,6 +41,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ConnectionIndicator } from "@/components/admin/connection-indicator";
+import { NotificationBell } from "@/components/admin/notification-bell";
 
 interface NavItem {
   title: string;
@@ -107,16 +106,9 @@ const pageTitles: Record<string, string> = {
 interface AdminShellProps {
   user: SafeUser;
   children: React.ReactNode;
-  unreadMessages?: number;
-  unreadNotifications?: number;
 }
 
-export function AdminShell({
-  user,
-  children,
-  unreadMessages = 2,
-  unreadNotifications = 4,
-}: AdminShellProps) {
+export function AdminShell({ user, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -283,41 +275,14 @@ export function AdminShell({
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-text-muted pointer-events-none" />
           </div>
 
-          {/* Right: Realtime status, Messages, Notifications, Profile dropdown */}
+          {/* Right: Realtime status, Notifications, Profile dropdown */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="hidden sm:block mr-1">
               <ConnectionIndicator showLabel />
             </div>
 
-            {/* Messages icon with purple badge */}
-            <button
-              type="button"
-              className="relative flex size-10 items-center justify-center rounded-full bg-surface text-text-muted hover:text-text-strong border border-border shadow-xs transition-colors"
-              title="Pesan masuk"
-              aria-label="Pesan masuk"
-            >
-              <Mail className="size-4" />
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white ring-2 ring-surface">
-                  {unreadMessages}
-                </span>
-              )}
-            </button>
-
-            {/* Notifications icon with purple badge */}
-            <button
-              type="button"
-              className="relative flex size-10 items-center justify-center rounded-full bg-surface text-text-muted hover:text-text-strong border border-border shadow-xs transition-colors"
-              title="Notifikasi"
-              aria-label="Notifikasi"
-            >
-              <Bell className="size-4" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white ring-2 ring-surface">
-                  {unreadNotifications}
-                </span>
-              )}
-            </button>
+            {/* Notifications dropdown (dynamic alerts) */}
+            <NotificationBell />
 
             {/* User Profile Dropdown */}
             <DropdownMenu>
