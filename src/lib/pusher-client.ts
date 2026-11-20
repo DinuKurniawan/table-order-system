@@ -69,9 +69,12 @@ export function initPusherClient(): Promise<Pusher | null> {
       };
 
       if (window.requestIdleCallback) {
-        window.requestIdleCallback(load, { timeout: 2000 });
+        // Jangan mulai sebelum gambar LCP selesai; stok tetap segar setelahnya.
+        window.setTimeout(() => {
+          window.requestIdleCallback(load, { timeout: 2000 });
+        }, 1500);
       } else {
-        window.setTimeout(load, 1);
+        window.setTimeout(load, 1500);
       }
     });
   }

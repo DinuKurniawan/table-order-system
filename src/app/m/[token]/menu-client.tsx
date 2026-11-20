@@ -191,6 +191,8 @@ export function MenuClient({
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {menus.map((menu, index) => {
                 const soldOut = menu.trackStock && menu.stock <= 0;
+                // Thumbnail sudah 320px dari proses upload; optimizer Next
+                // hanya meng-upscale dan menambah satu hop server.
                 const image = menu.thumbUrl ?? menu.imageUrl;
 
                 return (
@@ -209,6 +211,7 @@ export function MenuClient({
                           src={image}
                           alt={menu.name}
                           fill
+                          unoptimized
                           sizes="(max-width: 640px) 100vw, 320px"
                           className="object-cover"
                           preload={index === 0}

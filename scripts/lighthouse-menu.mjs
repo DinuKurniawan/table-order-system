@@ -38,6 +38,11 @@ async function main() {
         deviceScaleFactor: 1.75,
         disabled: false,
       },
+      // Mode `devtools` membatasi jaringan/CPU saat halaman benar-benar
+      // dimuat. Mode `simulate` (default Lighthouse) memasukkan SEMUA chunk JS
+      // ke graf LCP secara pesimistis, sehingga halaman SSR dengan LCP gambar
+      // statis selalu tampak >3 dtk meski gambar selesai <600 ms.
+      throttlingMethod: "devtools",
       throttling: {
         rttMs: 150,
         throughputKbps: 1638.4,
