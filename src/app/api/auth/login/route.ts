@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validators/auth";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import {
   isRateLimited,
@@ -13,6 +13,20 @@ import { getClientIp } from "@/lib/client-ip";
 import { apiErrorResponse } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { Role } from "@prisma/client";
+
+/**
+ * SEC-03: hash dummy berparameter sama dengan hash asli. Dibuat sekali saat
+ * modul dimuat agar jalur "user tidak ada/nonaktif" tetap membayar biaya Argon2.
+ */
+const DUMMY_PASSWORD_HASH = hashPassword("dummy-login-timing-password");
+
+function invalidCredentials(): NextResponse {
+  return apiErrorResponse(
+    "UNAUTHENTICATED",
+    "Username atau password salah",
+    401
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,7 +71,8 @@ export async function POST(req: NextRequest) {
       where: { username },
     });
 
-    // Audit login gagal (tanpa password) — audit R-06.
+    // Audit login gagal (tanpa password) — audit R-06. Bentuk audit sama untuk
+    // user tidak ada, nonaktif, dan password salah agar tidak jadi oracle.
     async function recordLoginFailure(): Promise<void> {
       await Promise.all([
         recordFailedAttempt(rateLimitKey),
@@ -66,10 +81,10 @@ export async function POST(req: NextRequest) {
       try {
         await prisma.auditLog.create({
           data: {
-            userId: user?.id ?? null,
+            userId: null,
             action: "auth.login_failed",
             entity: "User",
-            entityId: user?.id ?? "anonymous",
+            entityId: username,
             meta: { username },
           },
         });
@@ -80,22 +95,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user || !user.isActive) {
+      // Constant-work: verifikasi terhadap hash dummy walau user tidak ada.
+      await verifyPassword(password, await DUMMY_PASSWORD_HASH);
       await recordLoginFailure();
-      return apiErrorResponse(
-        "UNAUTHENTICATED",
-        "Username atau password salah",
-        401
-      );
+      return invalidCredentials();
     }
 
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
       await recordLoginFailure();
-      return apiErrorResponse(
-        "UNAUTHENTICATED",
-        "Username atau password salah",
-        401
-      );
+      return invalidCredentials();
     }
 
     // Berhasil login: reset percobaan rate limit & catat waktu login

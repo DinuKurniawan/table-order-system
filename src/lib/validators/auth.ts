@@ -1,8 +1,15 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  username: z.string().trim().min(1, "Username wajib diisi"),
-  password: z.string().min(1, "Password wajib diisi"),
+  username: z
+    .string()
+    .trim()
+    .min(1, "Username wajib diisi")
+    .max(64, "Username maksimal 64 karakter"),
+  password: z
+    .string()
+    .min(1, "Password wajib diisi")
+    .max(128, "Password maksimal 128 karakter"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
