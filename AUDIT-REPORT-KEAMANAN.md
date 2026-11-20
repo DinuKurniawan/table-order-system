@@ -321,7 +321,7 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-09 | Rendah | Selesai (contract pending) | `8dd6d10` |
 | SEC-10 | Rendah | Selesai | `67972d0` |
 | SEC-11 | Rendah | Selesai | `25003b8` |
-| SEC-12 | Rendah | Belum | — |
+| SEC-12 | Rendah | Selesai | `9f78784` |
 | SEC-13 | Rendah | Selesai | `f314a02` |
 | SEC-14 | Informasi | Belum | — |
 | SEC-15 | Informasi | Belum | — |
