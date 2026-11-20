@@ -34,7 +34,7 @@ const orderSchema = z
   .object({
     tableToken: z.string().trim().min(8, "Token meja tidak valid").max(120),
     customerName: z
-      .string()
+      .string({ error: "Nama pelanggan wajib diisi" })
       .trim()
       .min(1, "Nama pelanggan wajib diisi")
       .max(80, "Nama maksimal 80 karakter"),
