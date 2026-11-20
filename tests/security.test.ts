@@ -71,13 +71,13 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
       const ctx = { params: Promise.resolve({ code }) };
 
       const noToken = await GET(new NextRequest(url), ctx);
-      assert.equal(noToken.status, 401, "Tanpa token harus 401");
+      assert.equal(noToken.status, 404, "Tanpa token harus 404 seragam");
 
       const wrongToken = await GET(
         new NextRequest(url, { headers: { "x-order-token": "token-salah" } }),
         ctx
       );
-      assert.equal(wrongToken.status, 403, "Token salah harus 403");
+      assert.equal(wrongToken.status, 404, "Token salah harus 404 seragam");
 
       const ok = await GET(
         new NextRequest(url, { headers: { "x-order-token": accessToken } }),
@@ -200,7 +200,7 @@ test("Keamanan: IDOR, token palsu, replay checkout, upload berbahaya, rate limit
 
       const { submitPaymentProof } = await import("../src/server/services/orders");
       await assert.rejects(
-        () => submitPaymentProof(order.code, order.accessToken, php),
+        () => submitPaymentProof(order.code, order.accessToken!, php),
         (err: unknown) => err instanceof AppError && err.code === "VALIDATION_ERROR"
       );
 

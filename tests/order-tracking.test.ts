@@ -113,7 +113,7 @@ test("Pelacakan Pesanan: guard status, batas unggah, cron idempoten", async (t) 
 
     await assert.rejects(
       () => getCustomerOrder(code, "token-salah"),
-      (err: unknown) => err instanceof AppError && err.code === "FORBIDDEN"
+      (err: unknown) => err instanceof AppError && err.code === "NOT_FOUND"
     );
   });
 

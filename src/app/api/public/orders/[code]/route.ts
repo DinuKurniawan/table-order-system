@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { handleApiError } from "@/lib/api";
-import { AppError } from "@/lib/errors";
 import { getOrderAccessToken } from "@/lib/order-access";
 import { getCustomerOrder } from "@/server/services/orders";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
@@ -17,18 +16,14 @@ export async function GET(
 ) {
   try {
     const { code } = await params;
-    const limiter = await consumeRateLimit(
+    const limit = await consumeRateLimit(
       `order-get:${getClientIp(req)}`,
       60,
       60
     );
-    if (limiter.limited) return tooManyRequests(limiter);
+    if (limit.limited) return tooManyRequests(limit);
 
-    const token = getOrderAccessToken(req, code);
-    if (!token) {
-      throw new AppError("UNAUTHENTICATED", "Kode akses pesanan diperlukan", 401);
-    }
-
+    const token = getOrderAccessToken(req, code) ?? "";
     const order = await getCustomerOrder(code, token);
     return NextResponse.json(order);
   } catch (err) {

@@ -71,12 +71,9 @@ async function loadOrderWithAccess(code: string, token: string): Promise<OrderWi
     },
   });
 
-  if (!order) {
+  // SEC-06: kode tidak ada dan token salah/kosong tidak dibedakan.
+  if (!order || !timingSafeEqualString(token, order.accessToken ?? "")) {
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
-  }
-
-  if (!timingSafeEqualString(token, order.accessToken)) {
-    throw new AppError("FORBIDDEN", "Kode akses pesanan salah", 403);
   }
 
   return order;

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { handleApiError } from "@/lib/api";
-import { AppError } from "@/lib/errors";
 import { getOrderAccessToken } from "@/lib/order-access";
 import { cancelOrderByCustomer } from "@/server/services/orders";
 import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
@@ -24,11 +23,7 @@ export async function POST(
     );
     if (limiter.limited) return tooManyRequests(limiter);
 
-    const token = getOrderAccessToken(req, code);
-    if (!token) {
-      throw new AppError("UNAUTHENTICATED", "Kode akses pesanan diperlukan", 401);
-    }
-
+    const token = getOrderAccessToken(req, code) ?? "";
     await cancelOrderByCustomer(code, token);
     return NextResponse.json({ ok: true, status: "CANCELLED" });
   } catch (err) {

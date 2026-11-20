@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { handleApiError, readJson } from "@/lib/api";
+import { apiErrorResponse, handleApiError, readJson } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { orderAccessCookieName } from "@/lib/order-access";
 import { getCustomerOrder } from "@/server/services/orders";
@@ -46,8 +46,13 @@ export async function POST(
     });
     return response;
   } catch (err) {
-    if (err instanceof AppError && err.code === "CONFLICT") {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+    // SEC-06: kode tidak ada / token salah / kosong tidak dibedakan.
+    if (err instanceof AppError && err.status === 404) {
+      return apiErrorResponse(
+        "NOT_FOUND",
+        "Kode pesanan atau kode akses tidak cocok",
+        404
+      );
     }
     return handleApiError(err);
   }

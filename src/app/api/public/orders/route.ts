@@ -15,6 +15,7 @@ import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import { reserveStock } from "@/server/services/stock";
+import { generateOrderCode } from "@/lib/order-token";
 import crypto from "crypto";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -185,19 +186,10 @@ export async function POST(req: Request) {
     const timeoutMinutes = settings.timeoutBayarMenit;
     const expiresAt = new Date(now.getTime() + timeoutMinutes * 60000);
 
-    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
     const accessToken = crypto.randomBytes(16).toString("hex");
 
-    // K-01: kode hanya 4 hex sehingga bisa bentrok. Saat bentrok, ulangi
-    // transaksi dengan kode baru (attempt menggeser suffix) alih-alih 500.
-    const makeOrderCode = (attempt: number) => {
-      const base = crypto.randomBytes(2).readUInt16BE(0);
-      const suffix = ((base + attempt) % 0x10000)
-        .toString(16)
-        .toUpperCase()
-        .padStart(4, "0");
-      return `ORD-${datePart}-${suffix}`;
-    };
+    // SEC-06: kode acak base32; saat bentrok unik, ulangi dengan kode baru.
+    const makeOrderCode = () => generateOrderCode(now);
 
     const isOrderCodeConflict = (err: unknown) => {
       if (
@@ -211,7 +203,7 @@ export async function POST(req: Request) {
     };
 
     for (let attempt = 0; ; attempt++) {
-      const orderCode = makeOrderCode(attempt);
+      const orderCode = makeOrderCode();
 
       try {
         await runInTransaction(async (tx, after) => {

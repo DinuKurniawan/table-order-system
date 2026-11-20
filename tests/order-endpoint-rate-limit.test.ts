@@ -96,7 +96,7 @@ test("SEC-08: rate limit endpoint pesanan publik", async (t) => {
   await t.test("3. cancel dibatasi sebelum verifikasi token", async () => {
     for (let i = 0; i < 9; i += 1) {
       const response = await cancelReq(ipCancel, null);
-      assert.equal(response.status, 401, `Percobaan ${i + 1} harus 401`);
+      assert.equal(response.status, 404, `Percobaan ${i + 1} harus 404`);
     }
 
     const limited = await cancelReq(ipCancel, null);
