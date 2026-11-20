@@ -9,6 +9,8 @@ import { authenticateRequest } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/api";
 import { orderAccessCookieName, timingSafeEqualString } from "@/lib/order-access";
 import { logger } from "@/lib/logger";
+import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
+import { getClientIp } from "@/lib/client-ip";
 
 interface AuthBody {
   socket_id?: string;
@@ -40,6 +42,11 @@ function forbidden(): NextResponse {
  */
 export async function POST(req: NextRequest) {
   try {
+    // SEC-05: batasi per IP sebelum parsing body / query DB apa pun.
+    const ip = getClientIp(req);
+    const ipLimit = await consumeRateLimit(`pusher:auth:ip:${ip}`, 30, 60);
+    if (ipLimit.limited) return tooManyRequests(ipLimit);
+
     const { socket_id: socketId, channel_name: channelName } = await readAuthBody(req);
 
     if (
@@ -57,6 +64,16 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await authenticateRequest(req);
+
+    // Batas per user staf; IP sudah dibatasi lebih dulu.
+    if (user) {
+      const userLimit = await consumeRateLimit(
+        `pusher:auth:user:${user.id}`,
+        60,
+        60
+      );
+      if (userLimit.limited) return tooManyRequests(userLimit);
+    }
 
     let allowed = false;
 

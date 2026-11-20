@@ -5,11 +5,18 @@ import { PrismaClient, Role } from "@prisma/client";
 import { POST } from "../src/app/api/pusher/auth/route";
 import { signSessionToken } from "../src/lib/session";
 import { orderAccessCookieName } from "../src/lib/order-access";
+import { tableStockPayload } from "../src/lib/realtime-events";
 
 const prisma = new PrismaClient();
 const stamp = Date.now();
+const ipDefault = `10.${(stamp % 200) + 1}.${(stamp % 250) + 1}.10`;
+const ipRate = `10.${(stamp % 200) + 1}.${(stamp % 250) + 1}.11`;
 
-function authRequest(channel: string, cookies: Record<string, string> = {}): NextRequest {
+function authRequest(
+  channel: string,
+  cookies: Record<string, string> = {},
+  ip: string = ipDefault
+): NextRequest {
   const cookie = Object.entries(cookies)
     .map(([name, value]) => `${name}=${value}`)
     .join("; ");
@@ -18,6 +25,7 @@ function authRequest(channel: string, cookies: Record<string, string> = {}): Nex
     method: "POST",
     headers: {
       "content-type": "application/json",
+      "x-forwarded-for": ip,
       ...(cookie ? { cookie } : {}),
     },
     body: JSON.stringify({ socket_id: "1234.5678", channel_name: channel }),
@@ -123,6 +131,11 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
   });
 
   t.after(async () => {
+    await prisma.rateLimit.deleteMany({
+      where: {
+        OR: [{ key: { contains: ipDefault } }, { key: { contains: ipRate } }],
+      },
+    });
     await prisma.order.deleteMany({
       where: { id: { in: [orderA.id, orderB.id] } },
     });
@@ -247,5 +260,64 @@ test("T-04: otorisasi channel Pusher memeriksa sesi aktif", async (t) => {
 
   await t.test("tanpa sesi ditolak 403", async () => {
     assert.equal((await POST(authRequest("private-cashier"))).status, 403);
+  });
+
+  await t.test("payload channel meja hanya berisi data publik", () => {
+    const payload = tableStockPayload("produk-1", 7);
+    assert.deepEqual(Object.keys(payload).sort(), ["available", "productId"]);
+    assert.equal(payload.productId, "produk-1");
+    assert.equal(payload.available, true);
+    assert.equal(tableStockPayload("produk-2", 0).available, false);
+
+    const serialized = JSON.stringify(payload);
+    for (const internal of [
+      "orderCode",
+      "orderId",
+      "lowStockThreshold",
+      "threshold",
+      "username",
+      "price",
+      "total",
+      "newStock",
+    ]) {
+      assert.ok(!serialized.includes(internal), `payload tidak boleh memuat ${internal}`);
+    }
+  });
+
+  await t.test("rate limit per IP aktif sebelum query ACL", async () => {
+    let allowed = 0;
+    for (let i = 0; i < 30; i += 1) {
+      const response = await POST(
+        authRequest(`private-table-${activeTable.token}`, {}, ipRate)
+      );
+      if (response.status === 200) allowed += 1;
+      else {
+        assert.equal(response.status, 429);
+        const body = (await response.json()) as { error: { code: string } };
+        assert.equal(body.error.code, "RATE_LIMITED");
+        break;
+      }
+    }
+    assert.ok(allowed >= 1, "Di bawah batas harus tetap berperilaku lama");
+    assert.ok(allowed < 30, "Permintaan melebihi batas harus ditolak 429");
+
+    const target = prisma.table as unknown as {
+      findUnique: (...args: never[]) => unknown;
+    };
+    const original = target.findUnique;
+    let calls = 0;
+    target.findUnique = (...args: never[]) => {
+      calls += 1;
+      return original(...args);
+    };
+    try {
+      const limited = await POST(
+        authRequest(`private-table-${activeTable.token}`, {}, ipRate)
+      );
+      assert.equal(limited.status, 429);
+      assert.equal(calls, 0, "Rate limit harus dicek sebelum query DB");
+    } finally {
+      target.findUnique = original;
+    }
   });
 });

@@ -61,6 +61,19 @@ export type ChannelName =
  * - User ID -> private-user-{id} (only own user)
  */
 
+/** Channel meja hanya menerima data publik (SEC-05). */
+export interface TableStockPayload {
+  productId: string;
+  available: boolean;
+}
+
+export function tableStockPayload(
+  productId: string,
+  newStock: number
+): TableStockPayload {
+  return { productId, available: newStock > 0 };
+}
+
 /**
  * Pemetaan event ke channel:
  * - order.created        -> private-order-{orderCode} + private-cashier/admin

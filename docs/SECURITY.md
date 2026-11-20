@@ -13,3 +13,7 @@ Status perbaikan per temuan dicatat di bagian "Status Perbaikan" laporan tersebu
   ke penjadwal (Vercel Cron / cron-job.org) sebelum rotasi.
 - **SEC-07 (2026-11-20).** Perbandingan token memakai HMAC-SHA256 dengan kunci acak per proses.
   Artinya token tidak bisa dibandingkan lintas proses; semua verifikasi tetap di proses yang sama.
+- **SEC-05 (2026-11-20).** Langganan `private-table-<token>` tidak diberi masa berlaku. Token meja
+  tercetak di QR dan dipakai berulang oleh pelanggan yang sah, sehingga expiry akan memutus alur
+  normal. Mitigasi: rate limit per IP/user, pemeriksaan meja aktif setiap auth, dan payload event
+  meja dibatasi ke `productId` + `available` (tanpa stok pasti, pesanan, atau data internal).

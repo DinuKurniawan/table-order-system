@@ -1,4 +1,4 @@
-import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
+import { CHANNELS, REALTIME_EVENTS, tableStockPayload } from "@/lib/realtime-events";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -262,11 +262,11 @@ export async function POST(req: Request) {
             const newStock = reserved.newStock;
 
             after(() => {
-              emitToChannel(CHANNELS.table(tableToken), REALTIME_EVENTS.stockChanged, {
-                productId: item.productId,
-                newStock,
-                orderCode,
-              });
+              emitToChannel(
+                CHANNELS.table(tableToken),
+                REALTIME_EVENTS.stockChanged,
+                tableStockPayload(item.productId, newStock)
+              );
             });
 
             if (product.lowStockThreshold && newStock <= product.lowStockThreshold) {
