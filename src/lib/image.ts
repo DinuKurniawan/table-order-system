@@ -1,3 +1,4 @@
+import "server-only";
 import sharp, { type OutputInfo } from "sharp";
 import { AppError } from "@/lib/errors";
 

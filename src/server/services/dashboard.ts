@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "@/lib/db";
 import { getPublicUrl } from "@/lib/r2";
 import { describeAudit } from "@/lib/audit";

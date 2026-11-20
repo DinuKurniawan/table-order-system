@@ -1,3 +1,4 @@
+import "server-only";
 import { nanoid } from "nanoid";
 import { env } from "@/lib/env";
 import {

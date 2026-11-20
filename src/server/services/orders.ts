@@ -1,3 +1,4 @@
+import "server-only";
 import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";

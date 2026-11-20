@@ -1,3 +1,4 @@
+import "server-only";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";

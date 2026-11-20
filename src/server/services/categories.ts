@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { CategoryType, DrinkSubtype } from "@prisma/client";

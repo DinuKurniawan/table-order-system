@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRealtimeEvent, RealTimeEvent } from "@/lib/pusher-client";
 import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
-import { emitToChannel } from "@/lib/pusher-server";
 import { SectionCard } from "@/components/admin/section-card";
 
 type LogEntry = {
@@ -35,11 +34,42 @@ export default function RealTimeTestPage() {
   // ============================================================
   // Kirim event uji
   // ============================================================
-  const sendTestEvent = (event: RealTimeEvent) => {
-    emitToChannel(CHANNELS.admin, event, {
-      test: true,
-      timestamp: new Date().toISOString(),
-    });
+  const sendTestEvent = async (event: RealTimeEvent) => {
+    try {
+      const response = await fetch("/api/admin/realtime-test", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ event }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        setLogs((prev) => [
+          {
+            event,
+            payload: { error: body?.error?.message ?? "Gagal mengirim event" },
+            timestamp: new Date().toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          },
+          ...prev.slice(0, 49),
+        ]);
+      }
+    } catch {
+      setLogs((prev) => [
+        {
+          event,
+          payload: { error: "Gagal menghubungi server" },
+          timestamp: new Date().toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+        ...prev.slice(0, 49),
+      ]);
+    }
   };
 
   // ============================================================

@@ -1,3 +1,4 @@
+import "server-only";
 import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
