@@ -321,10 +321,48 @@ Cabang: `fix/security-audit-2026-11`. Baseline (2026-11-20): `typecheck` lulus, 
 | SEC-09 | Rendah | Selesai (contract pending) | `8dd6d10` |
 | SEC-10 | Rendah | Selesai | `67972d0` |
 | SEC-11 | Rendah | Selesai | `25003b8` |
-| SEC-12 | Rendah | Selesai | `9f78784` |
+| SEC-12 | Rendah | Selesai | `9f78784`, `e5fd3e0` |
 | SEC-13 | Rendah | Selesai | `f314a02` |
-| SEC-14 | Informasi | Belum | — |
-| SEC-15 | Informasi | Belum | — |
-| SEC-16 | Informasi | Belum | — |
+| SEC-14 | Informasi | Selesai | `7fdedbd` |
+| SEC-15 | Informasi | Selesai | `7978acd` |
+| SEC-16 | Informasi | Selesai | `facb8a1` |
 
-Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 145/145 lulus, `test:unit` 10/10 lulus, `build` lulus.
+Verifikasi akhir (2026-11-20): `typecheck` lulus, `lint` lulus, `test` 171/171 lulus, `test:unit` 10/10 lulus, `build` lulus, `npm audit` 0 kerentanan.
+
+---
+
+## 8. Re-Audit (2026-11-20, read-only)
+
+Verifikasi ulang dilakukan dengan membaca kode, menjalankan tes terkait, dan menembak server produksi lokal (`npm run build` + `npm start`). Baseline tes: **171/171** (`npm run test`), **10/10** (`npm run test:unit`), `typecheck`/`lint`/`build` lulus, `npm audit` dan `npm audit --omit=dev --audit-level=high` = **0 kerentanan**.
+
+| ID | Status re-audit | Bukti / catatan |
+|---|---|---|
+| SEC-01 | Terverifikasi | Seed tanpa `SEED_ADMIN_*` gagal; policy password production menolak placeholder; `mustChangePassword: true`; README/.env.example tanpa kredensial default. |
+| SEC-02 | Terverifikasi | `KNOWN_EXAMPLE_SECRETS` + `hasLowEntropy` menolak di production; tidak ada fallback secret (`requireSessionSecret` fail-closed). |
+| SEC-03 | Terverifikasi | Login memakai hash dummy saat user tidak ada; username/password dibatasi; respons gagal seragam. |
+| SEC-04 | Terverifikasi dengan catatan | `script-src` tanpa `'unsafe-inline'`, nonce per request, origin R2 eksplisit; header diperiksa via `curl`. **Default Report-Only** karena shell PPR tanpa nonce — belum menegakkan XSS sampai `CSP_ENFORCE=true` layak. |
+| SEC-05 | Terverifikasi | Rate limit 30/60s per IP + 60/60s per user; payload meja hanya `{productId, available}`. |
+| SEC-06 | Terverifikasi | Kode `ORD-YYMMDD-` + 8 base32; 404 seragam untuk kode/token salah; tes collision hijau. |
+| SEC-07 | Terverifikasi | `CRON_SECRET` ≥32 di production; perbandingan memakai HMAC `timingSafeEqual`. |
+| SEC-08 | Terverifikasi | Cancel 10/60s per kode+IP; GET order 60/60s per IP. |
+| SEC-09 | Terverifikasi dengan catatan | `accessTokenHash` terisi untuk pesanan baru, plaintext `null`; fallback baca pesanan lama. Backfill produksi **belum dijalankan**; migrasi contract masih di `migrations-pending`. |
+| SEC-10 | Terverifikasi | Env menolak bucket sama; `/api/health` memeriksa objek privat (403/404 = lulus, jaringan = `skipped`). |
+| SEC-11 | Terverifikasi | `import "server-only"` di 20 modul; build sukses membuktikan tidak ada impor server di bundel client; event uji lewat route admin. |
+| SEC-12 | Terverifikasi | `vitest` 5.1.1, `shadcn` devDependency, override `effect`/`minimatch`; audit penuh 0. |
+| SEC-13 | Terverifikasi | `TRUSTED_PROXY` wajib eksplisit di production; fallback `unknown:<fingerprint>`; health melaporkan `unknownIpRequests`. |
+| SEC-14 | Terverifikasi | `__Host-session_token` di production (Secure, Path=/, tanpa Domain, httpOnly, Lax); dev/test nama lama; logout stateless. |
+| SEC-15 | Terverifikasi dengan catatan | `readJson` streaming 256 KB / checkout 64 KB; 413 `PAYLOAD_TOO_LARGE` termasuk saat Content-Length dipalsukan. Upload multipart masih memakai batas Content-Length (lihat N-01). |
+| SEC-16 | Terverifikasi | Header `Cache-Control` diperiksa via `curl` pada admin, cashier, orders, auth, pusher auth, upload, menu; tes memindai seluruh route handler kelompok sensitif. |
+
+### Temuan baru (re-audit)
+
+| ID | Tingkat | Temuan | Rekomendasi |
+|---|---|---|---|
+| N-01 | Rendah | Tiga route multipart (`/api/upload/image`, `/api/admin/finance/attachment`, `/api/public/orders/[code]/payment`) memeriksa `Content-Length` lalu memanggil `req.formData()`; header palsu dapat membuat body besar dibuffer sebelum validasi ukuran file. | Batasi byte saat stream multipart atau set batas body di reverse proxy; saat ini dampak dibatasi rate limit + validasi 10 MB setelah buffer. |
+| N-02 | Informasi | CSP masih Report-Only default (SEC-04). | Aktifkan `CSP_ENFORCE=true` setelah shell PPR bisa membawa nonce atau prerender dimatikan. |
+| N-03 | Informasi | Pesanan lama/demo masih menyimpan `accessToken` plaintext; fallback kompatibilitas masih aktif. | Jalankan `scripts/backfill-access-token-hash.ts` di produksi lalu eksekusi migrasi contract. |
+| N-04 | Informasi | `/api/health` tidak mengirim `Cache-Control`. | Tambahkan `no-store` bila endpoint diekspos publik. |
+| N-05 | Informasi | Fallback IP berbasis User-Agent/Accept-Language dapat dirotasi penyerang bila `TRUSTED_PROXY` salah konfigurasi. | Produksi wajib konfigurasi eksplisit (sudah ditegakkan); pantau `unknownIpRequests` di health. |
+
+**Kesimpulan:** seluruh SEC-01…SEC-16 terverifikasi; tidak ada regresi pada auth, orders, realtime, proxy, maupun env.
+Sisa risiko bersifat terdokumentasi (CSP Report-Only, backfill/contract SEC-09, batas multipart, health cache).
