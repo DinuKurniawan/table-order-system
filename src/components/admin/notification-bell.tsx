@@ -12,12 +12,15 @@ import {
 import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { useRealtimeEvent } from "@/lib/pusher-client";
 import { apiErrorMessage } from "@/lib/api-error";
+import { isAlertUnread } from "@/lib/notification-read-state";
 
 interface AdminAlert {
   id: "awaiting-verification" | "low-stock";
   label: string;
   description: string;
   count: number;
+  latestAt: string;
+  seenAt: string | null;
   href: string;
 }
 
@@ -65,16 +68,67 @@ export function NotificationBell() {
   useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.stockChanged, invalidate);
   useRealtimeEvent(CHANNELS.admin, REALTIME_EVENTS.stockLow, invalidate);
 
-  const alerts = query.data?.alerts ?? [];
-  const total = query.data?.total ?? 0;
+  const alerts = React.useMemo(
+    () => query.data?.alerts ?? [],
+    [query.data]
+  );
+
+  /**
+   * Tandai alert yang tampil sudah dibaca. Status disimpan di server (sinkron
+   * antar perangkat/admin); lokal diperbarui optimistis agar badge langsung nol.
+   */
+  const markRead = React.useCallback(() => {
+    if (alerts.length === 0) return;
+
+    const payload = alerts.map(({ id, latestAt }) => ({ id, latestAt }));
+
+    queryClient.setQueryData<NotificationsData>(
+      ["admin-notifications"],
+      (old) =>
+        old
+          ? {
+              ...old,
+              total: 0,
+              alerts: old.alerts.map((alert) => ({
+                ...alert,
+                seenAt: alert.latestAt,
+              })),
+            }
+          : old
+    );
+
+    void fetch("/api/admin/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alerts: payload }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Gagal menandai notifikasi dibaca");
+      })
+      .catch(() => null)
+      // Selalu ambil ulang dari server agar status baca tidak tertimpa refetch
+      // yang berjalan saat POST belum selesai.
+      .finally(invalidate);
+  }, [alerts, invalidate, queryClient]);
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      markRead();
+    },
+    [markRead]
+  );
+
+  // Selama panel terbuka, badge disembunyikan.
+  const total = open ? 0 : query.data?.total ?? 0;
   const badge = total > 99 ? "99+" : String(total);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         className="relative flex size-10 items-center justify-center rounded-full bg-surface text-text-muted hover:text-text-strong border border-border shadow-xs transition-colors outline-none cursor-pointer"
         aria-label={
-          total > 0 ? `Notifikasi, ${total} belum ditangani` : "Notifikasi"
+          total > 0 ? `Notifikasi, ${total} belum dibaca` : "Notifikasi"
         }
       >
         <Bell className="size-4" />
@@ -111,14 +165,26 @@ export function NotificationBell() {
           <ul className="mt-0.5 space-y-0.5">
             {alerts.map((alert) => {
               const Icon = ALERT_ICONS[alert.id] ?? Bell;
+              const unread = isAlertUnread(alert);
               return (
                 <li key={alert.id}>
                   <Link
                     href={alert.href}
-                    onClick={() => setOpen(false)}
-                    className="flex items-start gap-3 rounded-xl px-2 py-2.5 hover:bg-surface-muted"
+                    onClick={() => {
+                      markRead();
+                      setOpen(false);
+                    }}
+                    className={`flex items-start gap-3 rounded-xl px-2 py-2.5 hover:bg-surface-muted ${
+                      unread ? "" : "opacity-60"
+                    }`}
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-800">
+                    <span
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
+                        unread
+                          ? "bg-primary-50 text-primary-800"
+                          : "bg-surface-muted text-text-muted"
+                      }`}
+                    >
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -126,12 +192,20 @@ export function NotificationBell() {
                         <span className="text-xs font-semibold text-text-strong">
                           {alert.label}
                         </span>
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-[10px] font-bold text-white">
+                        <span
+                          className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            unread
+                              ? "bg-primary-600 text-white"
+                              : "bg-surface-muted text-text-muted"
+                          }`}
+                        >
                           {alert.count > 99 ? "99+" : alert.count}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-[11px] text-text-muted">
-                        {alert.description}
+                        {unread
+                          ? alert.description
+                          : `${alert.description} · Sudah dibaca`}
                       </span>
                     </span>
                   </Link>

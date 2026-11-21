@@ -67,8 +67,19 @@ model User {
   updatedAt     DateTime    @updatedAt
   verifications Payment[]   @relation("VerifiedBy")
   auditLogs     AuditLog[]
+  notificationReads NotificationRead[]
 
   @@index([role, isActive])
+}
+
+/// Status baca notifikasi agregat per admin, sinkron antar perangkat.
+model NotificationRead {
+  userId  String
+  alertId String
+  seenAt  DateTime
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, alertId])
 }
 
 model Category {
