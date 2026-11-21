@@ -2,15 +2,29 @@
 
 import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import {
+  Activity,
+  ExternalLink,
+  Loader2,
+  ScrollText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionCard } from "@/components/admin/section-card";
-import { toast } from "sonner";
+import { EmptyState } from "@/components/admin/empty-state";
+import { PillBadge } from "@/components/admin/pill-badge";
+import { ImageUploader } from "@/components/image-uploader";
+import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 
 type Settings = {
   namaKafe?: string;
@@ -18,6 +32,8 @@ type Settings = {
   maksUploadUlang?: number;
   footerStruk?: string;
   isOrderingOpen?: boolean;
+  logoKey?: string | null;
+  logoUrl?: string | null;
 };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -31,240 +47,417 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function AdminSettingsPage() {
-  const queryClient = useQueryClient();
-
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
-  const [dialogValues, setDialogValues] = React.useState<Settings>({});
-
   const settingsQuery = useQuery({
     queryKey: ["settings"],
     queryFn: () => api<{ data: Settings }>("/api/admin/settings"),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["settings"] });
-
   if (settingsQuery.isLoading) {
     return (
-      <div className="space-y-6">
-        <SectionCard title="Pengaturan Kafe & Sistem">
-          <div className="flex items-center gap-3">
-            <Loader2 className="size-4 animate-spin" />
-            <span>Memuat...</span>
-          </div>
-        </SectionCard>
-      </div>
+      <SectionCard title="Pengaturan Kafe & Sistem">
+        <div className="flex items-center gap-3 p-4 text-sm text-text-muted">
+          <Loader2 className="size-4 animate-spin" />
+          Memuat pengaturan...
+        </div>
+      </SectionCard>
+    );
+  }
+
+  if (settingsQuery.isError) {
+    return (
+      <SectionCard title="Pengaturan Kafe & Sistem">
+        <EmptyState
+          title="Gagal memuat pengaturan"
+          description={(settingsQuery.error as Error).message}
+        />
+      </SectionCard>
     );
   }
 
   const settings = settingsQuery.data?.data ?? {};
 
-  const closeDialog = () => setSettingsDialogOpen(false);
-
-  const submitDialog = () => {
-    if (!settingsDialogOpen) return;
-    setSettingsDialogOpen(false);
-    const payload = {
-      namaKafe: dialogValues.namaKafe,
-      timeoutBayarMenit: dialogValues.timeoutBayarMenit,
-      maksUploadUlang: dialogValues.maksUploadUlang,
-      footerStruk: dialogValues.footerStruk,
-      isOrderingOpen: dialogValues.isOrderingOpen,
-    };
-    setIsLoading(true);
-    api("/api/admin/settings", { method: "PATCH", body: JSON.stringify(payload) })
-      .then(() => {
-        toast.success("Pengaturan diperbarui");
-        refresh();
-      })
-      .catch(() => toast.error("Gagal menyimpan"))
-      .finally(() => setIsLoading(false));
-  };
-
   return (
     <div className="space-y-6">
-      <SectionCard title="Pengaturan Kafe & Sistem">
-        <div className="p-4 space-y-4">
-          <div>
-            <Label className="block text-xs font-semibold mb-1">Nama Kafe</Label>
-            <Input
-              defaultValue={settings.namaKafe || ""}
-              onChange={(e) => setDialogValues({ ...dialogValues, namaKafe: e.target.value })}
-              className="rounded-xl h-10 w-full"
-            />
-          </div>
-          <div>
-            <Label className="block text-xs font-semibold mb-1">Timeout Bayar (menit)</Label>
-            <Input
-              type="number"
-              min={1}
-              max={120}
-              defaultValue={settings.timeoutBayarMenit ?? 15}
-              onChange={(e) =>
-                setDialogValues({
-                  ...dialogValues,
-                  timeoutBayarMenit: Number(e.target.value),
-                })
-              }
-              className="rounded-xl h-10 w-full"
-            />
-          </div>
-          <div>
-            <Label className="block text-xs font-semibold mb-1">Maks Upload Ulang</Label>
-            <Input
-              type="number"
-              min={1}
-              max={10}
-              defaultValue={settings.maksUploadUlang ?? 3}
-              onChange={(e) =>
-                setDialogValues({
-                  ...dialogValues,
-                  maksUploadUlang: Number(e.target.value),
-                })
-              }
-              className="rounded-xl h-10 w-full"
-            />
-          </div>
-          <div>
-            <Label className="block text-xs font-semibold mb-1">Footer Struk</Label>
-            <Input
-              defaultValue={settings.footerStruk || ""}
-              onChange={(e) => setDialogValues({ ...dialogValues, footerStruk: e.target.value })}
-              className="rounded-xl h-10 w-full resize-none"
-            />
-          </div>
-          <div>
-            <Label className="block text-xs font-semibold mb-1">Status Pemesanan</Label>
-            <Switch
-              checked={settings.isOrderingOpen !== false}
-              onCheckedChange={(checked) =>
-                setDialogValues({ ...dialogValues, isOrderingOpen: checked })
-              }
-              className="rounded-xl h-5 w-11"
-            />
-            <span className="ml-2 text-[10px] text-text-muted">
-              {settings.isOrderingOpen ? "Pemesanan Buka" : "Pemesanan Tutup"}
-            </span>
-          </div>
-        </div>
-      </SectionCard>
-
-      <Dialog open={settingsDialogOpen} onOpenChange={(open) => setSettingsDialogOpen(open)}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Pengaturan Umum</DialogTitle>
-            <DialogDescription>
-              Perbarui konfigurasi kafe dan sistem.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitDialog();
-            }}
-            className="space-y-4"
+      <SectionCard
+        title="Pengaturan Kafe & Sistem"
+        subtitle="Profil kafe, operasional, metode pembayaran, struk, dan diagnostik."
+      >
+        <Tabs defaultValue="umum">
+          <TabsList
+            variant="line"
+            className="w-full justify-start gap-1 overflow-x-auto border-b border-border"
           >
-            <div className="space-y-1.5">
-              <Label htmlFor="general-nama-kafe" className="text-xs font-semibold">
-                Nama Kafe
-              </Label>
-              <Input
-                id="general-nama-kafe"
-                value={dialogValues.namaKafe ?? ""}
-                onChange={(e) =>
-                  setDialogValues({ ...dialogValues, namaKafe: e.target.value })
-                }
-                className="rounded-xl h-10"
-              />
-            </div>
+            <TabsTrigger value="umum" className="px-3">
+              Umum
+            </TabsTrigger>
+            <TabsTrigger value="pembayaran" className="px-3">
+              Pembayaran
+            </TabsTrigger>
+            <TabsTrigger value="struk" className="px-3">
+              Struk
+            </TabsTrigger>
+            <TabsTrigger value="sistem" className="px-3">
+              Sistem
+            </TabsTrigger>
+          </TabsList>
 
+          <TabsContent value="umum" className="pt-5">
+            <UmumForm settings={settings} />
+          </TabsContent>
+          <TabsContent value="pembayaran" className="pt-5">
+            <PaymentMethodsManager />
+          </TabsContent>
+          <TabsContent value="struk" className="pt-5">
+            <StrukForm settings={settings} />
+          </TabsContent>
+          <TabsContent value="sistem" className="pt-5">
+            <SistemTab settings={settings} />
+          </TabsContent>
+        </Tabs>
+      </SectionCard>
+    </div>
+  );
+}
+
+const umumSchema = z.object({
+  namaKafe: z.string().trim().min(1, "Nama kafe wajib diisi"),
+  timeoutBayarMenit: z
+    .number()
+    .int()
+    .min(1, "Minimal 1 menit")
+    .max(120, "Maksimal 120 menit"),
+  maksUploadUlang: z
+    .number()
+    .int()
+    .min(1, "Minimal 1 kali")
+    .max(10, "Maksimal 10 kali"),
+  isOrderingOpen: z.boolean(),
+});
+
+type UmumValues = z.infer<typeof umumSchema>;
+
+function UmumForm({ settings }: { settings: Settings }) {
+  const queryClient = useQueryClient();
+  const [logoKey, setLogoKey] = React.useState<string | null>(
+    settings.logoKey ?? null
+  );
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(
+    settings.logoUrl ?? null
+  );
+
+  const form = useForm<UmumValues>({
+    resolver: zodResolver(umumSchema),
+    defaultValues: {
+      namaKafe: settings.namaKafe ?? "",
+      timeoutBayarMenit: settings.timeoutBayarMenit ?? 15,
+      maksUploadUlang: settings.maksUploadUlang ?? 3,
+      isOrderingOpen: settings.isOrderingOpen !== false,
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: (values: UmumValues) =>
+      api("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ ...values, logoKey }),
+      }),
+    onSuccess: () => {
+      toast.success("Pengaturan umum disimpan");
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const orderingOpen = useWatch({
+    control: form.control,
+    name: "isOrderingOpen",
+  });
+
+  return (
+    <form
+      onSubmit={form.handleSubmit((values) => save.mutate(values))}
+      className="space-y-5"
+    >
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="settings-nama-kafe" className="text-xs font-semibold">
+              Nama Kafe
+            </Label>
+            <Input
+              id="settings-nama-kafe"
+              {...form.register("namaKafe")}
+              className="rounded-xl h-10"
+            />
+            {form.formState.errors.namaKafe && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.namaKafe.message}
+              </p>
+            )}
+            <p className="text-[11px] text-text-muted">
+              Muncul di halaman menu customer, halaman pesanan, dan struk.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="general-timeout-bayar" className="text-xs font-semibold">
+              <Label
+                htmlFor="settings-timeout-bayar"
+                className="text-xs font-semibold"
+              >
                 Timeout Bayar (menit)
               </Label>
               <Input
-                id="general-timeout-bayar"
+                id="settings-timeout-bayar"
                 type="number"
                 min={1}
                 max={120}
-                value={dialogValues.timeoutBayarMenit ?? 15}
-                onChange={(e) =>
-                  setDialogValues({
-                    ...dialogValues,
-                    timeoutBayarMenit: Number(e.target.value),
-                  })
-                }
+                {...form.register("timeoutBayarMenit", { valueAsNumber: true })}
                 className="rounded-xl h-10"
               />
+              {form.formState.errors.timeoutBayarMenit && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.timeoutBayarMenit.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="general-maks-upload" className="text-xs font-semibold">
-                Maks Upload Ulang
+              <Label
+                htmlFor="settings-maks-upload"
+                className="text-xs font-semibold"
+              >
+                Maks Upload Ulang Bukti
               </Label>
               <Input
-                id="general-maks-upload"
+                id="settings-maks-upload"
                 type="number"
                 min={1}
                 max={10}
-                value={dialogValues.maksUploadUlang ?? 3}
-                onChange={(e) =>
-                  setDialogValues({
-                    ...dialogValues,
-                    maksUploadUlang: Number(e.target.value),
-                  })
-                }
+                {...form.register("maksUploadUlang", { valueAsNumber: true })}
                 className="rounded-xl h-10"
               />
+              {form.formState.errors.maksUploadUlang && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.maksUploadUlang.message}
+                </p>
+              )}
             </div>
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="general-footer-struk" className="text-xs font-semibold">
-                Footer Struk
-              </Label>
-              <Input
-                id="general-footer-struk"
-                value={dialogValues.footerStruk ?? ""}
-                onChange={(e) =>
-                  setDialogValues({ ...dialogValues, footerStruk: e.target.value })
-                }
-                className="rounded-xl h-10 resize-none"
-              />
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+            <div>
+              <p className="text-xs font-semibold">Status Pemesanan</p>
+              <p className="text-[11px] text-text-muted">
+                Saat ditutup, customer tidak bisa checkout pesanan baru.
+              </p>
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="general-is-ordering" className="text-xs font-semibold">
-                Status Pemesanan
-              </Label>
+            <div className="flex items-center gap-2">
+              <PillBadge variant={orderingOpen ? "success" : "danger"}>
+                {orderingOpen ? "Buka" : "Tutup"}
+              </PillBadge>
               <Switch
-                checked={dialogValues.isOrderingOpen !== false}
+                checked={orderingOpen}
                 onCheckedChange={(checked) =>
-                  setDialogValues({ ...dialogValues, isOrderingOpen: checked })
+                  form.setValue("isOrderingOpen", checked, {
+                    shouldDirty: true,
+                  })
                 }
-                className="rounded-xl h-5 w-11"
               />
-              <span className="ml-2 text-[10px] text-text-muted">
-                {dialogValues.isOrderingOpen ? "Pemesanan Buka" : "Pemesanan Tutup"}
-              </span>
             </div>
+          </div>
+        </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="rounded-xl bg-primary-600 hover:bg-primary-700 text-white"
-              >
-                {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Simpan Perubahan
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        <div className="space-y-1.5">
+          <ImageUploader
+            preset="logo"
+            label="Logo Kafe (opsional)"
+            value={logoUrl}
+            onChange={(url, key) => {
+              setLogoUrl(url || null);
+              setLogoKey(key || null);
+            }}
+          />
+          <p className="text-[11px] text-text-muted">
+            Tampil di halaman menu customer dan struk. Kosongkan untuk memakai
+            logo bawaan.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-end border-t border-border pt-4">
+        <Button
+          type="submit"
+          disabled={save.isPending}
+          className="rounded-xl bg-primary-600 hover:bg-primary-700 text-white"
+        >
+          {save.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+          Simpan Perubahan
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+const strukSchema = z.object({
+  footerStruk: z.string(),
+});
+
+type StrukValues = z.infer<typeof strukSchema>;
+
+function StrukForm({ settings }: { settings: Settings }) {
+  const queryClient = useQueryClient();
+  const form = useForm<StrukValues>({
+    resolver: zodResolver(strukSchema),
+    defaultValues: {
+      footerStruk: settings.footerStruk ?? "",
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: (values: StrukValues) =>
+      api("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify(values),
+      }),
+    onSuccess: () => {
+      toast.success("Pengaturan struk disimpan");
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const footer = useWatch({
+    control: form.control,
+    name: "footerStruk",
+  });
+
+  return (
+    <form
+      onSubmit={form.handleSubmit((values) => save.mutate(values))}
+      className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]"
+    >
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="settings-footer-struk" className="text-xs font-semibold">
+            Footer Struk
+          </Label>
+          <Textarea
+            id="settings-footer-struk"
+            rows={3}
+            maxLength={300}
+            {...form.register("footerStruk")}
+            className="rounded-xl"
+          />
+          <p className="text-[11px] text-text-muted">
+            Teks penutup pada struk cetak kasir. Maksimal 300 karakter.
+          </p>
+        </div>
+
+        <div className="flex justify-end border-t border-border pt-4">
+          <Button
+            type="submit"
+            disabled={save.isPending}
+            className="rounded-xl bg-primary-600 hover:bg-primary-700 text-white"
+          >
+            {save.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+            Simpan Struk
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-text-strong">Pratinjau Struk</p>
+        <div className="mx-auto w-full max-w-[220px] rounded-xl border border-border bg-white p-3 font-mono text-[10px] leading-tight text-black shadow-sm">
+          <p className="text-center font-bold uppercase">
+            {settings.namaKafe || "Nama Kafe"}
+          </p>
+          <p className="mt-1 border-y border-dashed border-black py-1 text-center font-bold">
+            TRX-0001
+          </p>
+          <div className="mt-2 flex justify-between gap-2">
+            <span>Meja</span>
+            <span className="font-bold">Meja 1</span>
+          </div>
+          <div className="my-2 border-t border-dashed border-black" />
+          <div className="flex justify-between gap-2">
+            <span>1x Kopi</span>
+            <span>Rp 20.000</span>
+          </div>
+          <div className="my-2 border-t border-dashed border-black" />
+          <div className="flex justify-between gap-2 font-bold">
+            <span>TOTAL</span>
+            <span>Rp 20.000</span>
+          </div>
+          <p className="mt-2 text-center text-[9px] uppercase">
+            {footer.trim() || "Footer struk tampil di sini"}
+          </p>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+function SistemTab({ settings }: { settings: Settings }) {
+  const orderingOpen = settings.isOrderingOpen !== false;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+        <div>
+          <p className="text-xs font-semibold">Status Pemesanan</p>
+          <p className="text-[11px] text-text-muted">
+            {orderingOpen
+              ? "Customer dapat membuat pesanan baru."
+              : "Checkout customer sedang ditutup."}
+          </p>
+        </div>
+        <PillBadge variant={orderingOpen ? "success" : "danger"}>
+          {orderingOpen ? "Pemesanan Buka" : "Pemesanan Tutup"}
+        </PillBadge>
+      </div>
+
+      <Link
+        href="/admin/settings/audit"
+        className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary-300 hover:bg-surface-muted/50"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+          <ScrollText className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-text-strong">
+            Riwayat Audit
+          </span>
+          <span className="block text-[11px] text-text-muted">
+            Telusuri perubahan produk, pesanan, pembayaran, stok, dan pengaturan.
+          </span>
+        </span>
+        <ExternalLink className="size-4 shrink-0 text-text-muted" />
+      </Link>
+
+      <Link
+        href="/admin/settings/realtime-test"
+        className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary-300 hover:bg-surface-muted/50"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+          <Activity className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-text-strong">
+            Tes Realtime
+          </span>
+          <span className="block text-[11px] text-text-muted">
+            Kirim event uji untuk memastikan notifikasi realtime sampai ke klien.
+          </span>
+        </span>
+        <ExternalLink className="size-4 shrink-0 text-text-muted" />
+      </Link>
+
+      <p className="text-[11px] leading-relaxed text-text-muted">
+        Kunci integrasi (database, Cloudflare R2, Pusher, dan domain aplikasi)
+        diatur melalui environment variable server. Nilainya tidak diedit dari
+        halaman ini agar tidak tersimpan di database atau terkirim ke browser.
+      </p>
     </div>
   );
 }

@@ -2,11 +2,12 @@
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-export type ClientUploadPreset = "product" | "proof" | "qris" | "attachment";
+export type ClientUploadPreset = "product" | "proof" | "qris" | "logo" | "attachment";
 
 const PRESET_MAX_WIDTH: Record<ClientUploadPreset, number> = {
   product: 1200,
   qris: 1000,
+  logo: 512,
   proof: 1600,
   attachment: 1600,
 };

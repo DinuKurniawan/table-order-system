@@ -38,9 +38,13 @@ const CATEGORY_TABS = [
 export function MenuClient({
   token,
   initialProducts,
+  cafeName,
+  logoUrl,
 }: {
   token: string;
   initialProducts: MenuProduct[] | null;
+  cafeName: string;
+  logoUrl: string | null;
 }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,14 +108,14 @@ export function MenuClient({
             className="flex min-w-0 items-center gap-2 text-base font-semibold text-text-strong"
           >
             <Image
-              src="/logo-selaras.svg"
+              src={logoUrl ?? "/logo-selaras.svg"}
               alt=""
               width={32}
               height={32}
               unoptimized
-              className="size-8 shrink-0"
+              className="size-8 shrink-0 object-contain"
             />
-            <span className="truncate">Kedai Kopi Selaras</span>
+            <span className="truncate">{cafeName}</span>
           </Link>
           <div className="relative w-36 sm:w-56">
             <Search

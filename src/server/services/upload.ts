@@ -50,6 +50,7 @@ function defaultFolderPrefix(preset: ImagePresetKey): string {
   }
   if (preset === "product") return "products";
   if (preset === "qris") return "qris";
+  if (preset === "logo") return "logo";
   return "attachments";
 }
 

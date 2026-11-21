@@ -22,6 +22,10 @@ export const IMAGE_PRESETS = {
     maxWidth: 1000,
     quality: 70,
   },
+  logo: {
+    maxWidth: 512,
+    quality: 75,
+  },
   attachment: {
     maxWidth: 1600,
     quality: 60,

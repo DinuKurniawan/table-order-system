@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppError } from "@/lib/errors";
+import { getPublicUrl } from "@/lib/r2";
 import { getPublicMenu, type PublicMenuProduct } from "@/server/services/menu";
+import { getSettings } from "@/server/services/settings";
 import { MenuClient } from "./menu-client";
 
 export const metadata: Metadata = {
@@ -32,5 +34,15 @@ export default async function MejaPage({
     throw err;
   }
 
-  return <MenuClient token={token} initialProducts={initialProducts} />;
+  const settings = await getSettings();
+  const logoUrl = settings.logoKey ? getPublicUrl(settings.logoKey) : null;
+
+  return (
+    <MenuClient
+      token={token}
+      initialProducts={initialProducts}
+      cafeName={settings.namaKafe}
+      logoUrl={logoUrl}
+    />
+  );
 }

@@ -20,7 +20,7 @@ interface PresignResponse {
 export interface ImageUploaderProps {
   value?: string | null;
   onChange: (url: string, key?: string, thumbKey?: string) => void;
-  preset?: "product" | "qris" | "attachment";
+  preset?: "product" | "qris" | "logo" | "attachment";
   className?: string;
   label?: string;
   disabled?: boolean;

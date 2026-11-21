@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { runInTransaction } from "@/lib/tx";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { isUploadedKey } from "@/lib/upload-key";
 
 /**
  * Field tanpa default, dipakai bersama skema baca dan update. Update tidak
@@ -15,7 +16,10 @@ const settingsFields = {
   timeoutBayarMenit: z.number().int().min(1).max(120),
   maksUploadUlang: z.number().int().min(1).max(10),
   footerStruk: z.string(),
-  logoKey: z.string().nullable(),
+  logoKey: z
+    .string()
+    .refine((value) => isUploadedKey(value, "logo"), "Key logo tidak valid")
+    .nullable(),
   isOrderingOpen: z.boolean(),
 };
 

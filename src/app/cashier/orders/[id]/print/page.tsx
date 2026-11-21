@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { cn, formatRupiah, formatWIB } from "@/lib/utils";
+import { getPublicUrl } from "@/lib/r2";
 import { getSettings } from "@/server/services/settings";
 import { getCashierOrder } from "@/server/services/cashier-orders";
 import { PrintRunner } from "@/components/cashier/print-runner";
@@ -30,6 +31,7 @@ export default async function PrintOrderPage({
   }
 
   const settings = await getSettings();
+  const logoUrl = settings.logoKey ? getPublicUrl(settings.logoKey) : null;
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -73,6 +75,14 @@ export default async function PrintOrderPage({
       >
         <div className={cn("font-mono leading-tight", width === 58 ? "text-[10px]" : "text-[11px]")}>
           <div className="text-center">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- logo dinamis dari R2
+              <img
+                src={logoUrl}
+                alt=""
+                className="mx-auto mb-1 h-10 w-auto object-contain"
+              />
+            )}
             <p className="text-sm font-bold uppercase tracking-wide">
               {settings.namaKafe}
             </p>

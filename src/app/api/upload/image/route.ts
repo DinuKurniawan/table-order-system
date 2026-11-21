@@ -11,11 +11,12 @@ import { consumeRateLimit, tooManyRequests } from "@/lib/rate-limiter";
 const ALLOWED_ADMIN_PRESETS: ImagePresetKey[] = [
   "product",
   "qris",
+  "logo",
   "attachment",
 ];
 
 const presignSchema = z.object({
-  preset: z.enum(["product", "qris", "attachment"]).default("product"),
+  preset: z.enum(["product", "qris", "logo", "attachment"]).default("product"),
   contentType: z.string().min(1),
   size: z.number().int().positive(),
   thumb: z
