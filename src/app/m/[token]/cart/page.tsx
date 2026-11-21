@@ -128,7 +128,7 @@ function CartContent() {
             ]
               .filter(Boolean)
               .join(" · ")
-          : item.note,
+          : item.note?.trim() || undefined,
     }));
 
     const note = generalNote.trim();
@@ -185,6 +185,14 @@ function CartContent() {
       const item = prev[key];
       if (!item) return prev;
       return { ...prev, [key]: { ...item, ...patch } };
+    });
+  };
+
+  const setItemNote = (key: string, note: string) => {
+    setItems((prev) => {
+      const item = prev[key];
+      if (!item) return prev;
+      return { ...prev, [key]: { ...item, note: note || undefined } };
     });
   };
 
@@ -495,6 +503,30 @@ function CartContent() {
                           </select>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {!item.drink && (
+                    <div
+                      onPointerDown={(event) => event.stopPropagation()}
+                      className="w-full border-t border-border pt-2"
+                    >
+                      <label
+                        htmlFor={`note-${item.cartKey}`}
+                        className="text-xs font-medium text-text-muted"
+                      >
+                        Catatan
+                      </label>
+                      <Input
+                        id={`note-${item.cartKey}`}
+                        value={item.note ?? ""}
+                        onChange={(event) =>
+                          setItemNote(item.cartKey, event.target.value)
+                        }
+                        placeholder="Contoh: tidak pedas, tanpa sayur"
+                        maxLength={200}
+                        className="mt-1 h-10 w-full rounded-lg"
+                      />
                     </div>
                   )}
                 </div>

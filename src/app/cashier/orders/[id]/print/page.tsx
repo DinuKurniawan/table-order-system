@@ -101,21 +101,24 @@ export default async function PrintOrderPage({
           <div className="my-2 border-t border-dashed border-black" />
 
           <ul className="space-y-1.5">
-            {order.items.map((item) => (
-              <li key={item.id}>
-                <div className="flex justify-between gap-2">
-                  <span className="font-bold">
-                    {item.quantity}x {item.name}
-                  </span>
-                  <span className="shrink-0 tabular-nums">
-                    {formatRupiah(item.price * item.quantity)}
-                  </span>
-                </div>
-                {item.note && (
-                  <p className="uppercase">* {item.note.toUpperCase()}</p>
-                )}
-              </li>
-            ))}
+            {order.items.map((item) => {
+              const note = item.note?.trim();
+              return (
+                <li key={item.id}>
+                  <div className="flex justify-between gap-2">
+                    <span className="font-bold">
+                      {item.quantity}x {item.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      {formatRupiah(item.price * item.quantity)}
+                    </span>
+                  </div>
+                  {note && (
+                    <p className="uppercase">* {note.toUpperCase()}</p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {order.note && (
