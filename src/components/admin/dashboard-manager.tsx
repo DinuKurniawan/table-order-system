@@ -507,6 +507,7 @@ export function DashboardManager() {
             contentClassName="flex flex-1 flex-col"
             action={
               <select
+                aria-label="Rentang statistik penjualan"
                 value={range}
                 onChange={(event) =>
                   setRange(event.target.value as DashboardRange)

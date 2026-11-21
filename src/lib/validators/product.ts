@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { CategoryType, DrinkSubtype } from "@prisma/client";
 import { isUploadedKey } from "@/lib/upload-key";
 import { sizePricesSchema } from "@/lib/size-pricing";

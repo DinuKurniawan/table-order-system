@@ -419,7 +419,7 @@ export function PaymentMethodsManager() {
                         })
                       }
                     >
-                      <SelectTrigger className="rounded-xl h-10 w-full">
+                      <SelectTrigger aria-label="Jenis metode pembayaran" className="rounded-xl h-10 w-full">
                         <SelectValue placeholder="Pilih jenis" />
                       </SelectTrigger>
                       <SelectContent>
@@ -539,6 +539,7 @@ export function PaymentMethodsManager() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Aktifkan metode pembayaran"
                     checked={draft.isActive}
                     onCheckedChange={(checked) =>
                       setDraft({ ...draft, isActive: checked })

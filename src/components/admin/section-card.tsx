@@ -32,9 +32,9 @@ export function SectionCard({
         <div className="flex flex-wrap items-center justify-between gap-3 pb-5 mb-5 border-b border-border/60">
           <div>
             {title && (
-              <h3 className="text-base font-bold text-text-strong tracking-tight sm:text-lg">
+              <h2 className="text-base font-bold text-text-strong tracking-tight sm:text-lg">
                 {title}
-              </h3>
+              </h2>
             )}
             {subtitle && (
               <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>

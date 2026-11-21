@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { toast } from "sonner";
 import {
   Activity,
@@ -54,7 +54,10 @@ export function AdminSettingsPage() {
 
   if (settingsQuery.isLoading) {
     return (
-      <SectionCard title="Pengaturan Kafe & Sistem">
+      <SectionCard
+        title="Pengaturan Kafe & Sistem"
+        subtitle="Profil kafe, operasional, metode pembayaran, struk, dan diagnostik."
+      >
         <div className="flex items-center gap-3 p-4 text-sm text-text-muted">
           <Loader2 className="size-4 animate-spin" />
           Memuat pengaturan...
@@ -65,7 +68,10 @@ export function AdminSettingsPage() {
 
   if (settingsQuery.isError) {
     return (
-      <SectionCard title="Pengaturan Kafe & Sistem">
+      <SectionCard
+        title="Pengaturan Kafe & Sistem"
+        subtitle="Profil kafe, operasional, metode pembayaran, struk, dan diagnostik."
+      >
         <EmptyState
           title="Gagal memuat pengaturan"
           description={(settingsQuery.error as Error).message}
@@ -257,6 +263,7 @@ function UmumForm({ settings }: { settings: Settings }) {
                 {orderingOpen ? "Buka" : "Tutup"}
               </PillBadge>
               <Switch
+                aria-label="Status pemesanan dibuka"
                 checked={orderingOpen}
                 onCheckedChange={(checked) =>
                   form.setValue("isOrderingOpen", checked, {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 export const tableInputSchema = z.object({
   name: z.string().trim().min(1, "Nama meja wajib diisi").max(40, "Nama meja maksimal 40 karakter"),

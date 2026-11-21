@@ -313,6 +313,7 @@ export function StockManager() {
                         <ThresholdInput
                           key={`${row.id}-${row.lowStockThreshold}`}
                           value={row.lowStockThreshold}
+                          label={`Batas stok rendah ${row.name}`}
                           disabled={!row.trackStock || settings.isPending}
                           onCommit={(value) =>
                             value !== row.lowStockThreshold &&
@@ -409,10 +410,12 @@ export function StockManager() {
 
 function ThresholdInput({
   value,
+  label,
   disabled,
   onCommit,
 }: {
   value: number;
+  label: string;
   disabled: boolean;
   onCommit: (value: number) => void;
 }) {
@@ -421,6 +424,7 @@ function ThresholdInput({
   return (
     <Input
       type="number"
+      aria-label={label}
       min={0}
       value={draft}
       disabled={disabled}

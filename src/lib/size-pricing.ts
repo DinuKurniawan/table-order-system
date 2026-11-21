@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { priceForSize, type SizePrices } from "@/lib/price";
 
 export { priceForSize, type SizePrices };

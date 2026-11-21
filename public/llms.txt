@@ -1,0 +1,16 @@
+# Kedai Kopi Selaras — Table Order System
+
+Aplikasi pemesanan kafe untuk pelanggan (scan QR meja), kasir, dan admin.
+
+## Halaman publik
+
+- [Menu pelanggan](/): pilih menu, atur jumlah, dan checkout dari meja.
+- [Keranjang dan checkout](/m): periksa pesanan sebelum membayar.
+- [Pelacakan pesanan](/order): status pesanan pelanggan setelah checkout.
+- [Portal staf](/login): login khusus Super Admin dan Kasir.
+
+## Catatan untuk agen
+
+- Menu dan ketersediaan stok berubah secara real-time; selalu ambil data terbaru.
+- Checkout memerlukan nama pelanggan dan token meja aktif dari URL.
+- Pembayaran diverifikasi manual oleh kasir.

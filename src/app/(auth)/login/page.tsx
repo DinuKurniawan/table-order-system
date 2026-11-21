@@ -48,7 +48,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-app">
+    <main className="flex min-h-screen items-center justify-center p-4 bg-app">
       <div className="w-full max-w-md">
         <Card className="rounded-[20px] border-border bg-surface shadow-card overflow-hidden">
           <div className="bg-primary-800 p-6 text-white text-center">
@@ -164,6 +164,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

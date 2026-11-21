@@ -165,7 +165,7 @@ export function ItemDetailClient({
                     <span className="text-xs font-medium text-text-muted">
                       Temprature
                     </span>
-                    <span className="text-[11px] text-text-muted/70">
+                    <span className="text-[11px] text-text-muted">
                       select 1
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export function ItemDetailClient({
                     <span className="text-xs font-medium text-text-muted">
                       Size Cup
                     </span>
-                    <span className="text-[11px] text-text-muted/70">
+                    <span className="text-[11px] text-text-muted">
                       select 1
                     </span>
                   </div>

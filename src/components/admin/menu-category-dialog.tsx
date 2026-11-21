@@ -157,7 +157,7 @@ export function CategoryDialog({
               value={kind}
               onValueChange={(v) => setKind((v as typeof kind) ?? "FOOD")}
             >
-              <SelectTrigger className="rounded-xl h-10 w-full">
+              <SelectTrigger aria-label="Jenis kategori" className="rounded-xl h-10 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

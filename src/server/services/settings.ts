@@ -64,7 +64,7 @@ let settingsCache: { value: AppSettings; expiresAt: number } | null = null;
  * Service untuk membaca dan memperbarui pengaturan aplikasi secara bertipe aman.
  */
 export async function getSettings(): Promise<AppSettings> {
-  if (settingsCache && settingsCache.expiresAt > Date.now()) {
+  if (settingsCache && settingsCache.expiresAt > performance.now()) {
     return settingsCache.value;
   }
 
@@ -77,7 +77,7 @@ export async function getSettings(): Promise<AppSettings> {
 
   const result = appSettingsSchema.safeParse(rawObj);
   const settings = result.success ? result.data : DEFAULT_SETTINGS;
-  settingsCache = { value: settings, expiresAt: Date.now() + SETTINGS_TTL_MS };
+  settingsCache = { value: settings, expiresAt: performance.now() + SETTINGS_TTL_MS };
   return settings;
 }
 

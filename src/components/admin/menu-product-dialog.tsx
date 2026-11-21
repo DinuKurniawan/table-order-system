@@ -174,7 +174,7 @@ export function ProductDialog({
                 value={categoryId}
                 onValueChange={(v) => form.setValue("categoryId", v ?? "", { shouldValidate: true })}
               >
-                <SelectTrigger className="rounded-xl h-10 w-full">
+                <SelectTrigger aria-label="Kategori produk" className="rounded-xl h-10 w-full">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>

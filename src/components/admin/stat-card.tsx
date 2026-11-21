@@ -29,7 +29,7 @@ const variantStyles: Record<
     iconBoxBg: "bg-white/15 border-white/25",
     iconColor: "text-white",
     textColor: "text-white",
-    labelColor: "text-white/80",
+    labelColor: "text-white",
     shadow: "shadow-[0_8px_20px_rgba(75,47,224,0.22)]",
   },
   blue: {
@@ -37,7 +37,7 @@ const variantStyles: Record<
     iconColor: "text-white",
     iconBoxBg: "bg-white/15 border-white/25",
     textColor: "text-white",
-    labelColor: "text-white/85",
+    labelColor: "text-white",
     shadow: "shadow-[0_8px_20px_rgba(69,165,245,0.22)]",
   },
   green: {
@@ -45,7 +45,7 @@ const variantStyles: Record<
     iconColor: "text-white",
     iconBoxBg: "bg-white/15 border-white/25",
     textColor: "text-white",
-    labelColor: "text-white/85",
+    labelColor: "text-white",
     shadow: "shadow-[0_8px_20px_rgba(31,197,142,0.22)]",
   },
   lemon: {
@@ -98,7 +98,7 @@ export function StatCard({
           {value}
         </div>
         {subtext && (
-          <span className="text-[11px] text-white/75 mt-1 block">
+          <span className="text-[11px] text-white mt-1 block">
             {subtext}
           </span>
         )}

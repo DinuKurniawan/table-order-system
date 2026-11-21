@@ -252,7 +252,7 @@ export function MenuManager() {
               value={status}
               onValueChange={(v) => changeStatus(v as typeof status)}
             >
-              <SelectTrigger className="rounded-xl h-9 text-xs w-full sm:w-40">
+              <SelectTrigger aria-label="Filter status produk" className="rounded-xl h-9 text-xs w-full sm:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -263,7 +263,7 @@ export function MenuManager() {
             </Select>
 
             <Select value={sort} onValueChange={(v) => changeSort(v ?? "newest")}>
-              <SelectTrigger className="rounded-xl h-9 text-xs w-full sm:w-44">
+              <SelectTrigger aria-label="Urutkan produk" className="rounded-xl h-9 text-xs w-full sm:w-44">
                 <SelectValue placeholder="Urutkan" />
               </SelectTrigger>
               <SelectContent>

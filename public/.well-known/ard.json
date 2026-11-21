@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "identifier": "urn:air:selaras:menu:order-assistant",
+      "displayName": "Kedai Kopi Selaras Order Assistant",
+      "description": "Membantu pelanggan melihat menu kafe, memilih produk, dan melakukan pemesanan dari meja.",
+      "type": "application/json",
+      "url": "https://github.com/DinuKurniawan/table-order-system",
+      "representativeQueries": [
+        "lihat menu kopi selaras",
+        "pesan kopi dari meja",
+        "cek status pesanan kafe"
+      ]
+    }
+  ]
+}

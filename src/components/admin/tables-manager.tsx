@@ -4,7 +4,7 @@ import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -284,6 +284,7 @@ function CreateTableDialog({
 
           <div className="flex items-baseline gap-2">
             <Switch
+              aria-label="Meja aktif secara default"
               checked={true}
               disabled={true}
               className="rounded-xl h-5 w-11"

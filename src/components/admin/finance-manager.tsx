@@ -288,7 +288,7 @@ export function FinanceManager() {
               className={cn(
                 "rounded-full border px-3 py-1 text-xs font-semibold",
                 showIncome
-                  ? "border-accent-green/40 bg-accent-green/10 text-emerald-700"
+                  ? "border-accent-green/40 bg-accent-green/10 text-emerald-800"
                   : "border-border text-text-muted"
               )}
             >
@@ -478,7 +478,7 @@ export function FinanceManager() {
                         <td
                           className={cn(
                             "px-3 py-3 text-right font-bold tabular-nums",
-                            income ? "text-emerald-700" : "text-destructive"
+                            income ? "text-emerald-800" : "text-destructive"
                           )}
                         >
                           {income ? "+" : "-"}
@@ -583,7 +583,7 @@ function SummaryCard({
   tone: "green" | "lemon" | "indigo";
 }) {
   const tones = {
-    green: "border-accent-green/25 bg-accent-green/10 text-emerald-700",
+    green: "border-accent-green/25 bg-accent-green/10 text-emerald-800",
     lemon: "border-accent-orange/25 bg-accent-orange/10 text-accent-orange",
     indigo: "border-primary-200 bg-primary-50 text-primary-800",
   } as const;
@@ -591,7 +591,7 @@ function SummaryCard({
   return (
     <div className={cn("rounded-[20px] border p-5 shadow-card", tones[tone])}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide opacity-80">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
         <span className="flex size-9 items-center justify-center rounded-xl bg-white/70">
           <Icon className="size-4" />
         </span>
