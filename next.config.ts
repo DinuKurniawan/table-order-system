@@ -52,6 +52,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // CSS kritis ikut HTML: hilangkan request render-blocking (audit perf).
+  experimental: { inlineCss: true },
   poweredByHeader: false,
   images: {
     remotePatterns: r2PublicOrigin

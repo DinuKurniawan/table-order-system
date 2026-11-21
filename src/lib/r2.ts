@@ -41,6 +41,11 @@ export async function putObject(
     Key: key,
     Body: body,
     ContentType: contentType,
+    // Objek publik immutable (nama file unik); bucket privat jangan di-cache.
+    CacheControl:
+      bucket === env.R2_BUCKET_PUBLIC
+        ? "public, max-age=31536000, immutable"
+        : "private, no-store",
   });
 
   await r2Client.send(command);

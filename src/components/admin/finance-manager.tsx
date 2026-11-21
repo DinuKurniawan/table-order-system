@@ -4,7 +4,7 @@ import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 
 import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
-import dynamic from "next/dynamic";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownCircle,
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PillBadge } from "@/components/admin/pill-badge";
 import { SectionCard } from "@/components/admin/section-card";
+import { FinanceChart } from "@/components/admin/finance-chart";
 import { EmptyState } from "@/components/admin/empty-state";
 import {
   Dialog,
@@ -55,17 +56,6 @@ const PRESETS: Array<{ key: FinancePreset; label: string }> = [
 ];
 
 const ALL_CATEGORIES = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES])];
-
-// Recharts berat: pisahkan dari bundle awal halaman keuangan.
-const FinanceChart = dynamic(
-  () => import("@/components/admin/finance-chart").then((mod) => mod.FinanceChart),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-72 animate-pulse rounded-xl bg-surface-muted/60" />
-    ),
-  }
-);
 
 function todayWib(): string {
   return new Intl.DateTimeFormat("en-CA", {

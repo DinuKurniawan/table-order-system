@@ -18,10 +18,10 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/admin/stat-card";
 import { SectionCard } from "@/components/admin/section-card";
+import { SalesChart } from "@/components/admin/sales-chart";
 import { PillBadge } from "@/components/admin/pill-badge";
 import { EmptyState } from "@/components/admin/empty-state";
 import { useRealtimeEvent } from "@/lib/pusher-client";
@@ -30,14 +30,6 @@ import type {
   DashboardData,
   DashboardRange,
 } from "@/server/services/dashboard";
-
-const SalesChart = dynamic(
-  () => import("@/components/admin/sales-chart").then((mod) => mod.SalesChart),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="min-h-[400px] flex-1" />,
-  }
-);
 
 const RANGE_OPTIONS: Array<{ value: DashboardRange; label: string }> = [
   { value: "today", label: "Hari Ini" },

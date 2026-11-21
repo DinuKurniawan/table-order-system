@@ -45,7 +45,11 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-export function AdminTablesPage() {
+export function AdminTablesPage({
+  initialTables,
+}: {
+  initialTables: TableRow[];
+}) {
   const queryClient = useQueryClient();
   const [dialog, setDialog] = React.useState<
     | { mode: "create" }
@@ -56,6 +60,7 @@ export function AdminTablesPage() {
   const tablesQuery = useQuery({
     queryKey: ["tables"],
     queryFn: () => api<{ data: TableRow[] }>("/api/admin/tables"),
+    initialData: { data: initialTables },
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["tables"] });
@@ -102,7 +107,7 @@ export function AdminTablesPage() {
             />
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {tablesQuery.data?.data.map((table) => {
+              {tablesQuery.data?.data.map((table, index) => {
                 return (
                   <section
                     key={table.id}
@@ -115,7 +120,8 @@ export function AdminTablesPage() {
                         src={`/api/admin/tables/${table.id}/qr?format=svg`}
                         alt={`QR Meja ${table.name}`}
                         className="size-full object-contain"
-                        loading="lazy"
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "auto"}
                       />
                     </div>
 
