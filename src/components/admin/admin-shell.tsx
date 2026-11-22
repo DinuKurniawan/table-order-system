@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   ScrollText,
+  TicketPercent,
   Users,
   UtensilsCrossed,
   Wallet,
@@ -82,6 +83,11 @@ const navItems: NavItem[] = [
     icon: QrCode,
   },
   {
+    title: "Voucher Diskon",
+    href: "/admin/vouchers",
+    icon: TicketPercent,
+  },
+  {
     title: "Pengaturan",
     href: "/admin/settings",
     icon: Settings,
@@ -100,6 +106,7 @@ const pageTitles: Record<string, string> = {
   "/admin/stock": "Manajemen Stok",
   "/admin/finance": "Laporan Keuangan",
   "/admin/tables": "Meja & QR Code",
+  "/admin/vouchers": "Voucher Diskon",
   "/admin/settings": "Pengaturan Kafe",
   "/admin/settings/audit": "Log Audit",
 };
