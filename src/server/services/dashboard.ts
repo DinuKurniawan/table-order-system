@@ -128,10 +128,12 @@ export async function getDashboard(
       .$queryRaw<DashboardKpi[]>`
         SELECT
           (SELECT COUNT(*)::int FROM "Order"
-            WHERE "createdAt" >= ${today.start} AND "createdAt" < ${today.end}) AS "pesananHariIni",
+            WHERE "createdAt" >= (${today.start}::timestamptz AT TIME ZONE 'UTC')
+              AND "createdAt" < (${today.end}::timestamptz AT TIME ZONE 'UTC')) AS "pesananHariIni",
           (SELECT COALESCE(SUM("amount"), 0)::double precision FROM "Transaction"
             WHERE "type" = 'INCOME'
-              AND "occurredAt" >= ${today.start} AND "occurredAt" < ${today.end}) AS "pendapatanHariIni",
+              AND "occurredAt" >= (${today.start}::timestamptz AT TIME ZONE 'UTC')
+              AND "occurredAt" < (${today.end}::timestamptz AT TIME ZONE 'UTC')) AS "pendapatanHariIni",
           (SELECT COUNT(*)::int FROM "Order"
             WHERE "status" = 'AWAITING_VERIFICATION') AS "menungguVerifikasi",
           (SELECT COUNT(*)::int FROM "Product"
@@ -156,7 +158,8 @@ export async function getDashboard(
                  "type"::text AS type,
                  SUM("amount")::double precision AS total
           FROM "Transaction"
-          WHERE "occurredAt" >= ${start} AND "occurredAt" < ${end}
+          WHERE "occurredAt" >= (${start}::timestamptz AT TIME ZONE 'UTC')
+            AND "occurredAt" < (${end}::timestamptz AT TIME ZONE 'UTC')
           GROUP BY 1, 2
           ORDER BY 1
         `,
@@ -167,7 +170,8 @@ export async function getDashboard(
                  ) AS bucket,
                  COUNT(*)::int AS total
           FROM "Order"
-          WHERE "createdAt" >= ${start} AND "createdAt" < ${end}
+          WHERE "createdAt" >= (${start}::timestamptz AT TIME ZONE 'UTC')
+            AND "createdAt" < (${end}::timestamptz AT TIME ZONE 'UTC')
           GROUP BY 1
           ORDER BY 1
         `,
@@ -208,7 +212,8 @@ export async function getDashboard(
         JOIN "Order" o ON o."id" = oi."orderId"
         JOIN "Product" p ON p."id" = oi."productId"
         JOIN "Category" c ON c."id" = p."categoryId"
-        WHERE o."createdAt" >= ${start} AND o."createdAt" < ${end}
+        WHERE o."createdAt" >= (${start}::timestamptz AT TIME ZONE 'UTC')
+          AND o."createdAt" < (${end}::timestamptz AT TIME ZONE 'UTC')
           AND o."status"::text <> 'CANCELLED'
         GROUP BY c."type", c."subtype"
       `
@@ -252,7 +257,8 @@ export async function getDashboard(
         FROM "OrderItem" oi
         JOIN "Order" o ON o."id" = oi."orderId"
         JOIN "Product" p ON p."id" = oi."productId"
-        WHERE o."createdAt" >= ${start} AND o."createdAt" < ${end}
+        WHERE o."createdAt" >= (${start}::timestamptz AT TIME ZONE 'UTC')
+          AND o."createdAt" < (${end}::timestamptz AT TIME ZONE 'UTC')
           AND o."status"::text <> 'CANCELLED'
         GROUP BY 1, 2, 3, 4
         ORDER BY qty DESC, omzet DESC

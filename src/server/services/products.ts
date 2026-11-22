@@ -1,5 +1,5 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
+import { invalidateTag } from "@/lib/next-cache";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { runInTransaction } from "@/lib/tx";
@@ -217,7 +217,7 @@ export async function createProduct(
     return product;
   });
 
-  revalidateTag("menu", { expire: 0 });
+  invalidateTag("menu");
   return toDTO(created);
 }
 
@@ -310,7 +310,7 @@ export async function updateProduct(
     await deleteR2ObjectsQuietly([current.thumbKey]);
   }
 
-  revalidateTag("menu", { expire: 0 });
+  invalidateTag("menu");
   return toDTO(updated);
 }
 
@@ -371,6 +371,6 @@ export async function deleteProduct(
     await deleteR2ObjectsQuietly([product.imageKey, product.thumbKey]);
   }
 
-  revalidateTag("menu", { expire: 0 });
+  invalidateTag("menu");
   return { mode: everOrdered ? "soft" : "hard" };
 }

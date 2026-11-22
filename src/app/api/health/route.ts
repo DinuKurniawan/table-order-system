@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { unstable_cache } from "next/cache";
+import { cacheable } from "@/lib/next-cache";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -35,7 +35,7 @@ async function checkPrivateBucket(): Promise<"pass" | "fail" | "skipped"> {
 }
 
 /** Probe R2 keluar jarang berubah; cache 30 detik agar health check murah. */
-const checkPrivateBucketCached = unstable_cache(
+const checkPrivateBucketCached = cacheable(
   checkPrivateBucket,
   ["health-private-bucket"],
   { revalidate: 30 }

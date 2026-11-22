@@ -1,5 +1,5 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
+import { invalidateTag } from "@/lib/next-cache";
 import { CHANNELS, REALTIME_EVENTS } from "@/lib/realtime-events";
 import { Prisma, StockMoveType } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -377,7 +377,7 @@ export async function adjustStock(
     return balance;
   });
 
-  revalidateTag("menu", { expire: 0 });
+  invalidateTag("menu");
   return {
     productId: product.id,
     stock: result,
@@ -472,7 +472,7 @@ export async function updateStockSettings(
     return saved;
   });
 
-  revalidateTag("menu", { expire: 0 });
+  invalidateTag("menu");
   return {
     productId,
     stock: updated.stock,

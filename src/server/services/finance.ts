@@ -201,7 +201,8 @@ export async function getFinanceOverview(input: {
              type::text AS type,
              SUM(amount)::double precision AS total
       FROM "Transaction"
-      WHERE "occurredAt" >= ${start} AND "occurredAt" < ${end}
+      WHERE "occurredAt" >= (${start}::timestamptz AT TIME ZONE 'UTC')
+        AND "occurredAt" < (${end}::timestamptz AT TIME ZONE 'UTC')
       GROUP BY 1, 2
       ORDER BY 1
     `,

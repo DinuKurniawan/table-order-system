@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { cacheable } from "@/lib/next-cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -53,7 +53,7 @@ function toPublicProduct({
  * Katalog di-cache 15 detik (tag `menu`) lalu difilter di memori. Jumlah
  * produk kafe kecil; bila katalog membesar, kembalikan filter ke query DB.
  */
-const getCachedPublicProducts = unstable_cache(
+const getCachedPublicProducts = cacheable(
   async (): Promise<PublicMenuProduct[]> => {
     const products = await prisma.product.findMany({
       where: { deletedAt: null, isActive: true },

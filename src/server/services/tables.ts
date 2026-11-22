@@ -1,6 +1,6 @@
 import "server-only";
 import { nanoid } from "nanoid";
-import { revalidateTag, unstable_cache } from "next/cache";
+import { cacheable, invalidateTag } from "@/lib/next-cache";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { Prisma } from "@prisma/client";
@@ -50,7 +50,7 @@ export async function listTables(): Promise<TableDTO[]> {
 }
 
 /** Token meja aktif pertama, dipakai root agar langsung membuka menu. */
-export const findFirstActiveTableToken = unstable_cache(
+export const findFirstActiveTableToken = cacheable(
   async (): Promise<string | null> => {
     const table = await prisma.table.findFirst({
       where: { isActive: true },
@@ -68,7 +68,7 @@ export const findFirstActiveTableToken = unstable_cache(
  * Mengembalikan null bila token tidak dikenal atau meja dinonaktifkan.
  * Cache 60 detik: perubahan status meja berlaku maksimal 1 menit.
  */
-export const findActiveTableByToken = unstable_cache(
+export const findActiveTableByToken = cacheable(
   async (
     token: string
   ): Promise<{ name: string; area: string | null } | null> => {
@@ -114,7 +114,7 @@ export async function createTable(input: TableInput, userId: string): Promise<Ta
     },
   });
 
-  revalidateTag("tables", { expire: 0 });
+  invalidateTag("tables");
   return toDTO(created);
 }
 
@@ -156,7 +156,7 @@ export async function updateTable(
     },
   });
 
-  revalidateTag("tables", { expire: 0 });
+  invalidateTag("tables");
   return toDTO(updated);
 }
 
@@ -190,7 +190,7 @@ export async function deleteTable(id: string, userId: string): Promise<void> {
     },
   });
 
-  revalidateTag("tables", { expire: 0 });
+  invalidateTag("tables");
 }
 
 /**
@@ -220,7 +220,7 @@ export async function regenerateTableToken(id: string, userId: string): Promise<
       },
     });
 
-    revalidateTag("tables", { expire: 0 });
+    invalidateTag("tables");
     return toDTO(updated);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
