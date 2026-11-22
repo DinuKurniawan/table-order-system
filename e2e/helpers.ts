@@ -1,4 +1,4 @@
-import "../scripts/load-test-env";
+import "../scripts/load-test-env.mjs";
 import { expect, type Page } from "@playwright/test";
 import { CategoryType, PrismaClient } from "@prisma/client";
 

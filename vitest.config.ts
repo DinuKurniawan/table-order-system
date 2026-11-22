@@ -1,5 +1,5 @@
 import path from "node:path";
-import "./scripts/load-test-env";
+import "./scripts/load-test-env.mjs";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig(() => {

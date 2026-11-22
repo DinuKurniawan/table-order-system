@@ -167,14 +167,15 @@ Buka `http://localhost:3000`. Halaman login ada di `http://localhost:3000/login`
 
 Catatan:
 
-- `npm run test` memakai database uji lokal dari `.env.test`, bukan `.env` produksi. Siapkan sekali:
+- `npm run dev`, `npm run test`, `npm run test:unit`, dan `npm run test:e2e` memakai `.env.test`; `.env` produksi tidak dibaca. Siapkan database uji sekali:
   ```bash
   psql -U postgres -c "CREATE DATABASE coffeeshop_test"
   npm run db:test:prepare
   ```
-- `npm run test:unit` dan `npm run test:e2e` juga memakai database dari `.env.test`.
-- `npm run test:e2e` menjalankan server sendiri di `http://localhost:3000` agar tidak memakai dev server yang terhubung ke DB produksi. Set `PW_REUSE_SERVER=true` bila memang ingin memakai server yang sudah berjalan.
-- Kredensial non-DB (R2/Pusher) tetap dibaca dari `.env`; hanya koneksi database yang selalu dialihkan ke `.env.test`.
+- `npm run dev` dan perintah tes otomatis menjalankan S3Mock lokal (`s3rver`) di `http://127.0.0.1:4568`. Bucket `coffeeshop-test-public` dan `coffeeshop-test-private` dibuat otomatis; gambar uji tidak masuk Cloudflare R2.
+- `npm run test:e2e` selalu menjalankan server sendiri di `http://localhost:3000`; server dev yang sudah berjalan tidak dipakai ulang agar tidak tercampur DB produksi.
+- Pusher dinonaktifkan saat testing (`DISABLE_REALTIME=true`). Untuk menguji realtime lokal, sediakan app Pusher test terpisah.
+- `.env` tetap dipakai untuk build/deploy produksi, bukan untuk testing lokal. `npm run build`, `npm run start`, `npm run db:migrate`, dan `npm run db:seed` membaca `.env`; jangan jalankan untuk testing lokal. Gunakan `npm run dev` dan `npm run db:test:prepare`.
 - Variabel lingkungan divalidasi Zod di `src/lib/env.ts`; aplikasi gagal start bila variabel wajib kosong.
 
 ---

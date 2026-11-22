@@ -1,15 +1,20 @@
+import { existsSync } from "node:fs";
 import { config } from "dotenv";
 
 const isCi = process.env.CI === "true";
-const testDbKeys = ["DATABASE_URL", "DIRECT_URL", "DATABASE_URL_POOLED"] as const;
+const testDbKeys = ["DATABASE_URL", "DIRECT_URL", "DATABASE_URL_POOLED"];
 
 /**
- * Lokal: .env.test menang atas .env/shell agar tes tidak pernah menyentuh DB
- * produksi. CI sudah menyediakan seluruh env dari workflow, jadi jangan
- * menimpanya dengan URL localhost.
+ * Lokal: hanya `.env.test` (+ override lokal yang di-ignore). `.env` produksi
+ * tidak pernah dibaca. CI sudah menyediakan seluruh env dari workflow, jadi
+ * jangan menimpanya dengan URL localhost.
  */
 if (!isCi) {
   config({ path: ".env.test", override: true });
+
+  if (existsSync(".env.test.local")) {
+    config({ path: ".env.test.local", override: true });
+  }
 
   for (const key of testDbKeys) {
     const host = (() => {
@@ -23,8 +28,4 @@ if (!isCi) {
       throw new Error(`${key} di .env.test harus menunjuk PostgreSQL lokal.`);
     }
   }
-
-  // Non-DB (R2/Pusher) untuk E2E lokal. Di CI semua variabel berasal dari
-  // workflow, jadi `.env` produksi tidak boleh dibaca sama sekali.
-  config();
 }
