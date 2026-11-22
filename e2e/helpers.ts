@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../scripts/load-test-env";
 import { expect, type Page } from "@playwright/test";
 import { CategoryType, PrismaClient } from "@prisma/client";
 
@@ -98,8 +98,14 @@ export async function uploadProof(page: Page, png: Buffer): Promise<void> {
 }
 
 export async function loginCashier(page: Page): Promise<void> {
+  const username = process.env.SEED_ADMIN_USERNAME ?? "admin";
+  // Seed lokal menandai admin wajib ganti sandi; E2E hanya menguji alur pesanan.
+  await prisma.user.updateMany({
+    where: { username },
+    data: { mustChangePassword: false },
+  });
   await page.goto("/login");
-  await page.getByLabel("Nama Pengguna", { exact: true }).fill(process.env.SEED_ADMIN_USERNAME ?? "admin");
+  await page.getByLabel("Nama Pengguna", { exact: true }).fill(username);
   await page
     .getByLabel("Kata Sandi", { exact: true })
     .fill(process.env.SEED_ADMIN_PASSWORD ?? "Admin123456!");

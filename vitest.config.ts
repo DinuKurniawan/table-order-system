@@ -1,5 +1,5 @@
 import path from "node:path";
-import "dotenv/config";
+import "./scripts/load-test-env";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig(() => {

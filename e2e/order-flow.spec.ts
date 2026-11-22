@@ -7,12 +7,24 @@ import {
   openCashierOrder,
   prisma,
   uploadProof,
+  type Catalog,
 } from "./helpers";
 
 let png: Buffer;
+let happyCatalog: Catalog;
+let rejectCatalog: Catalog;
+let expireCatalog: Catalog;
 const realtimeEnabled = process.env.DISABLE_REALTIME !== "true";
 
 test.beforeAll(async () => {
+  // Katalog dibuat sebelum request menu pertama agar cache `unstable_cache`
+  // di dev server sudah memuat ketiga produk.
+  [happyCatalog, rejectCatalog, expireCatalog] = await Promise.all([
+    createCatalog("happy"),
+    createCatalog("reject"),
+    createCatalog("expire"),
+  ]);
+
   png = await sharp({
     create: {
       width: 640,
@@ -32,7 +44,7 @@ test.afterAll(async () => {
 test("customer pesan, kasir setujui, cetak, status realtime", async ({
   browser,
 }) => {
-  const catalog = await createCatalog("happy");
+  const catalog = happyCatalog;
   const customerContext = await browser.newContext({
     baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },
@@ -78,7 +90,7 @@ test("customer pesan, kasir setujui, cetak, status realtime", async ({
 test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
   browser,
 }) => {
-  const catalog = await createCatalog("reject");
+  const catalog = rejectCatalog;
   const customerContext = await browser.newContext({
     baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },
@@ -136,7 +148,7 @@ test("pesanan kedaluwarsa dibatalkan dan stok dikembalikan", async ({
   browser,
   request,
 }) => {
-  const catalog = await createCatalog("expire");
+  const catalog = expireCatalog;
   const customerContext = await browser.newContext({
     baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },

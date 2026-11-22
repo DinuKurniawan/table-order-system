@@ -167,8 +167,14 @@ Buka `http://localhost:3000`. Halaman login ada di `http://localhost:3000/login`
 
 Catatan:
 
-- `npm run test` dan `npm run test:unit` memuat `.env` melalui `dotenv`, jadi berkas `.env` harus sudah terisi.
-- `npm run test:e2e` memakai Chrome terpasang, database yang sudah dimigrasi + di-seed, dan server di `http://localhost:3000` (Playwright menjalankan `npm run dev`, atau `npm run start` saat `CI=true`).
+- `npm run test` memakai database uji lokal dari `.env.test`, bukan `.env` produksi. Siapkan sekali:
+  ```bash
+  psql -U postgres -c "CREATE DATABASE coffeeshop_test"
+  npm run db:test:prepare
+  ```
+- `npm run test:unit` dan `npm run test:e2e` juga memakai database dari `.env.test`.
+- `npm run test:e2e` menjalankan server sendiri di `http://localhost:3000` agar tidak memakai dev server yang terhubung ke DB produksi. Set `PW_REUSE_SERVER=true` bila memang ingin memakai server yang sudah berjalan.
+- Kredensial non-DB (R2/Pusher) tetap dibaca dari `.env`; hanya koneksi database yang selalu dialihkan ke `.env.test`.
 - Variabel lingkungan divalidasi Zod di `src/lib/env.ts`; aplikasi gagal start bila variabel wajib kosong.
 
 ---
@@ -350,6 +356,7 @@ Prisma → PostgreSQL
 | `npm run test:e2e` | Menjalankan alur Playwright di `e2e/` |
 | `npm run db:migrate` | Membuat/menerapkan migrasi Prisma (dev) |
 | `npm run db:seed` | Menjalankan seeder |
+| `npm run db:test:prepare` | Migrasi + seed database uji lokal (`coffeeshop_test`) |
 | `npm run db:seed:demo` | Mengisi data demo 500 pesanan / 90 hari (setelah `db:seed`) |
 | `npm run bench:dashboard` | Benchmark agregasi dashboard (butuh data demo) |
 | `npm run lighthouse:menu` | Audit Lighthouse mobile `/m/[token]` (server produksi berjalan) |

@@ -1,4 +1,13 @@
+import fs from "node:fs";
+import "./scripts/load-test-env";
 import { defineConfig, devices } from "@playwright/test";
+
+// unstable_cache menyimpan katalog dari DB sebelumnya. Mulai E2E dengan cache
+// kosong agar produk yang dibuat lewat Prisma langsung muncul di halaman menu.
+if (process.env.PW_REUSE_SERVER !== "true") {
+  fs.rmSync(".next/cache", { recursive: true, force: true });
+  fs.rmSync(".next/dev/cache/fetch-cache", { recursive: true, force: true });
+}
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,7 +28,8 @@ export default defineConfig({
   webServer: {
     command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000/login",
-    reuseExistingServer: true,
+    // Jangan diam-diam memakai server dev yang mungkin terhubung ke DB produksi.
+    reuseExistingServer: process.env.PW_REUSE_SERVER === "true",
     timeout: 180_000,
   },
 });
