@@ -19,6 +19,7 @@ export interface PaymentMethodDTO {
   accountName: string | null;
   imageKey: string | null;
   imageUrl: string | null;
+  qrisPayload: string | null;
   isActive: boolean;
   sortOrder: number;
 }
@@ -30,6 +31,7 @@ function toDTO(method: {
   accountNo: string | null;
   accountName: string | null;
   imageKey: string | null;
+  qrisPayload: string | null;
   isActive: boolean;
   sortOrder: number;
 }): PaymentMethodDTO {
@@ -41,6 +43,7 @@ function toDTO(method: {
     accountName: method.accountName,
     imageKey: method.imageKey,
     imageUrl: method.imageKey ? getPublicUrl(method.imageKey) : null,
+    qrisPayload: method.qrisPayload,
     isActive: method.isActive,
     sortOrder: method.sortOrder,
   };
@@ -83,11 +86,13 @@ export async function createPaymentMethod(
       ...(data.kind === "QRIS"
         ? {
             imageKey: data.imageKey ?? null,
+            qrisPayload: data.qrisPayload ?? null,
             accountName: data.accountName ?? null,
             accountNo: null,
           }
         : {
             imageKey: null,
+            qrisPayload: null,
             accountNo: data.accountNo,
             accountName: data.accountName,
           }),
@@ -127,6 +132,7 @@ export async function updatePaymentMethod(
       ...(data.accountNo !== undefined ? { accountNo: data.accountNo } : {}),
       ...(data.accountName !== undefined ? { accountName: data.accountName } : {}),
       ...(data.imageKey !== undefined ? { imageKey: data.imageKey } : {}),
+      ...(data.qrisPayload !== undefined ? { qrisPayload: data.qrisPayload } : {}),
     },
   });
 

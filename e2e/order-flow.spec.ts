@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
+import { withCrc } from "../src/lib/qris";
 import {
   createCatalog,
   createOrderViaUi,
@@ -10,20 +11,47 @@ import {
   type Catalog,
 } from "./helpers";
 
+function tlv(tag: string, value: string): string {
+  return `${tag}${String(value.length).padStart(2, "0")}${value}`;
+}
+
+const STATIC_QRIS = withCrc(
+  [
+    tlv("00", "01"),
+    tlv("01", "11"),
+    tlv("53", "360"),
+    tlv("58", "ID"),
+    tlv("59", "Kopi E2E"),
+    tlv("60", "Bandung"),
+  ].join("")
+);
+
 let png: Buffer;
 let happyCatalog: Catalog;
 let rejectCatalog: Catalog;
 let expireCatalog: Catalog;
+let qrisCatalog: Catalog;
+let qrisMethodId: string;
 const realtimeEnabled = process.env.DISABLE_REALTIME !== "true";
 
 test.beforeAll(async () => {
   // Katalog dibuat sebelum request menu pertama agar cache `unstable_cache`
   // di dev server sudah memuat ketiga produk.
-  [happyCatalog, rejectCatalog, expireCatalog] = await Promise.all([
+  [happyCatalog, rejectCatalog, expireCatalog, qrisCatalog] = await Promise.all([
     createCatalog("happy"),
     createCatalog("reject"),
     createCatalog("expire"),
+    createCatalog("qris"),
   ]);
+
+  const qrisMethod = await prisma.paymentMethod.findFirstOrThrow({
+    where: { kind: "QRIS" },
+  });
+  qrisMethodId = qrisMethod.id;
+  await prisma.paymentMethod.update({
+    where: { id: qrisMethodId },
+    data: { qrisPayload: STATIC_QRIS, isActive: true },
+  });
 
   png = await sharp({
     create: {
@@ -38,6 +66,10 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  await prisma.paymentMethod.update({
+    where: { id: qrisMethodId },
+    data: { qrisPayload: null },
+  });
   await prisma.$disconnect();
 });
 
@@ -46,11 +78,9 @@ test("customer pesan, kasir setujui, cetak, status realtime", async ({
 }) => {
   const catalog = happyCatalog;
   const customerContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },
   });
   const cashierContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
   });
   const customer = await customerContext.newPage();
   const cashier = await cashierContext.newPage();
@@ -92,11 +122,9 @@ test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
 }) => {
   const catalog = rejectCatalog;
   const customerContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },
   });
   const cashierContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
   });
   const customer = await customerContext.newPage();
   const cashier = await cashierContext.newPage();
@@ -144,13 +172,60 @@ test("customer tolak bukti, unggah ulang, lalu disetujui", async ({
   }
 });
 
+test("customer klaim QRIS tanpa bukti, kasir setujui", async ({ browser }) => {
+  const catalog = qrisCatalog;
+  const customerContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  const cashierContext = await browser.newContext({
+  });
+  const customer = await customerContext.newPage();
+  const cashier = await cashierContext.newPage();
+
+  try {
+    await loginCashier(cashier);
+    const code = await createOrderViaUi(customer, catalog);
+
+    await expect(
+      customer.getByAltText(/QRIS .* untuk Rp/)
+    ).toBeVisible();
+
+    await customer.getByRole("button", { name: "Saya sudah bayar" }).click();
+    const confirmDialog = customer.getByRole("dialog");
+    await expect(confirmDialog).toContainText("Konfirmasi Pembayaran QRIS");
+    await confirmDialog
+      .getByRole("button", { name: "Ya, sudah bayar" })
+      .click();
+
+    await expect(confirmDialog).toContainText("Pembayaran terkirim", {
+      timeout: 30_000,
+    });
+    await expect(confirmDialog).toContainText(
+      "Tidak perlu unggah bukti"
+    );
+    await confirmDialog.getByRole("button", { name: "Tutup" }).click();
+
+    await expect(customer.getByText("Menunggu verifikasi kasir").first()).toBeVisible();
+
+    await openCashierOrder(cashier, code);
+    await expect(cashier.getByText("Klaim Pembayaran QRIS")).toBeVisible();
+    await cashier.getByRole("button", { name: "Setuju", exact: true }).click();
+    await expect(
+      cashier.getByRole("main").getByText("Diterima", { exact: true })
+    ).toBeVisible();
+  } finally {
+    await customerContext.close();
+    await cashierContext.close();
+    await catalog.cleanup();
+  }
+});
+
 test("pesanan kedaluwarsa dibatalkan dan stok dikembalikan", async ({
   browser,
   request,
 }) => {
   const catalog = expireCatalog;
   const customerContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
     viewport: { width: 390, height: 844 },
   });
   const customer = await customerContext.newPage();

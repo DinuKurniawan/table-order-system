@@ -11,4 +11,9 @@ declare module "qrcode" {
     text: string,
     options?: QRCodeOptions & { type: "svg" }
   ): Promise<string>;
+
+  export function toDataURL(
+    text: string,
+    options?: QRCodeOptions
+  ): Promise<string>;
 }

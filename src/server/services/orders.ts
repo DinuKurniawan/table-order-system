@@ -17,6 +17,8 @@ import {
   listPaymentMethods,
   type PaymentMethodDTO,
 } from "@/server/services/payment-methods";
+import { buildDynamicQris } from "@/lib/qris";
+import QRCode from "qrcode";
 import {
   createImageUploadUrls,
   MAX_UPLOAD_BYTES,
@@ -27,6 +29,7 @@ import {
 export interface CustomerPaymentDTO {
   attempt: number;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  method: "QRIS" | "BANK" | null;
   rejectReason: string | null;
   createdAt: string;
 }
@@ -58,7 +61,8 @@ export interface CustomerOrderDTO {
   isExpired: boolean;
   canUpload: boolean;
   canCancel: boolean;
-  paymentMethods: PaymentMethodDTO[];
+  paymentMethods: Array<Omit<PaymentMethodDTO, "qrisPayload">>;
+  qris: { methodId: string; dataUrl: string } | null;
 }
 
 type OrderWithAccess = Prisma.OrderGetPayload<{
@@ -93,6 +97,36 @@ async function loadOrderWithAccess(
 /**
  * Data pesanan untuk halaman lacak customer.
  */
+const QR_OPTIONS = {
+  errorCorrectionLevel: "M",
+  margin: 1,
+  width: 480,
+} as const;
+
+/**
+ * QR dinamis dari payload statis metode bayar aktif. Nominal selalu dari
+ * order.total di server; payload mentah tidak pernah dikirim ke customer.
+ */
+async function getDynamicQris(
+  total: number
+): Promise<CustomerOrderDTO["qris"]> {
+  const method = await prisma.paymentMethod.findFirst({
+    where: { kind: "QRIS", isActive: true, qrisPayload: { not: null } },
+    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+    select: { id: true, qrisPayload: true },
+  });
+  if (!method?.qrisPayload) return null;
+
+  try {
+    const payload = buildDynamicQris(method.qrisPayload, total);
+    const dataUrl = await QRCode.toDataURL(payload, { ...QR_OPTIONS });
+    return { methodId: method.id, dataUrl };
+  } catch (err) {
+    console.warn("Payload QRIS metode bayar tidak valid:", method.id, err);
+    return null;
+  }
+}
+
 export async function getCustomerOrder(
   code: string,
   token: string
@@ -113,6 +147,7 @@ export async function getCustomerOrder(
     CANCELLABLE_BY_CUSTOMER.includes(order.status) &&
     !isExpired &&
     attemptsUsed < maxAttempts;
+  const qris = canUpload ? await getDynamicQris(order.total) : null;
 
   return {
     code: order.code,
@@ -139,6 +174,12 @@ export async function getCustomerOrder(
       ? {
           attempt: latest.attempt,
           status: latest.status,
+          method:
+            latest.method === "QRIS"
+              ? "QRIS"
+              : latest.method === "BANK"
+                ? "BANK"
+                : null,
           rejectReason: latest.rejectReason,
           createdAt: latest.createdAt.toISOString(),
         }
@@ -148,7 +189,20 @@ export async function getCustomerOrder(
     isExpired,
     canUpload,
     canCancel: order.status === "AWAITING_PAYMENT",
-    paymentMethods: methods.filter((method) => method.isActive),
+    paymentMethods: methods
+      .filter((method) => method.isActive)
+      .map((method) => ({
+        id: method.id,
+        kind: method.kind,
+        label: method.label,
+        accountNo: method.accountNo,
+        accountName: method.accountName,
+        imageKey: method.imageKey,
+        imageUrl: method.imageUrl,
+        isActive: method.isActive,
+        sortOrder: method.sortOrder,
+      })),
+    qris,
   };
 }
 
@@ -309,6 +363,7 @@ export async function submitPaymentProof(
         data: {
           orderId: current.id,
           attempt,
+          method: "BANK",
           proofKey,
           status: "PENDING",
         },
@@ -367,6 +422,135 @@ export async function submitPaymentProof(
     }
     throw err;
   }
+}
+
+/**
+ * Customer mengklaim sudah membayar QRIS. Tidak ada bukti yang diunggah;
+ * kasir tetap memverifikasi mutasi sebelum menyetujui.
+ */
+export async function claimQrisPayment(
+  code: string,
+  token: string
+): Promise<UploadProofResult> {
+  const { order, maxAttempts } = await assertProofUploadAllowed(code, token);
+
+  const method = await prisma.paymentMethod.findFirst({
+    where: { kind: "QRIS", isActive: true, qrisPayload: { not: null } },
+    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+    select: { id: true, qrisPayload: true },
+  });
+  if (!method?.qrisPayload) {
+    throw new AppError("CONFLICT", "Pembayaran QRIS belum tersedia", 409);
+  }
+  try {
+    buildDynamicQris(method.qrisPayload, order.total);
+  } catch {
+    throw new AppError(
+      "CONFLICT",
+      "Payload QRIS tidak valid. Hubungi admin.",
+      409
+    );
+  }
+
+  const result = await runInTransaction(async (tx, after) => {
+    const current = await tx.order.findUnique({
+      where: { code },
+      include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+
+    if (!current) {
+      throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan", 404);
+    }
+    if (!CANCELLABLE_BY_CUSTOMER.includes(current.status)) {
+      throw new AppError("CONFLICT", "Status pesanan sudah berubah", 409);
+    }
+    if (current.expiresAt.getTime() <= Date.now()) {
+      throw new AppError(
+        "ORDER_EXPIRED",
+        "Waktu pembayaran telah habis. Pesanan dibatalkan.",
+        409
+      );
+    }
+
+    const attempt = (current.payments[0]?.attempt ?? 0) + 1;
+    if (attempt > maxAttempts) {
+      throw new AppError(
+        "CONFLICT",
+        "Batas unggah ulang bukti pembayaran telah tercapai",
+        409
+      );
+    }
+
+    const updated = await tx.order.updateMany({
+      where: {
+        id: current.id,
+        version: current.version,
+        status: { in: CANCELLABLE_BY_CUSTOMER },
+      },
+      data: { status: "AWAITING_VERIFICATION", version: { increment: 1 } },
+    });
+
+    if (updated.count === 0) {
+      throw new AppError(
+        "CONFLICT",
+        "Pesanan sedang diproses. Silakan muat ulang halaman.",
+        409
+      );
+    }
+
+    const payment = await tx.payment.create({
+      data: {
+        orderId: current.id,
+        attempt,
+        method: "QRIS",
+        proofKey: null,
+        status: "PENDING",
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "payment.claim.qris",
+        entity: "Order",
+        entityId: current.id,
+        meta: {
+          code: current.code,
+          attempt,
+          total: current.total,
+          methodId: method.id,
+        },
+      },
+    });
+
+    after(() => {
+      const payload = {
+        orderCode: code,
+        orderId: current.id,
+        paymentId: payment.id,
+        attempt,
+        tableName: order.table.name,
+      };
+      emitToChannel(CHANNELS.cashier, REALTIME_EVENTS.paymentClaimed, payload);
+      emitToChannel(CHANNELS.admin, REALTIME_EVENTS.paymentClaimed, payload);
+      emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.paymentClaimed, {
+        orderCode: code,
+        attempt,
+      });
+      emitOrderStatus(code, "AWAITING_VERIFICATION", current.version + 1);
+    });
+
+    return {
+      paymentId: payment.id,
+      attempt,
+      version: current.version + 1,
+    };
+  });
+
+  return {
+    paymentId: result.paymentId,
+    attempt: result.attempt,
+    status: "AWAITING_VERIFICATION",
+  };
 }
 
 /**

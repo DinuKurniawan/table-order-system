@@ -1,11 +1,26 @@
 import { z } from "@/lib/zod";
 import { isUploadedKey } from "@/lib/upload-key";
+import { parseStaticQris } from "@/lib/qris";
 
 const qrisImageKey = z
   .string()
   .trim()
   .min(1)
   .refine((value) => isUploadedKey(value, "qris"), "Key gambar QRIS tidak valid");
+
+const qrisPayload = z
+  .string()
+  .trim()
+  .min(20, "Payload QRIS terlalu pendek")
+  .max(1500, "Payload QRIS terlalu panjang")
+  .refine((value) => {
+    try {
+      parseStaticQris(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Payload QRIS statis tidak valid (tag wajib atau CRC salah)");
 
 const base = {
   label: z.string().trim().min(1, "Label wajib diisi").max(80),
@@ -22,6 +37,7 @@ export const paymentMethodInputSchema = z.discriminatedUnion("kind", [
     ...base,
     kind: z.literal("QRIS"),
     imageKey: qrisImageKey.nullish(),
+    qrisPayload: qrisPayload.nullish(),
     accountName: z.string().trim().max(80).nullish(),
   }),
   z.object({
@@ -44,6 +60,7 @@ export const paymentMethodUpdateSchema = z
     label: z.string().trim().min(1).max(80).optional(),
     isActive: z.boolean().optional(),
     imageKey: qrisImageKey.nullable().optional(),
+    qrisPayload: qrisPayload.nullable().optional(),
     accountNo: z.string().trim().min(4).max(30).optional(),
     accountName: z.string().trim().min(1).max(80).optional(),
   })

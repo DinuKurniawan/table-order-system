@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -35,6 +36,7 @@ import {
 import { EmptyState } from "@/components/admin/empty-state";
 import { PillBadge } from "@/components/admin/pill-badge";
 import { ImageUploader } from "@/components/image-uploader";
+import { parseStaticQris } from "@/lib/qris";
 
 type PaymentMethod = {
   id: string;
@@ -44,6 +46,7 @@ type PaymentMethod = {
   accountName: string | null;
   imageKey: string | null;
   imageUrl: string | null;
+  qrisPayload: string | null;
   isActive: boolean;
   sortOrder: number;
 };
@@ -56,6 +59,7 @@ type Draft = {
   accountName: string;
   imageKey: string | null;
   imageUrl: string | null;
+  qrisPayload: string;
   isActive: boolean;
 };
 
@@ -67,6 +71,7 @@ const EMPTY_DRAFT: Draft = {
   accountName: "",
   imageKey: null,
   imageUrl: null,
+  qrisPayload: "",
   isActive: true,
 };
 
@@ -104,8 +109,10 @@ export function PaymentMethodsManager() {
           isActive: value.isActive,
         };
         if (accountName) payload.accountName = accountName;
-        if (value.kind === "QRIS") payload.imageKey = value.imageKey;
-        else payload.accountNo = value.accountNo.trim();
+        if (value.kind === "QRIS") {
+          payload.imageKey = value.imageKey;
+          payload.qrisPayload = value.qrisPayload.trim() || null;
+        } else payload.accountNo = value.accountNo.trim();
         return api(`/api/admin/payment-methods/${value.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
@@ -119,6 +126,7 @@ export function PaymentMethodsManager() {
               label,
               isActive: value.isActive,
               imageKey: value.imageKey,
+              qrisPayload: value.qrisPayload.trim() || null,
               accountName: accountName || null,
             }
           : {
@@ -202,6 +210,17 @@ export function PaymentMethodsManager() {
       }
       if (!draft.accountName.trim()) {
         toast.error("Atas nama wajib diisi");
+        return;
+      }
+    }
+
+    if (draft.kind === "QRIS" && draft.qrisPayload.trim()) {
+      try {
+        parseStaticQris(draft.qrisPayload);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Payload QRIS tidak valid"
+        );
         return;
       }
     }
@@ -294,6 +313,9 @@ export function PaymentMethodsManager() {
                   {!method.isActive && (
                     <PillBadge variant="neutral">Nonaktif</PillBadge>
                   )}
+                  {method.kind === "QRIS" && !method.qrisPayload && (
+                    <PillBadge variant="neutral">Tanpa payload dinamis</PillBadge>
+                  )}
                 </div>
                 <p className="truncate text-[11px] text-text-muted">
                   {method.kind === "QRIS"
@@ -348,6 +370,7 @@ export function PaymentMethodsManager() {
                       accountName: method.accountName ?? "",
                       imageKey: method.imageKey,
                       imageUrl: method.imageUrl,
+                      qrisPayload: method.qrisPayload ?? "",
                       isActive: method.isActive,
                     })
                   }
@@ -462,6 +485,33 @@ export function PaymentMethodsManager() {
                         })
                       }
                     />
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="payment-qris-payload"
+                        className="text-xs font-semibold"
+                      >
+                        Payload QRIS Statis
+                      </Label>
+                      <Textarea
+                        id="payment-qris-payload"
+                        value={draft.qrisPayload}
+                        rows={4}
+                        maxLength={1500}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            qrisPayload: event.target.value,
+                          })
+                        }
+                        placeholder="00020101021126..."
+                        className="rounded-xl font-mono text-xs"
+                      />
+                      <p className="text-[11px] text-text-muted">
+                        Tempel payload dari QRIS statis merchant. Nominal pesanan
+                        disisipkan otomatis. Tanpa payload, QR dinamis tidak
+                        tampil di halaman bayar.
+                      </p>
+                    </div>
                     <div className="space-y-1.5">
                       <Label
                         htmlFor="payment-account-name"

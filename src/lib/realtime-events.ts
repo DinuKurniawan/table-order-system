@@ -13,6 +13,7 @@
 export const REALTIME_EVENTS = {
   orderCreated: "order.created",
   paymentUploaded: "payment.uploaded",
+  paymentClaimed: "payment.claimed",
   orderStatusChanged: "order.status_changed",
   stockChanged: "stock.changed",
   stockLow: "stock.low",

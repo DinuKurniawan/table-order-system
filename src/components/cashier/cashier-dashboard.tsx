@@ -14,6 +14,7 @@ import {
   Clock,
   CookingPot,
   History,
+  Hourglass,
   Package,
   Volume2,
   type LucideIcon,
@@ -22,7 +23,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/admin/empty-state";
-import { cn, formatRupiah, relativeTime } from "@/lib/utils";
+import { cn, formatRupiah, formatWIB, relativeTime } from "@/lib/utils";
 import { useRealtimeEvent } from "@/lib/pusher-client";
 import {
   playCashierSound,
@@ -34,7 +35,12 @@ import type {
   CashierQueue,
 } from "@/server/services/cashier-orders";
 
-type TabKey = "verification" | "processing" | "ready" | "history";
+type TabKey =
+  | "awaitingPayment"
+  | "verification"
+  | "processing"
+  | "ready"
+  | "history";
 
 const TABS: Array<{
   key: TabKey;
@@ -43,10 +49,17 @@ const TABS: Array<{
   empty: string;
 }> = [
   {
+    key: "awaitingPayment",
+    label: "Belum Bayar",
+    icon: Hourglass,
+    empty:
+      "Tidak ada pesanan yang menunggu pembayaran. Pesanan muncul di sini setelah checkout.",
+  },
+  {
     key: "verification",
     label: "Perlu Verifikasi",
     icon: BellRing,
-    empty: "Tidak ada bukti pembayaran yang menunggu verifikasi.",
+    empty: "Tidak ada pembayaran yang menunggu verifikasi.",
   },
   {
     key: "processing",
@@ -69,6 +82,7 @@ const TABS: Array<{
 ];
 
 const STATUS_LABEL: Record<string, string> = {
+  AWAITING_PAYMENT: "Menunggu pembayaran",
   AWAITING_VERIFICATION: "Menunggu verifikasi",
   ACCEPTED: "Diterima",
   PREPARING: "Diproses",
@@ -79,6 +93,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASS: Record<string, string> = {
+  AWAITING_PAYMENT: "bg-accent-blue/15 text-accent-blue border-transparent",
   AWAITING_VERIFICATION: "bg-accent-orange/15 text-accent-orange border-transparent",
   ACCEPTED: "bg-accent-blue/15 text-accent-blue border-transparent",
   PREPARING: "bg-primary-50 text-primary-800 border-primary-200",
@@ -150,6 +165,9 @@ export function CashierDashboard() {
   );
   useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.paymentUploaded, (payload) =>
     notify(payload, "Bukti bayar masuk dari")
+  );
+  useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.paymentClaimed, (payload) =>
+    notify(payload, "Klaim QRIS masuk dari")
   );
   useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.orderStatusChanged, refresh);
   useRealtimeEvent(CHANNELS.cashier, REALTIME_EVENTS.transactionCreated, refresh);
@@ -287,6 +305,12 @@ export function CashierDashboard() {
                     <ClipboardList className="size-3.5" />
                     {order.itemCount} item
                   </p>
+                  {tab === "awaitingPayment" && (
+                    <p className="flex items-center gap-1.5">
+                      <Clock className="size-3.5" />
+                      Bayar s.d. {formatWIB(order.expiresAt)}
+                    </p>
+                  )}
                   {order.voucherCode && (
                     <p className="flex items-center gap-1.5">
                       Voucher {order.voucherCode} · -

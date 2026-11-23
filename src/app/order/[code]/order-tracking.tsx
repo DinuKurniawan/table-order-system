@@ -21,6 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatRupiah } from "@/lib/utils";
 import { prepareImageUpload, putToPresignedUrl } from "@/lib/client-image";
 import { usePusherChannel, useRealtimeEvent } from "@/lib/pusher-client";
+import {
+  QrisPaidOverlay,
+  type QrisOverlayStage,
+} from "@/components/customer/qris-paid-overlay";
 import type { CustomerOrderDTO } from "@/server/services/orders";
 
 const STEPS = [
@@ -103,6 +107,9 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
   const [uploading, setUploading] = React.useState(false);
   const [uploaderKey, setUploaderKey] = React.useState(0);
   const [cancelling, setCancelling] = React.useState(false);
+  const [qrisStage, setQrisStage] = React.useState<QrisOverlayStage>(null);
+  const [claimingQris, setClaimingQris] = React.useState(false);
+  const reminderKey = `qris-reminder:${code}`;
 
   async function submitProof() {
     if (!file) return;
@@ -173,8 +180,69 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
     }
   }
 
+  async function confirmQrisPaid() {
+    if (qrisStage === "reminder") {
+      setQrisStage("confirm");
+      return;
+    }
+    if (claimingQris) return;
+
+    setClaimingQris(true);
+    try {
+      const res = await fetch(`/api/public/orders/${code}/payment/qris`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(apiErrorMessage(json, "Gagal mengonfirmasi pembayaran"));
+        await refresh();
+        return;
+      }
+      try {
+        localStorage.setItem(reminderKey, "3");
+      } catch {
+        // localStorage penuh/diblokir: pengingat hanya berlaku sesi ini
+      }
+      setQrisStage("success");
+      await refresh();
+    } catch {
+      toast.error("Gagal mengonfirmasi pembayaran");
+    } finally {
+      setClaimingQris(false);
+    }
+  }
+
   const showPaySection =
     data.status === "AWAITING_PAYMENT" || data.status === "PAYMENT_REJECTED";
+  const hasBank = data.paymentMethods.some(
+    (method) => method.kind === "BANK" && method.accountNo
+  );
+  const qrisVisible = showPaySection && !dead && data.qris !== null;
+
+  React.useEffect(() => {
+    if (!qrisVisible || qrisStage !== null) return;
+
+    let count = 0;
+    try {
+      count = Number(localStorage.getItem(reminderKey)) || 0;
+    } catch {
+      count = 0;
+    }
+    if (count >= 3) return;
+
+    const timer = setInterval(() => {
+      count += 1;
+      try {
+        localStorage.setItem(reminderKey, String(count));
+      } catch {
+        // abaikan; hitungan tetap jalan di memori
+      }
+      setQrisStage("reminder");
+      if (count >= 3) clearInterval(timer);
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [qrisVisible, qrisStage, reminderKey]);
 
   return (
     <div className="space-y-5">
@@ -258,7 +326,10 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           {data.status === "PAYMENT_REJECTED" && (
             <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm">
               <p className="flex items-center gap-1.5 font-semibold text-destructive">
-                <XCircle className="size-4" /> Bukti pembayaran ditolak
+                <XCircle className="size-4" />
+                {data.latestPayment?.method === "QRIS"
+                  ? "Klaim pembayaran QRIS ditolak"
+                  : "Bukti pembayaran ditolak"}
               </p>
               {data.latestPayment?.rejectReason && (
                 <p className="mt-1 text-text">
@@ -266,7 +337,7 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
                 </p>
               )}
               <p className="mt-1 text-xs text-text-muted">
-                Sisa kesempatan unggah: {attemptsLeft}
+                Sisa kesempatan pembayaran: {attemptsLeft}
               </p>
             </div>
           )}
@@ -292,32 +363,53 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           </div>
 
           <div className="mt-5 space-y-4">
-            {data.paymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className="rounded-xl border border-border p-4"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-text-strong">
-                  {method.kind === "QRIS" ? (
-                    <QrCode className="size-4 text-primary" />
-                  ) : (
-                    <Copy className="size-4 text-primary" />
-                  )}
-                  {method.label}
-                </div>
+            {data.paymentMethods.map((method) => {
+              if (method.kind === "QRIS") {
+                if (!data.qris || data.qris.methodId !== method.id) return null;
+                return (
+                  <div
+                    key={method.id}
+                    className="rounded-xl border border-border p-4"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-text-strong">
+                      <QrCode className="size-4 text-primary" />
+                      {method.label}
+                    </div>
 
-                {method.kind === "QRIS" && method.imageUrl && (
-                  <div className="mt-3 flex justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- QRIS dari R2 publik */}
-                    <img
-                      src={method.imageUrl}
-                      alt={`QRIS ${method.label}`}
-                      className="size-48 rounded-xl border border-border object-contain"
-                    />
+                    <div className="mt-3 flex flex-col items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- QR dinamis (data URL) dari server */}
+                      <img
+                        src={data.qris.dataUrl}
+                        alt={`QRIS ${method.label} untuk ${formatRupiah(data.total)}`}
+                        className="size-56 rounded-xl border border-border bg-white object-contain p-2"
+                      />
+                      <p className="text-xs text-text-muted">
+                        Nominal otomatis terisi: {formatRupiah(data.total)}
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      className="mt-3 h-11 w-full"
+                      onClick={() => setQrisStage("confirm")}
+                    >
+                      Saya sudah bayar
+                    </Button>
                   </div>
-                )}
+                );
+              }
 
-                {method.kind === "BANK" && method.accountNo && (
+              if (!method.accountNo) return null;
+              return (
+                <div
+                  key={method.id}
+                  className="rounded-xl border border-border p-4"
+                >
+                  <div className="flex items-center gap-2 text-sm font-semibold text-text-strong">
+                    <Copy className="size-4 text-primary" />
+                    {method.label}
+                  </div>
+
                   <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-2">
                     <div>
                       <p className="font-mono text-sm font-bold text-text-strong">
@@ -338,39 +430,44 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
                       <Copy className="size-3.5" />
                     </Button>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
-          <div className="mt-5 border-t border-border/60 pt-5">
-            <ProofUploader
-              key={uploaderKey}
-              disabled={uploading}
-              onSelect={setFile}
-            />
-
-            <Button
-              type="button"
-              className="mt-4 h-11 w-full"
-              disabled={!file || uploading}
-              onClick={submitProof}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" /> Mengunggah...
-                </>
-              ) : (
-                "Kirim Bukti Pembayaran"
-              )}
-            </Button>
-
-            {attemptsLeft > 0 && data.status === "PAYMENT_REJECTED" && (
-              <p className="mt-2 text-center text-xs text-text-muted">
-                Sisa kesempatan unggah ulang: {attemptsLeft}
+          {hasBank && (
+            <div className="mt-5 border-t border-border/60 pt-5">
+              <p className="mb-3 text-xs text-text-muted">
+                Khusus transfer bank manual: unggah bukti setelah membayar.
               </p>
-            )}
-          </div>
+              <ProofUploader
+                key={uploaderKey}
+                disabled={uploading}
+                onSelect={setFile}
+              />
+
+              <Button
+                type="button"
+                className="mt-4 h-11 w-full"
+                disabled={!file || uploading}
+                onClick={submitProof}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Mengunggah...
+                  </>
+                ) : (
+                  "Kirim Bukti Pembayaran"
+                )}
+              </Button>
+
+              {attemptsLeft > 0 && data.status === "PAYMENT_REJECTED" && (
+                <p className="mt-2 text-center text-xs text-text-muted">
+                  Sisa kesempatan unggah ulang: {attemptsLeft}
+                </p>
+              )}
+            </div>
+          )}
 
           {data.canCancel && !timeExpired && (
             <Button
@@ -393,8 +490,8 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
             Menunggu verifikasi kasir
           </p>
           <p className="mt-1 text-sm text-text">
-            Bukti pembayaran Anda sedang diperiksa. Halaman ini akan berubah
-            otomatis tanpa perlu refresh.
+            Pembayaran Anda sedang diperiksa kasir. Tidak perlu unggah bukti.
+            Halaman ini akan berubah otomatis tanpa perlu refresh.
           </p>
         </div>
       )}
@@ -407,7 +504,7 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           </p>
           <p className="mt-1 text-sm text-text-muted">
             {attemptsExhausted
-              ? "Batas unggah ulang bukti pembayaran telah tercapai."
+              ? "Batas percobaan pembayaran telah tercapai."
               : "Waktu pembayaran telah habis."}
           </p>
         </div>
@@ -468,6 +565,15 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           </p>
         )}
       </div>
+
+      <QrisPaidOverlay
+        stage={qrisStage}
+        code={code}
+        total={data.total}
+        submitting={claimingQris}
+        onConfirm={confirmQrisPaid}
+        onDismiss={() => setQrisStage(null)}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CookingPot,
   Printer,
+  QrCode,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -104,6 +105,7 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
 
   const order = data ?? initial;
   const pendingPayment = order.payments.find((p) => p.status === "PENDING");
+  const qrisClaim = pendingPayment?.method === "QRIS";
   const printUrl = `/cashier/orders/${order.id}/print?w=58`;
 
   const refresh = React.useCallback(() => {
@@ -275,7 +277,7 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
           <div className="rounded-[20px] border border-border bg-surface p-5 shadow-card">
             <h3 className="text-sm font-semibold text-text-strong">Riwayat Pembayaran</h3>
             {order.payments.length === 0 ? (
-              <p className="mt-3 text-sm text-text-muted">Belum ada bukti pembayaran.</p>
+              <p className="mt-3 text-sm text-text-muted">Belum ada pembayaran.</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {order.payments.map((payment) => (
@@ -286,6 +288,11 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
                     <div>
                       <p className="text-sm font-semibold text-text-strong">
                         Percobaan {payment.attempt}
+                        {payment.method === "QRIS"
+                          ? " · QRIS"
+                          : payment.method === "BANK"
+                            ? " · Bank"
+                            : ""}
                       </p>
                       <p className="text-xs text-text-muted">
                         {formatWIB(payment.createdAt)}
@@ -322,7 +329,23 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
         <section className="space-y-4">
           {pendingPayment ? (
             <>
-              <ProofViewer orderId={order.id} paymentId={pendingPayment.id} />
+              {qrisClaim ? (
+                <div className="rounded-[20px] border border-primary-200 bg-primary-50 p-5 shadow-card">
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-800">
+                    <QrCode className="size-4" />
+                    Klaim Pembayaran QRIS
+                  </p>
+                  <p className="mt-2 text-sm text-text">
+                    Customer mengklaim sudah membayar QRIS. Cocokkan dengan mutasi
+                    merchant sebelum menyetujui. Tidak ada bukti unggahan.
+                  </p>
+                  <p className="mt-3 text-2xl font-bold text-primary-800">
+                    {formatRupiah(order.total)}
+                  </p>
+                </div>
+              ) : (
+                <ProofViewer orderId={order.id} paymentId={pendingPayment.id} />
+              )}
               <div className="rounded-[20px] border border-border bg-surface p-4 shadow-card">
                 <label className="mb-3 flex items-center gap-2 text-xs text-text-muted">
                   <input
@@ -357,7 +380,7 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
           ) : (
             <div className="rounded-[20px] border border-dashed border-border bg-surface-muted/50 p-6 text-center">
               <p className="text-sm font-semibold text-text-strong">
-                Tidak ada bukti menunggu verifikasi
+                Tidak ada pembayaran menunggu verifikasi
               </p>
               <p className="mt-1 text-xs text-text-muted">
                 Status pesanan: {STATUS_LABEL[order.status]}
@@ -370,7 +393,7 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Tolak Bukti Pembayaran</DialogTitle>
+            <DialogTitle>Tolak Pembayaran</DialogTitle>
             <DialogDescription>
               Pilih alasan penolakan. Alasan akan tampil di halaman pelacakan customer.
             </DialogDescription>

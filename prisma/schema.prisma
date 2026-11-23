@@ -236,7 +236,8 @@ model Payment {
   orderId      String
   order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   attempt      Int           @default(1)
-  proofKey     String        // key R2 privat (AVIF)
+  proofKey     String?       // key R2 privat (AVIF); null untuk klaim QRIS
+  method       String?       // QRIS | BANK (null = data lama, anggap BANK)
   status       PaymentStatus @default(PENDING)
   rejectReason String?
   verifiedById String?
@@ -274,6 +275,7 @@ model PaymentMethod {
   accountNo   String?
   accountName String?
   imageKey    String? // gambar QRIS (WebP/JPEG dari browser)
+  qrisPayload String? // payload QRIS statis (EMVCo) untuk QR dinamis
   isActive    Boolean @default(true)
   sortOrder   Int     @default(0)
 }

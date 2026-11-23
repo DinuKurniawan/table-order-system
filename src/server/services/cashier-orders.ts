@@ -31,14 +31,17 @@ export interface CashierOrderListItem {
   discount: number;
   createdAt: string;
   updatedAt: string;
+  expiresAt: string;
 }
 
 export interface CashierQueue {
+  awaitingPayment: CashierOrderListItem[];
   verification: CashierOrderListItem[];
   processing: CashierOrderListItem[];
   ready: CashierOrderListItem[];
   history: CashierOrderListItem[];
   counts: {
+    awaitingPayment: number;
     verification: number;
     processing: number;
     ready: number;
@@ -49,6 +52,7 @@ export interface CashierQueue {
 export interface CashierPaymentItem {
   id: string;
   attempt: number;
+  method: "QRIS" | "BANK" | null;
   status: PaymentStatus;
   rejectReason: string | null;
   createdAt: string;
@@ -91,6 +95,7 @@ const listSelect = {
   discount: true,
   createdAt: true,
   updatedAt: true,
+  expiresAt: true,
   table: { select: { name: true } },
   _count: { select: { items: true } },
 } satisfies Prisma.OrderSelect;
@@ -110,6 +115,7 @@ function toListItem(
     discount: order.discount,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
+    expiresAt: order.expiresAt.toISOString(),
   };
 }
 
@@ -117,7 +123,13 @@ function toListItem(
  * Antrean kasir: verifikasi (terlama dulu), diproses, siap, dan riwayat.
  */
 export async function listCashierOrders(): Promise<CashierQueue> {
-  const [verification, processing, ready, history, historyCount] = await Promise.all([
+  const [awaitingPayment, verification, processing, ready, history, historyCount] =
+    await Promise.all([
+    prisma.order.findMany({
+      where: { status: "AWAITING_PAYMENT" },
+      orderBy: { createdAt: "asc" },
+      select: listSelect,
+    }),
     prisma.order.findMany({
       where: { status: "AWAITING_VERIFICATION" },
       orderBy: { createdAt: "asc" },
@@ -143,11 +155,13 @@ export async function listCashierOrders(): Promise<CashierQueue> {
   ]);
 
   return {
+    awaitingPayment: awaitingPayment.map(toListItem),
     verification: verification.map(toListItem),
     processing: processing.map(toListItem),
     ready: ready.map(toListItem),
     history: history.map(toListItem),
     counts: {
+      awaitingPayment: awaitingPayment.length,
       verification: verification.length,
       processing: processing.length,
       ready: ready.length,
@@ -198,6 +212,12 @@ export async function getCashierOrder(id: string): Promise<CashierOrderDetail> {
     payments: order.payments.map((payment) => ({
       id: payment.id,
       attempt: payment.attempt,
+      method:
+        payment.method === "QRIS"
+          ? "QRIS"
+          : payment.method === "BANK"
+            ? "BANK"
+            : null,
       status: payment.status,
       rejectReason: payment.rejectReason,
       createdAt: payment.createdAt.toISOString(),
@@ -217,7 +237,7 @@ export async function getPaymentProofKey(
     select: { proofKey: true },
   });
 
-  if (!payment) {
+  if (!payment?.proofKey) {
     throw new AppError("NOT_FOUND", "Bukti pembayaran tidak ditemukan", 404);
   }
 
