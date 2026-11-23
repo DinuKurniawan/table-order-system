@@ -1,4 +1,15 @@
-import "./load-test-env.mjs";
+/**
+ * Dev server memakai `.env.development` (DB dev + S3 mock). Test tetap memakai
+ * `.env.test` lewat load-test-env. Playwright sudah menyetel DATABASE_URL dari
+ * env test saat menjalankan webServer, jadi env itu tidak boleh ditimpa.
+ */
+const isDevServer = process.argv[2] === "next" && process.argv[3] === "dev";
+if (isDevServer && !process.env.DATABASE_URL) {
+  const { config } = await import("dotenv");
+  config({ path: ".env.development", override: true });
+} else {
+  await import("./load-test-env.mjs");
+}
 import { spawn } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
