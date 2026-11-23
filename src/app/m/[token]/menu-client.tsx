@@ -6,7 +6,7 @@ import { apiErrorMessage } from "@/lib/api-error";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingBag, Coffee } from "lucide-react";
+import { Search, ShoppingBag, Coffee, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,30 @@ const CATEGORY_TABS = [
   { value: "non-coffee", label: "Non Kopi" },
 ];
 
+// Kartu acuan 352px + gap-3 (12px) + padding horizontal SectionCard p-6 (48px).
+const MENU_CARD_WIDTH = 352;
+const MENU_GRID_GAP = 12;
+const MENU_GRID_INSET = 48;
+
+// Tailwind butuh nama kelas literal, bukan hasil interpolasi.
+function menuGridColumns(count: number) {
+  if (count <= 1) return "grid-cols-1";
+  if (count === 2) return "grid-cols-2";
+  if (count === 3) return "grid-cols-2 md:grid-cols-3";
+  if (count === 4) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+  return "grid-cols-2 md:grid-cols-3 lg:grid-cols-5";
+}
+
+// Item < 5: sempitkan container agar kartu tidak melar; container tetap rata
+// kiri dan sisa ruang ada di kanan. Item >= 5 tetap full-width.
+function menuGridMaxWidth(count: number) {
+  if (count <= 0 || count >= 5) return undefined;
+  return count * MENU_CARD_WIDTH + (count - 1) * MENU_GRID_GAP + MENU_GRID_INSET;
+}
+
+// Paginasi sisi klien: katalog mengecil (cache) dan filter berjalan lokal.
+const MENU_PAGE_SIZE = 15;
+
 export function MenuClient({
   token,
   initialProducts,
@@ -50,6 +74,7 @@ export function MenuClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
   // Ketikan tidak boleh memicu satu request per karakter.
   useEffect(() => {
@@ -92,6 +117,21 @@ export function MenuClient({
   });
 
   const menus = menuQuery.data?.products ?? [];
+  const totalPages = Math.ceil(menus.length / MENU_PAGE_SIZE);
+  // Data bisa menyusut (stok realtime/filter); jaga halaman tetap valid.
+  const currentPage = Math.min(page, Math.max(totalPages, 1));
+  const visibleMenus = menus.slice(
+    (currentPage - 1) * MENU_PAGE_SIZE,
+    currentPage * MENU_PAGE_SIZE
+  );
+  const gridColumns = menuGridColumns(visibleMenus.length);
+  const gridMaxWidth = menuGridMaxWidth(visibleMenus.length);
+
+  function goToPage(next: number) {
+    setPage(next);
+    // Hasil halaman baru ada di atas daftar; jangan biarkan user di bawah.
+    window.scrollTo({ top: 0 });
+  }
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce(
@@ -102,7 +142,7 @@ export function MenuClient({
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
       <header className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3 shadow-sm">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+        <div className="flex w-full items-center justify-between gap-3">
           <Link
             href={`/m/${token}`}
             className="flex min-w-0 items-center gap-2 text-base font-semibold text-text-strong"
@@ -126,7 +166,10 @@ export function MenuClient({
               aria-label="Cari menu"
               placeholder="Cari menu..."
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setPage(1);
+              }}
               className="h-11 rounded-xl pl-9"
             />
           </div>
@@ -137,7 +180,7 @@ export function MenuClient({
         aria-label="Kategori menu"
         className="sticky top-[68px] z-10 border-b border-border bg-white px-4 shadow-sm"
       >
-        <div className="mx-auto flex max-w-2xl gap-1 overflow-x-auto py-2">
+        <div className="flex w-full gap-1 overflow-x-auto py-2">
           {CATEGORY_TABS.map((tab) => {
             const active = categoryFilter === tab.value;
             return (
@@ -145,7 +188,10 @@ export function MenuClient({
                 key={tab.value}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setCategoryFilter(tab.value)}
+                onClick={() => {
+                  setCategoryFilter(tab.value);
+                  setPage(1);
+                }}
                 className={`min-h-11 shrink-0 rounded-xl px-3 text-xs font-semibold transition-colors ${
                   active
                     ? "bg-primary-600 text-white"
@@ -159,11 +205,11 @@ export function MenuClient({
         </div>
       </nav>
 
-      <main className="mx-auto max-w-2xl p-4">
+      <main className="w-full p-4">
         {menuQuery.isLoading ? (
           <SectionCard title="Menu Kafe">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, index) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, index) => (
                 <Skeleton key={index} className="h-64 rounded-xl" />
               ))}
             </div>
@@ -191,9 +237,12 @@ export function MenuClient({
             </div>
           </SectionCard>
         ) : (
-          <SectionCard title="Menu Kafe">
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {menus.map((menu, index) => {
+          <SectionCard
+            title="Menu Kafe"
+            style={gridMaxWidth ? { maxWidth: gridMaxWidth } : undefined}
+          >
+            <ul className={`grid gap-3 ${gridColumns}`}>
+              {visibleMenus.map((menu, index) => {
                 const soldOut = menu.trackStock && menu.stock <= 0;
                 // Thumbnail sudah 320px dari proses upload; optimizer Next
                 // hanya meng-upscale dan menambah satu hop server.
@@ -251,6 +300,37 @@ export function MenuClient({
                 );
               })}
             </ul>
+
+            {/* Paginasi hanya muncul bila produk lebih dari satu halaman. */}
+            {totalPages > 1 && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+                <span className="text-xs text-text-muted">
+                  Halaman {currentPage} dari {totalPages} · {menus.length} produk
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="rounded-lg"
+                    disabled={currentPage <= 1}
+                    onClick={() => goToPage(currentPage - 1)}
+                    aria-label="Halaman sebelumnya"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="rounded-lg"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => goToPage(currentPage + 1)}
+                    aria-label="Halaman berikutnya"
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </SectionCard>
         )}
       </main>
