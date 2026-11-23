@@ -3,6 +3,7 @@
 import { apiErrorMessage } from "@/lib/api-error";
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import {
   Activity,
   ExternalLink,
+  KeyRound,
   Loader2,
   ScrollText,
 } from "lucide-react";
@@ -105,6 +107,9 @@ export function AdminSettingsPage() {
             <TabsTrigger value="sistem" className="px-3">
               Sistem
             </TabsTrigger>
+            <TabsTrigger value="keamanan" className="px-3">
+              Keamanan
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="umum" className="pt-5">
@@ -118,6 +123,9 @@ export function AdminSettingsPage() {
           </TabsContent>
           <TabsContent value="sistem" className="pt-5">
             <SistemTab settings={settings} />
+          </TabsContent>
+          <TabsContent value="keamanan" className="pt-5">
+            <SecurityTab />
           </TabsContent>
         </Tabs>
       </SectionCard>
@@ -468,3 +476,147 @@ function SistemTab({ settings }: { settings: Settings }) {
     </div>
   );
 }
+
+const securitySchema = z
+  .object({
+    currentPassword: z.string().min(1, "Password saat ini wajib diisi"),
+    newPassword: z
+      .string()
+      .min(12, "Password baru minimal 12 karakter")
+      .max(128, "Password baru maksimal 128 karakter"),
+    confirmPassword: z.string().min(1, "Ulangi password baru"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Konfirmasi password tidak cocok",
+    path: ["confirmPassword"],
+  });
+
+type SecurityValues = z.infer<typeof securitySchema>;
+
+function SecurityTab() {
+  const router = useRouter();
+  const form = useForm<SecurityValues>({
+    resolver: zodResolver(securitySchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: (values: SecurityValues) =>
+      api("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        }),
+      }),
+    onSuccess: () => {
+      toast.success("Password berhasil diubah. Silakan login kembali.");
+      setTimeout(() => {
+        router.replace("/login");
+        router.refresh();
+      }, 900);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <div className="max-w-md space-y-5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+          <KeyRound className="size-5" />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-text-strong">
+            Ubah Password
+          </h3>
+          <p className="text-[11px] text-text-muted">
+            Gunakan password unik minimal 12 karakter. Setelah disimpan, semua
+            sesi berakhir dan Anda diarahkan ke halaman login.
+          </p>
+        </div>
+      </div>
+
+      <form
+        onSubmit={form.handleSubmit((values) => save.mutate(values))}
+        className="space-y-4"
+      >
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="settings-current-password"
+            className="text-xs font-semibold"
+          >
+            Password Saat Ini
+          </Label>
+          <Input
+            id="settings-current-password"
+            type="password"
+            autoComplete="current-password"
+            {...form.register("currentPassword")}
+            className="h-10 rounded-xl"
+          />
+          {form.formState.errors.currentPassword && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.currentPassword.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="settings-new-password"
+            className="text-xs font-semibold"
+          >
+            Password Baru
+          </Label>
+          <Input
+            id="settings-new-password"
+            type="password"
+            autoComplete="new-password"
+            {...form.register("newPassword")}
+            className="h-10 rounded-xl"
+          />
+          {form.formState.errors.newPassword && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.newPassword.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="settings-confirm-password"
+            className="text-xs font-semibold"
+          >
+            Ulangi Password Baru
+          </Label>
+          <Input
+            id="settings-confirm-password"
+            type="password"
+            autoComplete="new-password"
+            {...form.register("confirmPassword")}
+            className="h-10 rounded-xl"
+          />
+          {form.formState.errors.confirmPassword && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          disabled={save.isPending}
+          className="h-10 rounded-xl bg-primary-600 text-white hover:bg-primary-700"
+        >
+          {save.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+          Simpan Password Baru
+        </Button>
+      </form>
+    </div>
+  );
+}
+

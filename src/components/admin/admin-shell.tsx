@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Boxes,
-  Coffee,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -122,6 +122,13 @@ export function AdminShell({ user, children }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
+  // Next 16 (cacheComponents) menyembunyikan halaman dengan <Activity>, bukan
+  // meng-unmount. Reset state transien agar spinner logout tidak terbawa saat
+  // halaman admin ditampilkan lagi setelah login ulang.
+  React.useLayoutEffect(() => {
+    return () => setIsLoggingOut(false);
+  }, []);
+
   const getPageTitle = () => {
     if (pageTitles[pathname]) return pageTitles[pathname];
     for (const [path, title] of Object.entries(pageTitles)) {
@@ -188,9 +195,14 @@ export function AdminShell({ user, children }: AdminShellProps) {
       <aside className="hidden lg:flex w-[215px] shrink-0 flex-col bg-primary-800 text-white rounded-tr-[40px] shadow-lg sticky top-0 h-screen z-20">
         {/* Logo Brand */}
         <div className="flex items-center gap-3 px-5 pt-7 pb-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-xs shadow-xs">
-            <Coffee className="size-5" />
-          </div>
+          <Image
+            src="/logo-selaras.svg"
+            alt="Logo Kedai Kopi Selaras"
+            width={40}
+            height={40}
+            unoptimized
+            className="size-10 shrink-0 rounded-xl bg-white p-1"
+          />
           <div className="min-w-0">
             <h2 className="text-base font-bold tracking-tight text-white leading-tight">
               Selaras
@@ -227,9 +239,14 @@ export function AdminShell({ user, children }: AdminShellProps) {
           <SheetHeader className="px-5 pt-6 pb-2 text-left">
             <SheetTitle className="sr-only">Navigasi Admin</SheetTitle>
             <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white">
-                <Coffee className="size-5" />
-              </div>
+              <Image
+                src="/logo-selaras.svg"
+                alt="Logo Kedai Kopi Selaras"
+                width={40}
+                height={40}
+                unoptimized
+                className="size-10 shrink-0 rounded-xl bg-white p-1"
+              />
               <div>
                 <h2 className="text-base font-bold text-white leading-tight">
                   Selaras
