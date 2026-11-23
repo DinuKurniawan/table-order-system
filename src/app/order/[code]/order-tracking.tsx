@@ -447,6 +447,16 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           <span className="text-text-muted">Subtotal</span>
           <span className="text-text">{formatRupiah(data.subtotal)}</span>
         </div>
+        {data.discount > 0 && (
+          <div className="mt-1.5 flex items-center justify-between text-sm">
+            <span className="text-text-muted">
+              Diskon{data.voucherCode ? ` (${data.voucherCode})` : ""}
+            </span>
+            <span className="text-primary-700">
+              -{formatRupiah(data.discount)}
+            </span>
+          </div>
+        )}
         <div className="mt-1.5 flex items-center justify-between text-base font-bold">
           <span className="text-text-strong">Total</span>
           <span className="text-primary-800">{formatRupiah(data.total)}</span>

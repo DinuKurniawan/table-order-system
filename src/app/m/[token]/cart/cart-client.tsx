@@ -10,9 +10,9 @@ import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/admin/section-card";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2, ArrowLeft, Coffee } from "lucide-react";
+import { Minus, Plus, Trash2, ArrowLeft, Coffee, Loader2, X } from "lucide-react";
 import { hydrateCart, useCart, useCartHydrated } from "@/lib/cart-store";
-import type { CartItem, IceLevel, SugarLevel } from "@/lib/cart";
+import { VoucherQuotaOverlay } from "@/components/customer/voucher-quota-overlay";
 
 export default function CartPage({ token }: { token: string }) {
   return <CartContent token={token} />;
@@ -68,25 +68,37 @@ function CartContent({ token }: { token: string }) {
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const cartSignature = JSON.stringify(items);
 
-  // Kunci idempotensi berubah saat isi keranjang berubah, sehingga klik ganda
-  // pada checkout yang sama tidak membuat pesanan/ reservasi stok ganda.
+  // ============================================================
+  // Voucher: customer wajib mengetik sendiri, tanpa auto-apply.
+  // ============================================================
+  const [voucherInput, setVoucherInput] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    code: string;
+    subtotal: number;
+    discount: number;
+    total: number;
+    signature: string;
+  } | null>(null);
+  const [voucherError, setVoucherError] = useState("");
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [quotaOverlay, setQuotaOverlay] = useState<{
+    code: string;
+    total: number;
+  } | null>(null);
+  const voucherInputRef = useRef<HTMLInputElement>(null);
+  // Pratinjau diskon terikat pada isi keranjang; ubah keranjang = terapkan ulang.
+  const activeVoucher =
+    appliedVoucher?.signature === cartSignature ? appliedVoucher : null;
+  const voucherSignature = activeVoucher?.code ?? "";
+
+  // Kunci idempotensi berubah saat isi keranjang atau kode voucher berubah,
+  // sehingga klik ganda pada checkout yang sama tidak membuat pesanan ganda.
   useEffect(() => {
     idempotencyKeyRef.current = crypto.randomUUID();
-  }, [cartSignature]);
+  }, [cartSignature, voucherSignature]);
 
-  // ============================================================
-  // Submit order (POST /api/public/orders)
-  // ============================================================
-  const handleSubmit = async () => {
-    const name = customerName.trim();
-    if (!name) {
-      setNameError("Nama pelanggan wajib diisi");
-      return;
-    }
-    setNameError("");
-    setIsSaving(true);
-
-    const itemsForOrder = itemEntries.map((item) => ({
+  const buildOrderItems = () =>
+    itemEntries.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
       size: item.drink === true ? item.size : undefined,
@@ -120,6 +132,68 @@ function CartContent({ token }: { token: string }) {
           : item.note?.trim() || undefined,
     }));
 
+  const applyVoucher = async () => {
+    const code = voucherInput.trim().toUpperCase();
+    if (code.length < 4) {
+      setVoucherError("Kode voucher minimal 4 karakter");
+      return;
+    }
+    setVoucherError("");
+    setIsApplyingVoucher(true);
+    try {
+      const res = await fetch("/api/public/vouchers/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableToken: token,
+          code,
+          items: buildOrderItems(),
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setAppliedVoucher({ ...data.data, signature: cartSignature });
+        setVoucherInput(data.data.code);
+        return;
+      }
+
+      if (data?.error?.code === "VOUCHER_QUOTA_EXHAUSTED") {
+        setAppliedVoucher(null);
+        setVoucherError("");
+        setQuotaOverlay({ code, total: totalPrice });
+        return;
+      }
+
+      setAppliedVoucher(null);
+      setVoucherError(apiErrorMessage(data, "Kode voucher tidak valid"));
+    } catch {
+      setVoucherError("Gagal memeriksa kode voucher");
+    } finally {
+      setIsApplyingVoucher(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput("");
+    setVoucherError("");
+  };
+
+  // ============================================================
+  // Submit order (POST /api/public/orders)
+  // ============================================================
+  const handleSubmit = async () => {
+    const name = customerName.trim();
+    if (!name) {
+      setNameError("Nama pelanggan wajib diisi");
+      return;
+    }
+    setNameError("");
+    setIsSaving(true);
+
+    const itemsForOrder = buildOrderItems();
+
     const note = generalNote.trim();
 
     try {
@@ -135,6 +209,7 @@ function CartContent({ token }: { token: string }) {
           customerName: name,
           note,
           items: itemsForOrder,
+          ...(activeVoucher ? { voucherCode: activeVoucher.code } : {}),
         }),
       });
 
@@ -143,6 +218,12 @@ function CartContent({ token }: { token: string }) {
       if (res.ok) {
         // Success: redirect ke halaman order
         router.push(`/order/${data.code}`);
+      } else if (data?.error?.code === "VOUCHER_QUOTA_EXHAUSTED") {
+        const code = activeVoucher?.code ?? voucherInput.trim().toUpperCase();
+        setAppliedVoucher(null);
+        setVoucherError("");
+        setQuotaOverlay({ code, total: totalPrice });
+        idempotencyKeyRef.current = crypto.randomUUID();
       } else {
         toast.error(apiErrorMessage(data, "Gagal memesan"));
       }
@@ -164,17 +245,6 @@ function CartContent({ token }: { token: string }) {
     });
     setPendingDelete(null);
     setOpenItemId(null);
-  };
-
-  const setItemOption = (
-    key: string,
-    patch: Partial<Pick<CartItem, "sugar" | "ice">>
-  ) => {
-    setItems((prev) => {
-      const item = prev[key];
-      if (!item) return prev;
-      return { ...prev, [key]: { ...item, ...patch } };
-    });
   };
 
   const setItemNote = (key: string, note: string) => {
@@ -444,63 +514,6 @@ function CartContent({ token }: { token: string }) {
                       </div>
                     </div>
 
-                    {item.drink === true && (
-                      <div
-                        onPointerDown={(event) => event.stopPropagation()}
-                        className={
-                          item.temperature === "HOT"
-                            ? "grid w-full grid-cols-1 gap-2 border-t border-border pt-2"
-                            : "grid w-full grid-cols-2 gap-2 border-t border-border pt-2"
-                        }
-                      >
-                        <div>
-                          <label
-                            htmlFor={`sugar-${item.cartKey}`}
-                            className="text-xs font-medium text-text-muted"
-                          >
-                            Gula
-                          </label>
-                          <select
-                            id={`sugar-${item.cartKey}`}
-                            value={item.sugar ?? "REGULER"}
-                            onChange={(event) =>
-                              setItemOption(item.cartKey, {
-                                sugar: event.target.value as SugarLevel,
-                              })
-                            }
-                            className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                          >
-                            <option value="REGULER">Reguler</option>
-                            <option value="SEDIKIT">Sedikit</option>
-                            <option value="NO_SUGAR">No Sugar</option>
-                          </select>
-                        </div>
-                        {item.temperature !== "HOT" && (
-                          <div>
-                            <label
-                              htmlFor={`ice-${item.cartKey}`}
-                              className="text-xs font-medium text-text-muted"
-                            >
-                              Es batu
-                            </label>
-                            <select
-                              id={`ice-${item.cartKey}`}
-                              value={item.ice ?? "REGULER"}
-                              onChange={(event) =>
-                                setItemOption(item.cartKey, {
-                                  ice: event.target.value as IceLevel,
-                                })
-                              }
-                              className="mt-1 h-10 w-full rounded-lg border border-input bg-transparent px-2 text-sm text-text-strong outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                            >
-                              <option value="REGULER">Reguler</option>
-                              <option value="SEDIKIT">Sedikit</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {!item.drink && (
                       <div
                         onPointerDown={(event) => event.stopPropagation()}
@@ -530,21 +543,121 @@ function CartContent({ token }: { token: string }) {
             })}
           </div>
 
+          {/* Voucher: hanya aktif setelah customer mengetik dan menekan Terapkan */}
+          <div className="mt-6 border-t border-border pt-4">
+            <label
+              htmlFor="voucher-code"
+              className="mb-2 block text-sm font-medium"
+            >
+              Punya kode voucher?
+            </label>
+            {activeVoucher ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-primary-200/60 bg-primary-50 px-3 py-2.5">
+                <div className="min-w-0">
+                  <span className="block font-mono text-sm font-semibold tracking-wider text-primary-800">
+                    {activeVoucher.code}
+                  </span>
+                  <span className="text-xs text-primary-700">
+                    Diskon {formatRupiah(activeVoucher.discount)}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeVoucher}
+                  className="h-9 shrink-0 rounded-lg text-xs text-text-muted"
+                >
+                  <X className="mr-1 size-3.5" />
+                  Hapus
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  ref={voucherInputRef}
+                  id="voucher-code"
+                  value={voucherInput}
+                  onChange={(event) => {
+                    setVoucherInput(event.target.value.toUpperCase());
+                    if (voucherError) setVoucherError("");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      if (!isApplyingVoucher) void applyVoucher();
+                    }
+                  }}
+                  placeholder="Contoh: KOPI20"
+                  maxLength={24}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  aria-invalid={voucherError ? true : undefined}
+                  aria-describedby={
+                    voucherError ? "voucher-error" : undefined
+                  }
+                  className="h-11 w-full rounded-xl font-mono uppercase tracking-wider"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void applyVoucher()}
+                  disabled={isApplyingVoucher || !voucherInput.trim()}
+                  className="h-11 shrink-0 rounded-xl px-4"
+                >
+                  {isApplyingVoucher && (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  )}
+                  Terapkan
+                </Button>
+              </div>
+            )}
+            {voucherError && (
+              <p
+                id="voucher-error"
+                role="alert"
+                className="mt-1.5 text-xs text-destructive"
+              >
+                {voucherError}
+              </p>
+            )}
+          </div>
+
           {/* Ringkasan harga */}
           <div className="mt-6 pt-6 border-t border-border">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Total item</span>
-              <span>{totalItems}</span>
+              <span className="tabular-nums">{totalItems}</span>
             </div>
-            <div className="flex justify-between text-sm font-medium">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Subtotal</span>
+              <span className="tabular-nums">
+                {formatRupiah(activeVoucher?.subtotal ?? totalPrice)}
+              </span>
+            </div>
+            {activeVoucher && (
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted">
+                  Diskon ({activeVoucher.code})
+                </span>
+                <span className="tabular-nums text-primary-700">
+                  -{formatRupiah(activeVoucher.discount)}
+                </span>
+              </div>
+            )}
+            <div className="mt-1 flex justify-between text-sm font-medium">
               <span>Total harga</span>
-              <span className="text-primary">{formatRupiah(totalPrice)}</span>
+              <span className="text-primary tabular-nums">
+                {formatRupiah(activeVoucher?.total ?? totalPrice)}
+              </span>
             </div>
           </div>
 
           {/* Tombol Pesan & Bayar */}
           <Button
-            disabled={isSaving}
+            id="checkout-button"
+            disabled={isSaving || isApplyingVoucher}
             onClick={handleSubmit}
             className="w-full rounded-xl bg-primary-600 hover:bg-primary-700 text-white py-3 text-lg font-medium shadow-lg mt-4"
           >
@@ -600,6 +713,26 @@ function CartContent({ token }: { token: string }) {
             </div>
           </div>
         )}
+        <VoucherQuotaOverlay
+          open={quotaOverlay !== null}
+          code={quotaOverlay?.code ?? ""}
+          totalWithoutVoucher={quotaOverlay?.total ?? totalPrice}
+          onContinueWithoutVoucher={() => {
+            setQuotaOverlay(null);
+            setVoucherInput("");
+            setAppliedVoucher(null);
+            setTimeout(
+              () => document.getElementById("checkout-button")?.focus(),
+              0
+            );
+          }}
+          onChangeCode={() => {
+            setQuotaOverlay(null);
+            setVoucherInput("");
+            setAppliedVoucher(null);
+            setTimeout(() => voucherInputRef.current?.focus(), 0);
+          }}
+        />
       </SectionCard>
     </main>
   );

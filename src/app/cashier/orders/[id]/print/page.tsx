@@ -140,6 +140,25 @@ export default async function PrintOrderPage({
 
           <div className="my-2 border-t border-dashed border-black" />
 
+          {order.discount > 0 && (
+            <>
+              <div className="flex justify-between gap-2">
+                <span>SUBTOTAL</span>
+                <span className="tabular-nums">
+                  {formatRupiah(order.subtotal)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span>
+                  DISKON{order.voucherCode ? ` ${order.voucherCode}` : ""}
+                </span>
+                <span className="tabular-nums">
+                  -{formatRupiah(order.discount)}
+                </span>
+              </div>
+            </>
+          )}
+
           <div className="flex justify-between gap-2 text-sm font-bold">
             <span>TOTAL</span>
             <span className="tabular-nums">{formatRupiah(order.total)}</span>

@@ -53,6 +53,11 @@ enum StockMoveType {
   ORDER_RELEASE
 }
 
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
 model User {
   id            String      @id @default(cuid())
   name          String
@@ -141,6 +146,43 @@ model Table {
   createdAt DateTime @default(now())
 }
 
+model Voucher {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  description  String?
+  type         VoucherType
+  value        Int      // PERCENT: 1..100, FIXED: rupiah
+  maxDiscount  Int?     // cap untuk PERCENT
+  minSpend     Int      @default(0)
+  quota        Int?     // null = unlimited
+  usedCount    Int      @default(0)
+  startsAt     DateTime
+  endsAt       DateTime
+  isActive     Boolean  @default(true)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  redemptions  VoucherRedemption[]
+  orders       Order[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model VoucherRedemption {
+  id             String    @id @default(cuid())
+  voucherId      String
+  voucher        Voucher   @relation(fields: [voucherId], references: [id])
+  orderId        String    @unique
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  codeSnapshot   String
+  discountAmount Int
+  releasedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([voucherId, createdAt])
+  @@index([releasedAt])
+}
+
 model Order {
   id           String        @id @default(cuid())
   code         String        @unique // contoh: ORD-241116-A7K2
@@ -152,6 +194,11 @@ model Order {
   customerName String?
   note         String?
   subtotal     Int
+  discount     Int           @default(0)
+  voucherId    String?
+  voucher      Voucher?      @relation(fields: [voucherId], references: [id])
+  voucherCode  String?       // snapshot kode saat checkout
+  redemption   VoucherRedemption?
   total        Int
   status       OrderStatus   @default(AWAITING_PAYMENT)
   expiresAt    DateTime      // batas bayar

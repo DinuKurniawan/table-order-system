@@ -54,7 +54,7 @@ flowchart TD
 
 ## Fitur
 
-Status diambil dari kode yang ada di repositori per Step 22.
+Status diambil dari kode yang ada di repositori per Step 23.
 
 ### Super Admin
 
@@ -75,6 +75,7 @@ Status diambil dari kode yang ada di repositori per Step 22.
 | Manajemen stok & riwayat pergerakan | Selesai |
 | Laporan keuangan: ringkasan, grafik arus kas, jurnal manual, refund, ekspor CSV | Selesai |
 | Manajemen meja & QR code | Selesai |
+| Manajemen voucher diskon: kode manual/acak, kuota atomik, periode, riwayat pemakaian | Selesai |
 | Halaman pengaturan kafe | Selesai |
 | Infrastruktur realtime: Pusher server/client, auth endpoint, events constants, afterCommit helper | Selesai |
 | Cron kedaluwarsa pesanan (`/api/cron/expire-orders`, tiap menit) | Selesai |
@@ -95,6 +96,7 @@ Status diambil dari kode yang ada di repositori per Step 22.
 | --- | --- |
 | Halaman menu via QR meja | Selesai |
 | Keranjang & checkout | Selesai |
+| Kode voucher manual saat checkout, pratinjau diskon, overlay kuota habis | Selesai |
 | Upload bukti pembayaran | Selesai |
 | Unggah ulang bukti setelah ditolak & pembatalan pesanan | Selesai |
 | Pelacakan status pesanan realtime | Selesai |
@@ -270,7 +272,7 @@ Jangan menuliskan kata sandi asli di README atau repositori.
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/login/      # Halaman login
-│   │   ├── admin/             # Dashboard admin: menu, kasir, stok, keuangan, meja, pengaturan, audit
+│   │   ├── admin/             # Dashboard admin: menu, kasir, stok, keuangan, meja, voucher, pengaturan, audit
 │   │   ├── m/[token]/         # Menu & keranjang customer via QR meja
 │   │   ├── order/             # Halaman lacak pesanan customer + upload bukti
 │   │   ├── api/
@@ -373,6 +375,7 @@ Prisma → PostgreSQL
 | --- | --- |
 | [PRD.md](PRD.md) | Kebutuhan produk, peran, alur, dan daftar fitur |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layer, modul, alur data, dan keputusan teknis |
+| [docs/voucher-diskon.md](docs/voucher-diskon.md) | Spesifikasi voucher diskon: aturan bisnis, kuota atomik, API, dan integrasi UI |
 | [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) | Token warna, tipografi, radius, dan spesifikasi komponen |
 | [AI-AGENT.md](AI-AGENT.md) | Aturan kerja, konvensi kode, dan definition of done |
 | [AGENTS.md](AGENTS.md) | Catatan aturan otomatis untuk agen di repositori ini |
@@ -407,6 +410,7 @@ Prisma → PostgreSQL
 - [x] Step 20 - Modul keuangan: ringkasan, grafik arus kas, jurnal, refund, lampiran privat
 - [x] Step 21 - Pengujian end-to-end dan hardening (rate limit terdistribusi, CSP/header, CSRF, audit log, bukti bayar privat) - lihat `SECURITY-CHECKLIST.md`
 - [x] Step 22 - Kualitas: Vitest, Playwright E2E, Lighthouse mobile, aksesibilitas, seed demo 500 pesanan
+- [x] Step 23 - Voucher diskon: kode manual/acak, klaim kuota atomik, validasi checkout, overlay kuota habis
 
 ---
 
@@ -431,7 +435,7 @@ Tangkapan layar dari build produksi (`next start`) dengan data `prisma/seed.ts` 
 - **Bukti pembayaran disimpan di bucket privat.** URL publik langsung mengembalikan 404; akses hanya lewat presigned URL 60 detik dari endpoint kasir/admin. Rute upload admin hanya menerima preset `product`, `qris`, dan `attachment` ke bucket publik.
 - **Validasi di server, bukan hanya di klien.** Setiap endpoint memvalidasi input dengan Zod dan memeriksa role dengan `requireRole`.
 - **RBAC berlapis.** Middleware menyaring rute, service memeriksa ulang role; `tokenVersion` di database memungkinkan pencabutan sesi aktif.
-- **Rate limit terdistribusi.** Tabel PostgreSQL `RateLimit` dengan upsert atomik: login 5/15 menit per IP + username dan 20/15 menit per IP, checkout 20/menit per IP + 10/menit per meja, serta batas terpisah untuk menu, akses pesanan, bukti bayar, dan upload.
+- **Rate limit terdistribusi.** Tabel PostgreSQL `RateLimit` dengan upsert atomik: login 5/15 menit per IP + username dan 20/15 menit per IP, checkout 20/menit per IP + 10/menit per meja, validasi voucher 10/menit per IP + per meja, serta batas terpisah untuk menu, akses pesanan, bukti bayar, dan upload.
 - **CSRF & security headers.** `src/proxy.ts` menolak mutasi lintas situs; `next.config.ts` memasang CSP, HSTS (produksi), `X-Frame-Options`, `Referrer-Policy`, dan `Permissions-Policy`.
 - **Audit & error terpusat.** Aksi penting tercatat di `AuditLog` dan dapat difilter di `/admin/settings/audit`; `handleApiError` menyembunyikan detail internal dan logger meredaksi data sensitif.
 - **`.env` tidak pernah di-commit.** `.gitignore` mengabaikan `.env*` kecuali `.env.example`. Jangan menaruh rahasia asli di dokumentasi.

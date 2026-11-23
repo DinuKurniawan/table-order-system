@@ -11,6 +11,7 @@ import {
   emitStockChanges,
 } from "@/server/services/orders";
 import { releaseStock } from "@/server/services/stock";
+import { releaseVoucherForOrder } from "@/server/services/vouchers";
 import {
   HISTORY_STATUSES,
   PROCESSING_STATUSES,
@@ -26,6 +27,8 @@ export interface CashierOrderListItem {
   customerName: string | null;
   itemCount: number;
   total: number;
+  voucherCode: string | null;
+  discount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,6 +64,8 @@ export interface CashierOrderDetail {
   customerName: string | null;
   note: string | null;
   subtotal: number;
+  discount: number;
+  voucherCode: string | null;
   total: number;
   createdAt: string;
   expiresAt: string;
@@ -82,6 +87,8 @@ const listSelect = {
   status: true,
   customerName: true,
   total: true,
+  voucherCode: true,
+  discount: true,
   createdAt: true,
   updatedAt: true,
   table: { select: { name: true } },
@@ -99,6 +106,8 @@ function toListItem(
     customerName: order.customerName,
     itemCount: order._count.items,
     total: order.total,
+    voucherCode: order.voucherCode,
+    discount: order.discount,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };
@@ -172,6 +181,8 @@ export async function getCashierOrder(id: string): Promise<CashierOrderDetail> {
     customerName: order.customerName,
     note: order.note,
     subtotal: order.subtotal,
+    discount: order.discount,
+    voucherCode: order.voucherCode,
     total: order.total,
     createdAt: order.createdAt.toISOString(),
     expiresAt: order.expiresAt.toISOString(),
@@ -450,6 +461,12 @@ export async function rejectPayment(
     const changes = cancelled
       ? await releaseStock(tx, order.id, order.code)
       : [];
+    if (cancelled) {
+      await releaseVoucherForOrder(tx, {
+        orderId: order.id,
+        orderCode: order.code,
+      });
+    }
 
     after(() => {
       emitOrderStatus(order.code, nextStatus, order.version + 1);

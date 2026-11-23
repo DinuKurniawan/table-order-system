@@ -15,8 +15,10 @@ import { emitToChannel } from "@/lib/pusher-server";
 import { runInTransaction } from "@/lib/tx";
 import { getSettings } from "@/server/services/settings";
 import { reserveStockBatch } from "@/server/services/stock";
-import { cupSizeSchema, parseSizePrices, priceForSize } from "@/lib/size-pricing";
-import type { CupSize } from "@/lib/size-pricing";
+import { resolveOrderPricing } from "@/server/services/order-pricing";
+import { claimVoucher } from "@/server/services/vouchers";
+import { cupSizeSchema } from "@/lib/size-pricing";
+import { voucherCodeSchema } from "@/lib/voucher-code";
 import {
   deriveOrderAccessToken,
   generateOrderCode,
@@ -41,6 +43,7 @@ const orderSchema = z
       .min(1, "Nama pelanggan wajib diisi")
       .max(80, "Nama maksimal 80 karakter"),
     note: z.string().trim().max(300, "Catatan maksimal 300 karakter").optional(),
+    voucherCode: voucherCodeSchema.optional(),
     items: z
       .array(
         z.object({
@@ -61,19 +64,6 @@ const orderSchema = z
 interface CreatedOrder {
   code: string;
   accessToken: string;
-}
-
-function unitPriceFor(
-  product: {
-    price: number;
-    sizePrices: Prisma.JsonValue | null;
-    category: { type: string };
-  },
-  size: CupSize | undefined
-): number {
-  // Harga size hanya berlaku untuk minuman; produk makanan selalu harga dasar.
-  if (product.category.type !== "DRINK") return product.price;
-  return priceForSize(product.price, parseSizePrices(product.sizePrices), size);
 }
 
 function orderResponse(order: CreatedOrder, status: number, maxAgeSeconds: number) {
@@ -123,7 +113,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { tableToken, customerName, note, items } = validation.data;
+    const { tableToken, customerName, note, items, voucherCode } =
+      validation.data;
 
     const settings = await getSettings();
     if (!settings.isOrderingOpen) {
@@ -160,32 +151,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Ambil produk aktif dari DB; harga & stok tidak pernah dari client.
-    const productIds = items.map((item) => item.productId);
-    const products = await prisma.product.findMany({
-      where: {
-        id: { in: productIds },
-        deletedAt: null,
-        isActive: true,
-      },
-      include: { category: { select: { type: true } } },
-    });
-    const productMap = new Map(products.map((product) => [product.id, product]));
+    const { productMap, linePrices, subtotal } = await resolveOrderPricing(items);
 
     // Varian size/suhu boleh dikirim sebagai baris terpisah, jadi stok dicek
     // dari total quantity per produk, bukan per baris.
     const requiredQty = new Map<string, number>();
     for (const item of items) {
-      const product = productMap.get(item.productId);
-      if (!product) {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          "Salah satu produk tidak tersedia atau sudah tidak aktif",
-          400
-        );
-      }
-      if (item.size && product.category.type !== "DRINK") {
-        throw new AppError("VALIDATION_ERROR", "Size hanya untuk minuman", 400);
-      }
       requiredQty.set(
         item.productId,
         (requiredQty.get(item.productId) ?? 0) + item.quantity
@@ -201,17 +172,6 @@ export async function POST(req: Request) {
         );
       }
     }
-
-    // Harga per baris dihitung sekali dari data server, dipakai untuk subtotal
-    // dan priceSnapshot agar tidak ada jalur harga yang berbeda.
-    const linePrices = items.map((item) =>
-      unitPriceFor(productMap.get(item.productId)!, item.size)
-    );
-    const subtotal = items.reduce(
-      (sum, item, index) => sum + linePrices[index] * item.quantity,
-      0
-    );
-    const total = subtotal;
 
     const now = new Date();
     const timeoutMinutes = settings.timeoutBayarMenit;
@@ -239,6 +199,14 @@ export async function POST(req: Request) {
 
       try {
         await runInTransaction(async (tx, after) => {
+          // Klaim kuota atomik sebelum order dibuat. Jika kuota habis, seluruh
+          // transaksi batal: tidak ada order, stok, atau redemption yang tersisa.
+          const claim = voucherCode
+            ? await claimVoucher(tx, { code: voucherCode, subtotal })
+            : null;
+          const discount = claim?.discount ?? 0;
+          const total = subtotal - discount;
+
           const order = await tx.order.create({
             data: {
               code: orderCode,
@@ -252,6 +220,9 @@ export async function POST(req: Request) {
               expiresAt,
               version: 0,
               subtotal,
+              discount,
+              voucherId: claim?.voucherId ?? null,
+              voucherCode: claim?.code ?? null,
               total,
               items: {
                 create: items.map((item, index) => ({
@@ -264,6 +235,29 @@ export async function POST(req: Request) {
               },
             },
           });
+
+          if (claim) {
+            await tx.voucherRedemption.create({
+              data: {
+                voucherId: claim.voucherId,
+                orderId: order.id,
+                codeSnapshot: claim.code,
+                discountAmount: claim.discount,
+              },
+            });
+            await tx.auditLog.create({
+              data: {
+                action: "voucher.redeem",
+                entity: "Order",
+                entityId: order.id,
+                meta: {
+                  orderCode,
+                  voucherCode: claim.code,
+                  discount: claim.discount,
+                },
+              },
+            });
+          }
 
           const reservations = await reserveStockBatch(
             tx,
@@ -310,6 +304,8 @@ export async function POST(req: Request) {
               meta: {
                 code: orderCode,
                 tableName: table.name,
+                subtotal,
+                discount,
                 total,
                 itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
               },

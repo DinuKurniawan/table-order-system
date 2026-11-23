@@ -287,6 +287,12 @@ export function CashierDashboard() {
                     <ClipboardList className="size-3.5" />
                     {order.itemCount} item
                   </p>
+                  {order.voucherCode && (
+                    <p className="flex items-center gap-1.5">
+                      Voucher {order.voucherCode} · -
+                      {formatRupiah(order.discount)}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-primary-800">

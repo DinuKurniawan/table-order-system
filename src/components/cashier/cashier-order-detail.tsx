@@ -245,6 +245,25 @@ export function CashierOrderDetail({ initial }: { initial: OrderDetail }) {
                 </p>
               </div>
             )}
+            {order.discount > 0 && (
+              <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">Subtotal</span>
+                  <span className="tabular-nums text-text">
+                    {formatRupiah(order.subtotal)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted">
+                    Diskon
+                    {order.voucherCode ? ` (${order.voucherCode})` : ""}
+                  </span>
+                  <span className="tabular-nums text-primary-700">
+                    -{formatRupiah(order.discount)}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <span className="text-sm font-semibold text-text-muted">Total</span>
               <span className="text-2xl font-bold text-primary-800">

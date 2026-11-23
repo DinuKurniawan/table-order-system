@@ -12,6 +12,7 @@ import { accessTokenMatches } from "@/lib/order-token";
 import { getSettings } from "@/server/services/settings";
 import { CANCELLABLE_BY_CUSTOMER } from "@/server/domain/order-state";
 import { releaseStock, type StockChange } from "@/server/services/stock";
+import { releaseVoucherForOrder } from "@/server/services/vouchers";
 import {
   listPaymentMethods,
   type PaymentMethodDTO,
@@ -37,6 +38,8 @@ export interface CustomerOrderDTO {
   note: string | null;
   tableName: string;
   subtotal: number;
+  discount: number;
+  voucherCode: string | null;
   total: number;
   expiresAt: string;
   createdAt: string;
@@ -118,6 +121,8 @@ export async function getCustomerOrder(
     note: order.note,
     tableName: order.table.name,
     subtotal: order.subtotal,
+    discount: order.discount,
+    voucherCode: order.voucherCode,
     total: order.total,
     expiresAt: order.expiresAt.toISOString(),
     createdAt: order.createdAt.toISOString(),
@@ -396,6 +401,7 @@ export async function cancelOrderByCustomer(
       },
     });
     const released = await releaseStock(tx, order.id, code);
+    await releaseVoucherForOrder(tx, { orderId: order.id, orderCode: code });
 
     after(() => {
       emitOrderStatus(code, "CANCELLED", order.version + 1);
@@ -450,6 +456,10 @@ export async function expireOrders(
         },
       });
       const released = await releaseStock(tx, order.id, order.code);
+      await releaseVoucherForOrder(tx, {
+        orderId: order.id,
+        orderCode: order.code,
+      });
 
       after(() => {
         emitOrderStatus(order.code, "CANCELLED", order.version + 1);

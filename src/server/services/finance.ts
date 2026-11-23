@@ -19,6 +19,7 @@ import {
   emitStockChanges,
 } from "@/server/services/orders";
 import { releaseStock } from "@/server/services/stock";
+import { releaseVoucherForOrder } from "@/server/services/vouchers";
 import { CANCELLABLE_BY_ADMIN } from "@/server/domain/order-state";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -604,6 +605,10 @@ export async function cancelAcceptedOrder(
     });
 
     const changes = await releaseStock(tx, order.id, order.code);
+    await releaseVoucherForOrder(tx, {
+      orderId: order.id,
+      orderCode: order.code,
+    });
 
     after(() => {
       emitOrderStatus(order.code, "CANCELLED", order.version + 1);
