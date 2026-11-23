@@ -149,10 +149,11 @@ export function AdminShell({ user, children }: AdminShellProps) {
     setIsLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
-    } catch {
-      setIsLoggingOut(false);
+    } finally {
+      // Hard reload: Next 16 cacheComponents menyimpan halaman admin di
+      // <Activity>, sehingga navigasi client bisa kembali ke dashboard lama
+      // walau cookie sesi sudah dihapus server.
+      window.location.replace("/login");
     }
   };
 
