@@ -117,6 +117,10 @@ export async function getSessionPayload(): Promise<SessionPayload | null> {
  * SEC-14: logout tetap stateless (tidak menaikkan tokenVersion) agar sesi di
  * perangkat lain tidak ikut terputus. Nama lama ikut dihapus untuk membersihkan
  * cookie setelah deploy yang mengganti nama cookie.
+ *
+ * Cookie hapus wajib memakai atribut yang sama dengan saat dibuat (Secure,
+ * Path=/, tanpa Domain). Tanpa `Secure`, browser menolak menghapus cookie
+ * ber-prefix `__Host-` sehingga sesi produksi tetap hidup setelah logout.
  */
 export async function destroySession(response?: NextResponse): Promise<void> {
   const names = [
@@ -125,13 +129,24 @@ export async function destroySession(response?: NextResponse): Promise<void> {
       ? []
       : [SESSION_COOKIE_BASE_NAME]),
   ];
+  const deleteOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 0,
+  };
 
   if (response) {
-    for (const name of names) response.cookies.delete(name);
+    for (const name of names) {
+      response.cookies.set(name, "", deleteOptions);
+    }
   } else {
     try {
       const cookieStore = await cookies();
-      for (const name of names) cookieStore.delete(name);
+      for (const name of names) {
+        cookieStore.set(name, "", deleteOptions);
+      }
     } catch {
       // Abaikan jika di luar request scope
     }
