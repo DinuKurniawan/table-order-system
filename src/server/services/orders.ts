@@ -206,6 +206,47 @@ export async function getCustomerOrder(
   };
 }
 
+export interface TrackedOrderDTO {
+  code: string;
+  status: OrderStatus;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/**
+ * Lacak pesanan publik tanpa access token: nama pemesan + nomor meja,
+ * dibatasi ke jendela waktu pendek oleh pemanggil. Hanya field status yang
+ * boleh keluar; item, total, pembayaran, dan catatan tidak pernah di-select.
+ */
+export async function trackOrdersByCustomer(input: {
+  name: string;
+  tableName: string;
+  since: Date;
+}): Promise<TrackedOrderDTO[]> {
+  const orders = await prisma.order.findMany({
+    where: {
+      customerName: { equals: input.name, mode: "insensitive" },
+      table: { name: { equals: input.tableName, mode: "insensitive" } },
+      createdAt: { gte: input.since },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      code: true,
+      status: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+  });
+
+  return orders.map((order) => ({
+    code: order.code,
+    status: order.status,
+    createdAt: order.createdAt.toISOString(),
+    expiresAt: order.expiresAt.toISOString(),
+  }));
+}
+
 export function emitOrderStatus(code: string, status: OrderStatus, version: number): void {
   const payload = { orderCode: code, status, version };
   emitToChannel(CHANNELS.order(code), REALTIME_EVENTS.orderStatusChanged, payload);

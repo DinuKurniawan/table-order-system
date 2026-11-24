@@ -49,6 +49,17 @@ export async function listTables(): Promise<TableDTO[]> {
   return tables.map(toDTO);
 }
 
+/** Nama meja aktif untuk pilihan form lacak pesanan publik. */
+export async function listActiveTableNames(): Promise<string[]> {
+  const tables = await prisma.table.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+
+  return tables.map((table) => table.name);
+}
+
 /** Token meja aktif pertama, dipakai root agar langsung membuka menu. */
 export const findFirstActiveTableToken = cacheable(
   async (): Promise<string | null> => {

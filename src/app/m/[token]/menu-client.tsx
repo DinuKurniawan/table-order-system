@@ -6,7 +6,7 @@ import { apiErrorMessage } from "@/lib/api-error";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingBag, Coffee, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ShoppingBag, Coffee, ChevronLeft, ChevronRight, PackageSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -180,28 +180,37 @@ export function MenuClient({
         aria-label="Kategori menu"
         className="sticky top-[68px] z-10 border-b border-border bg-white px-4 shadow-sm"
       >
-        <div className="flex w-full gap-1 overflow-x-auto py-2">
-          {CATEGORY_TABS.map((tab) => {
-            const active = categoryFilter === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => {
-                  setCategoryFilter(tab.value);
-                  setPage(1);
-                }}
-                className={`min-h-11 shrink-0 rounded-xl px-3 text-xs font-semibold transition-colors ${
-                  active
-                    ? "bg-primary-600 text-white"
-                    : "border border-border bg-surface text-text-muted"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="flex w-full items-center gap-2 py-2">
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {CATEGORY_TABS.map((tab) => {
+              const active = categoryFilter === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setCategoryFilter(tab.value);
+                    setPage(1);
+                  }}
+                  className={`min-h-11 shrink-0 rounded-xl px-3 text-xs font-semibold transition-colors ${
+                    active
+                      ? "bg-primary-600 text-white"
+                      : "border border-border bg-surface text-text-muted"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <Link
+            href={`/lacak?meja=${encodeURIComponent(token)}`}
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-primary/20 bg-primary-50 px-3 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100"
+          >
+            <PackageSearch className="size-4" />
+            Lacak Pesanan
+          </Link>
         </div>
       </nav>
 
