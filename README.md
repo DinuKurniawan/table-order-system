@@ -180,6 +180,7 @@ Catatan:
 - Pusher dinonaktifkan saat testing (`DISABLE_REALTIME=true`). Untuk menguji realtime lokal, sediakan app Pusher test terpisah.
 - `.env` tetap dipakai untuk build/deploy produksi, bukan untuk testing lokal. `npm run build`, `npm run start`, `npm run db:migrate`, dan `npm run db:seed` membaca `.env`; jangan jalankan untuk testing lokal. Gunakan `npm run dev` dan `npm run db:test:prepare`.
 - Variabel lingkungan divalidasi Zod di `src/lib/env.ts`; aplikasi gagal start bila variabel wajib kosong.
+- Unggah gambar langsung dari browser ke R2 memerlukan CORS di kedua bucket. Setelah `APP_BASE_URL` dan `ALLOWED_ORIGINS` produksi benar, jalankan `node --env-file=.env.production scripts/set-r2-cors.mjs` (atau `npm run r2:cors` dengan env yang sudah dimuat). Origin yang diizinkan: `APP_BASE_URL` + `ALLOWED_ORIGINS`; metode `GET`, `HEAD`, `PUT`; header `*`. Tanpa ini, preflight `OPTIONS` ke R2 dibalas `403` dan unggahan gagal.
 
 ---
 
