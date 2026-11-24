@@ -36,6 +36,7 @@ import {
 import { EmptyState } from "@/components/admin/empty-state";
 import { PillBadge } from "@/components/admin/pill-badge";
 import { ImageUploader } from "@/components/image-uploader";
+import { BANKS, bankBySlug, bankLogoUrl, bankSlugFromLabel } from "@/lib/banks";
 import { parseStaticQris } from "@/lib/qris";
 
 type PaymentMethod = {
@@ -193,6 +194,11 @@ export function PaymentMethodsManager() {
     event.preventDefault();
     if (!draft) return;
 
+    if (draft.kind === "BANK" && !bankSlugFromLabel(draft.label)) {
+      toast.error("Pilih bank");
+      return;
+    }
+
     if (!draft.label.trim()) {
       toast.error("Label wajib diisi");
       return;
@@ -297,9 +303,21 @@ export function PaymentMethodsManager() {
                   </span>
                 )
               ) : (
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted text-text-muted">
-                  <Landmark className="size-5" />
-                </span>
+                (() => {
+                  const slug = bankSlugFromLabel(method.label);
+                  return slug ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- logo bank statis
+                    <img
+                      src={bankLogoUrl(slug)}
+                      alt={method.label}
+                      className="size-12 shrink-0 rounded-lg border border-border bg-white object-contain p-1"
+                    />
+                  ) : (
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-muted text-text-muted">
+                      <Landmark className="size-5" />
+                    </span>
+                  );
+                })()
               )}
 
               <div className="min-w-0 flex-1">
@@ -439,11 +457,14 @@ export function PaymentMethodsManager() {
                         setDraft({
                           ...draft,
                           kind: (value as Draft["kind"]) ?? "QRIS",
+                          label: "",
                         })
                       }
                     >
                       <SelectTrigger aria-label="Jenis metode pembayaran" className="rounded-xl h-10 w-full">
-                        <SelectValue placeholder="Pilih jenis" />
+                        <SelectValue placeholder="Pilih jenis">
+                          {(value) => (value === "BANK" ? "Transfer Bank" : "QRIS")}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="QRIS">QRIS</SelectItem>
@@ -453,23 +474,72 @@ export function PaymentMethodsManager() {
                   )}
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="payment-label" className="text-xs font-semibold">
-                    Label
-                  </Label>
-                  <Input
-                    id="payment-label"
-                    value={draft.label}
-                    maxLength={80}
-                    onChange={(event) =>
-                      setDraft({ ...draft, label: event.target.value })
-                    }
-                    placeholder={
-                      draft.kind === "QRIS" ? "QRIS Utama" : "Bank BCA"
-                    }
-                    className="rounded-xl h-10"
-                  />
-                </div>
+                {draft.kind === "BANK" ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Bank</Label>
+                    <Select
+                      value={bankSlugFromLabel(draft.label)}
+                      onValueChange={(value) => {
+                        const bank = BANKS.find((item) => item.slug === value);
+                        if (bank) setDraft({ ...draft, label: bank.name });
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label="Pilih bank"
+                        className="rounded-xl h-10 w-full"
+                      >
+                        <SelectValue placeholder="Pilih bank">
+                          {(value) => {
+                            const bank = bankBySlug(
+                              typeof value === "string" ? value : null
+                            );
+                            if (!bank) return "Pilih bank";
+                            return (
+                              <span className="flex items-center gap-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element -- logo bank statis */}
+                                <img
+                                  src={bankLogoUrl(bank.slug)}
+                                  alt=""
+                                  className="size-5 shrink-0 rounded-sm bg-white object-contain"
+                                />
+                                {bank.name}
+                              </span>
+                            );
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANKS.map((bank) => (
+                          <SelectItem key={bank.slug} value={bank.slug}>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- logo bank statis */}
+                            <img
+                              src={bankLogoUrl(bank.slug)}
+                              alt=""
+                              className="size-5 shrink-0 rounded-sm bg-white object-contain"
+                            />
+                            {bank.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="payment-label" className="text-xs font-semibold">
+                      Label
+                    </Label>
+                    <Input
+                      id="payment-label"
+                      value={draft.label}
+                      maxLength={80}
+                      onChange={(event) =>
+                        setDraft({ ...draft, label: event.target.value })
+                      }
+                      placeholder="QRIS Utama"
+                      className="rounded-xl h-10"
+                    />
+                  </div>
+                )}
 
                 {draft.kind === "QRIS" ? (
                   <>
