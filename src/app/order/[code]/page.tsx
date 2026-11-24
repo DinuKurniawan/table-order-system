@@ -16,22 +16,32 @@ export const metadata: Metadata = {
 
 export default function OrderPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ metode?: string | string[] }>;
 }) {
   return (
     <main className="min-h-screen bg-app px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-xl">
         <React.Suspense fallback={<TrackingSkeleton />}>
-          <OrderGate params={params} />
+          <OrderGate params={params} searchParams={searchParams} />
         </React.Suspense>
       </div>
     </main>
   );
 }
 
-async function OrderGate({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = await params;
+async function OrderGate({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ metode?: string | string[] }>;
+}) {
+  const [{ code }, query] = await Promise.all([params, searchParams]);
+  const preferredMethodId =
+    typeof query.metode === "string" ? query.metode : undefined;
   const cookieStore = await cookies();
   const token = cookieStore.get(orderAccessCookieName(code))?.value;
 
@@ -50,7 +60,9 @@ async function OrderGate({ params }: { params: Promise<{ code: string }> }) {
     return <AccessForm code={code} invalid />;
   }
 
-  return <OrderTracking initial={order} />;
+  return (
+    <OrderTracking initial={order} preferredMethodId={preferredMethodId} />
+  );
 }
 
 function TrackingSkeleton() {

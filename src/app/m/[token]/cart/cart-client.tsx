@@ -8,17 +8,41 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/admin/section-card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatRupiah } from "@/lib/utils";
 import { toast } from "sonner";
 import { Minus, Plus, Trash2, ArrowLeft, Coffee, Loader2, X } from "lucide-react";
 import { hydrateCart, useCart, useCartHydrated } from "@/lib/cart-store";
 import { VoucherQuotaOverlay } from "@/components/customer/voucher-quota-overlay";
 
-export default function CartPage({ token }: { token: string }) {
-  return <CartContent token={token} />;
+export default function CartPage({
+  token,
+  paymentMethods,
+}: {
+  token: string;
+  paymentMethods: PaymentMethodOption[];
+}) {
+  return <CartContent token={token} paymentMethods={paymentMethods} />;
 }
 
-function CartContent({ token }: { token: string }) {
+interface PaymentMethodOption {
+  id: string;
+  label: string;
+}
+
+function CartContent({
+  token,
+  paymentMethods,
+}: {
+  token: string;
+  paymentMethods: PaymentMethodOption[];
+}) {
   const router = useRouter();
 
   // ============================================================
@@ -53,6 +77,8 @@ function CartContent({ token }: { token: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [nameError, setNameError] = useState("");
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [paymentMethodError, setPaymentMethodError] = useState("");
   const [generalNote, setGeneralNote] = useState("");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
@@ -190,6 +216,13 @@ function CartContent({ token }: { token: string }) {
       return;
     }
     setNameError("");
+
+    if (paymentMethods.length > 0 && !paymentMethodId) {
+      setPaymentMethodError("Pilih metode pembayaran");
+      return;
+    }
+    setPaymentMethodError("");
+
     setIsSaving(true);
 
     const itemsForOrder = buildOrderItems();
@@ -217,7 +250,10 @@ function CartContent({ token }: { token: string }) {
 
       if (res.ok) {
         // Success: redirect ke halaman order
-        router.push(`/order/${data.code}`);
+        const methodQuery = paymentMethodId
+          ? `?metode=${encodeURIComponent(paymentMethodId)}`
+          : "";
+        router.push(`/order/${data.code}${methodQuery}`);
       } else if (data?.error?.code === "VOUCHER_QUOTA_EXHAUSTED") {
         const code = activeVoucher?.code ?? voucherInput.trim().toUpperCase();
         setAppliedVoucher(null);
@@ -359,6 +395,60 @@ function CartContent({ token }: { token: string }) {
                   className="mt-1 text-xs text-destructive"
                 >
                   {nameError}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="payment-method"
+                className="mb-2 block text-sm font-medium"
+              >
+                Metode pembayaran <span className="text-destructive">*</span>
+              </label>
+              <Select
+                items={paymentMethods.map((method) => ({
+                  label: method.label,
+                  value: method.id,
+                }))}
+                value={paymentMethodId}
+                onValueChange={(value) => {
+                  setPaymentMethodId(value ?? "");
+                  if (paymentMethodError) setPaymentMethodError("");
+                }}
+                disabled={isSaving || paymentMethods.length === 0}
+              >
+                <SelectTrigger
+                  id="payment-method"
+                  aria-label="Metode pembayaran"
+                  aria-invalid={paymentMethodError ? true : undefined}
+                  aria-describedby={
+                    paymentMethodError ? "payment-method-error" : undefined
+                  }
+                  className="h-11 w-full rounded-xl"
+                >
+                  <SelectValue placeholder="Pilih metode pembayaran" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.id} value={method.id}>
+                      {method.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {paymentMethods.length === 0 && (
+                <p className="mt-1 text-xs text-destructive">
+                  Belum ada metode pembayaran aktif. Hubungi kasir.
+                </p>
+              )}
+              {paymentMethodError && (
+                <p
+                  id="payment-method-error"
+                  role="alert"
+                  className="mt-1 text-xs text-destructive"
+                >
+                  {paymentMethodError}
                 </p>
               )}
             </div>

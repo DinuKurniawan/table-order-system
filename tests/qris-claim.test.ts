@@ -177,4 +177,27 @@ test("QRIS: klaim tanpa bukti, kasir approve, payload tidak bocor", async (t) =>
       false
     );
   });
+
+  await t.test("5. QRIS gambar statis tanpa payload tetap bisa diklaim", async () => {
+    await prisma.paymentMethod.update({
+      where: { id: method.id },
+      data: {
+        qrisPayload: null,
+        imageKey: `qris/${"a".repeat(16)}.webp`,
+      },
+    });
+
+    const { order, code, token } = await makeOrder();
+    const dto = await getCustomerOrder(code, token);
+    assert.equal(dto.qris, null, "tanpa payload, tidak ada QR dinamis");
+
+    const claimed = await claimQrisPayment(code, token);
+    assert.equal(claimed.status, "AWAITING_VERIFICATION");
+
+    const payment = await prisma.payment.findFirstOrThrow({
+      where: { orderId: order.id },
+    });
+    assert.equal(payment.method, "QRIS");
+    assert.equal(payment.proofKey, null);
+  });
 });

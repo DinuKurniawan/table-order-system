@@ -476,21 +476,29 @@ export async function claimQrisPayment(
   const { order, maxAttempts } = await assertProofUploadAllowed(code, token);
 
   const method = await prisma.paymentMethod.findFirst({
-    where: { kind: "QRIS", isActive: true, qrisPayload: { not: null } },
+    where: {
+      kind: "QRIS",
+      isActive: true,
+      // QRIS statis boleh hanya berupa gambar; payload hanya dipakai untuk
+      // QR dinamis. Minimal salah satu instruksi harus ada.
+      OR: [{ qrisPayload: { not: null } }, { imageKey: { not: null } }],
+    },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
     select: { id: true, qrisPayload: true },
   });
-  if (!method?.qrisPayload) {
+  if (!method) {
     throw new AppError("CONFLICT", "Pembayaran QRIS belum tersedia", 409);
   }
-  try {
-    buildDynamicQris(method.qrisPayload, order.total);
-  } catch {
-    throw new AppError(
-      "CONFLICT",
-      "Payload QRIS tidak valid. Hubungi admin.",
-      409
-    );
+  if (method.qrisPayload) {
+    try {
+      buildDynamicQris(method.qrisPayload, order.total);
+    } catch {
+      throw new AppError(
+        "CONFLICT",
+        "Payload QRIS tidak valid. Hubungi admin.",
+        409
+      );
+    }
   }
 
   const result = await runInTransaction(async (tx, after) => {

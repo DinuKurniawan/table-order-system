@@ -62,7 +62,13 @@ async function fetchOrder(code: string): Promise<CustomerOrderDTO> {
   return json as CustomerOrderDTO;
 }
 
-export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
+export function OrderTracking({
+  initial,
+  preferredMethodId,
+}: {
+  initial: CustomerOrderDTO;
+  preferredMethodId?: string;
+}) {
   const { code } = initial;
   const queryClient = useQueryClient();
   const queryKey = ["customer-order", code];
@@ -109,6 +115,7 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
   const [cancelling, setCancelling] = React.useState(false);
   const [qrisStage, setQrisStage] = React.useState<QrisOverlayStage>(null);
   const [claimingQris, setClaimingQris] = React.useState(false);
+  const [showAllMethods, setShowAllMethods] = React.useState(false);
   const reminderKey = `qris-reminder:${code}`;
 
   async function submitProof() {
@@ -214,7 +221,22 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
 
   const showPaySection =
     data.status === "AWAITING_PAYMENT" || data.status === "PAYMENT_REJECTED";
-  const hasBank = data.paymentMethods.some(
+  const preferredMethod = preferredMethodId
+    ? data.paymentMethods.find((method) => method.id === preferredMethodId)
+    : undefined;
+  const showChosenOnly = !showAllMethods && preferredMethod !== undefined;
+  const visibleMethods = showChosenOnly
+    ? [preferredMethod]
+    : data.paymentMethods;
+  // Opsi lain hanya ditawarkan bila benar-benar bisa dipakai.
+  const hasAlternativeMethod = data.paymentMethods.some(
+    (method) =>
+      method.id !== preferredMethod?.id &&
+      (method.kind === "QRIS"
+        ? data.qris?.methodId === method.id || Boolean(method.imageUrl)
+        : Boolean(method.accountNo))
+  );
+  const hasBank = visibleMethods.some(
     (method) => method.kind === "BANK" && method.accountNo
   );
   const qrisVisible = showPaySection && !dead && data.qris !== null;
@@ -363,9 +385,10 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
           </div>
 
           <div className="mt-5 space-y-4">
-            {data.paymentMethods.map((method) => {
+            {visibleMethods.map((method) => {
               if (method.kind === "QRIS") {
-                if (!data.qris || data.qris.methodId !== method.id) return null;
+                const dynamicQris =
+                  data.qris?.methodId === method.id ? data.qris : null;
                 return (
                   <div
                     key={method.id}
@@ -377,20 +400,44 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
                     </div>
 
                     <div className="mt-3 flex flex-col items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- QR dinamis (data URL) dari server */}
-                      <img
-                        src={data.qris.dataUrl}
-                        alt={`QRIS ${method.label} untuk ${formatRupiah(data.total)}`}
-                        className="size-56 rounded-xl border border-border bg-white object-contain p-2"
-                      />
-                      <p className="text-xs text-text-muted">
-                        Nominal otomatis terisi: {formatRupiah(data.total)}
-                      </p>
+                      {dynamicQris ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- QR dinamis (data URL) dari server */}
+                          <img
+                            src={dynamicQris.dataUrl}
+                            alt={`QRIS ${method.label} untuk ${formatRupiah(data.total)}`}
+                            className="size-56 rounded-xl border border-border bg-white object-contain p-2"
+                          />
+                          <p className="text-xs text-text-muted">
+                            Nominal otomatis terisi:{" "}
+                            {formatRupiah(data.total)}
+                          </p>
+                        </>
+                      ) : method.imageUrl ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- gambar QRIS statis dari R2 */}
+                          <img
+                            src={method.imageUrl}
+                            alt={`QRIS ${method.label}`}
+                            className="size-56 rounded-xl border border-border bg-white object-contain p-2"
+                          />
+                          <p className="text-xs text-text-muted">
+                            Masukkan nominal {formatRupiah(data.total)} secara
+                            manual saat membayar.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="rounded-lg bg-destructive/5 p-3 text-xs text-destructive">
+                          QRIS belum siap: gambar dan payload QRIS belum diatur.
+                          Pilih metode lain atau hubungi kasir.
+                        </p>
+                      )}
                     </div>
 
                     <Button
                       type="button"
                       className="mt-3 h-11 w-full"
+                      disabled={!dynamicQris && !method.imageUrl}
                       onClick={() => setQrisStage("confirm")}
                     >
                       Saya sudah bayar
@@ -434,6 +481,17 @@ export function OrderTracking({ initial }: { initial: CustomerOrderDTO }) {
               );
             })}
           </div>
+
+          {showChosenOnly && hasAlternativeMethod && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mt-3 h-10 w-full text-xs text-text-muted"
+              onClick={() => setShowAllMethods(true)}
+            >
+              Ganti metode pembayaran
+            </Button>
+          )}
 
           {hasBank && (
             <div className="mt-5 border-t border-border/60 pt-5">
